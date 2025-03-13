@@ -1,0 +1,38 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: Go Unit Test
+
+on:
+  push:
+    branches: [ "*" ]
+  pull_request:
+    branches: [ "*" ]
+  workflow_dispatch:
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.20'
+
+    - name: Install Dependencies
+      run: go get .
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Test
+      run: go test -json -v ./... > Go_Test_Results.json
+
+    - name: Upload Test Result
+      uses: actions/upload-artifact@v4
+      with:
+        name: Go_Test_Results
+        path: Go_Test_Results.json
