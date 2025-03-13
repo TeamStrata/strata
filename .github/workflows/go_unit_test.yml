@@ -29,7 +29,7 @@ jobs:
       run: go build -v ./...
 
     - name: Test
-      run: go test -json -v ./... > Go_Test_Results.json
+      run: go test -json -v ./... | tee Go_Test_Results.json
 
     - name: Upload Test Result
       uses: actions/upload-artifact@v4
