@@ -1,4 +1,4 @@
-module github.com/TeamStrata/backend
+module github.com/TeamStrata/strata
 
 go 1.24.0
 
