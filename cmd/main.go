@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/TeamStrata/strata/api"
+	"github.com/TeamStrata/strata/pkg/api"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
