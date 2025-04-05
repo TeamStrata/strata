@@ -28,6 +28,7 @@ ADD --chown=strata . /opt/strata
 
 # Install required Go Dependencies
 RUN go install ./cmd
+
 # Build the project
 RUN go build -o strata ./cmd
 

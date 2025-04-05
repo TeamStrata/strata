@@ -44,6 +44,10 @@ func main() {
 	server.POST("/logout", api.LogoutHandler(users))
 	server.POST("/auth", api.AuthHandler(users))
 	server.GET("/ping", api.PingHandler)
+	// Query Endpoints
+	server.GET("/query/read/:qid", api.ReadQueryLiteralHandler(db)) // Return the query SQL string
+	server.GET("/query/execute/:qid", api.ExecuteQueryHandler(db)) // Execute a saved query (custom or standard saved queries)
+	server.POST("/query/save", api.SaveQueryHandler(db))
 
 	err = server.Run(":8080")
 	if err != nil {

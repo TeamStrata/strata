@@ -1,17 +1,4 @@
 services:
-  strata:
-    depends-on: postgres
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    container_name: strata
-    image: strata:live
-    ports:
-      - 8080:8080
-    working_dir: /opt/strata
-    volumes:
-      - ./:/opt/strata
-
   postgres:
     image: postgres:latest
     container_name: strata_psql
@@ -24,3 +11,18 @@ services:
       POSTGRES_DB: strata
       POSTGRES_USER: strata
       POSTGRES_PASSWORD: atarts
+      
+  strata:
+    depends_on:
+      postgres:
+        condition: service_started
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: strata
+    image: strata:live
+    ports:
+      - 8080:8080
+    working_dir: /opt/strata
+    volumes:
+      - ./:/opt/strata
