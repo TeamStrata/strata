@@ -26,3 +26,23 @@ services:
     working_dir: /opt/strata
     volumes:
       - ./:/opt/strata
+
+# This is a dev container for strata, used for live compiling and stuff
+  strata-dev:
+    stdin_open: true
+    tty: true
+    entrypoint: /bin/bash
+    depends_on:
+      postgres:
+        condition: service_started
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: strata-dev
+    image: strata:live
+    ports:
+      - 8081:8080
+    working_dir: /opt/strata
+    volumes:
+      - ./:/opt/strata
+

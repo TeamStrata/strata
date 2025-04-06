@@ -140,17 +140,3 @@ func addNewUUID(username string, users map[string]string) string {
 	users[newId] = username
 	return newId
 }
-
- // Return the query SQL string
-func ReadQueryLiteralHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {}
-}
-
-// Execute a saved query (custom or standard saved queries)
-func ExecuteQueryHandler(d *database.DbManager) gin.HandlerFunc { 
-	return func(c *gin.Context) {}
-}
-
-func SaveQueryHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {}
-}
