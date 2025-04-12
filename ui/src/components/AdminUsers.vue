@@ -42,7 +42,7 @@ function addUser() {
     <div class="static" v-if="addModal">
         <div class="bg-black/20 w-screen h-screen absolute left-0 top-0 backdrop-blur-xs" @click="addModal = false">
         </div>
-        <div class="bg-white p-5 mx-auto absolute rounded-lg">
+        <div class="bg-white p-5 left-1/2 transform -translate-x-1/2 top-1/3 -translate-y-1/2 absolute rounded-lg">
             <h1>Add User</h1>
             <div>
                 <label for="newUser">Username:</label>
@@ -52,7 +52,10 @@ function addUser() {
                 <label for="newPass">Password:</label>
                 <input id="newPass" type="password" v-model="newPassword">
             </div>
-            <button class="bg-blue-100 rounded-sm w-fit px-2 cursor-pointer" @click="addUser">Add User</button>
+            <div class="flex flex-row justify-between mt-4">
+                <button class="bg-neutral-200 px-2 rounded-sm cursor-pointer" @click="addModal = false">Cancel</button>
+                <button class="bg-blue-100 rounded-sm w-fit px-2 cursor-pointer" @click="addUser">Add User</button>
+            </div>
 
         </div>
     </div>
