@@ -9,9 +9,11 @@ import { RouterLink, RouterView } from 'vue-router';
     <button class="absolute left-40 top-10 cursor-pointer" @click="router.push('/')">Back</button>
     <div class="flex flex-row max-w-[1000px] mx-auto h-screen p-20">
         <!-- sidebar -->
-        <div class="bg-red-400 w-3xs h-full p-5">
+        <div class="w-3xs h-full p-5 flex flex-col">
             <RouterLink to="/admin/users">Users Button</RouterLink>
+            <RouterLink to="">Roles Button</RouterLink>
         </div>
+        <div class="h-full w-0.5 bg-neutral-200"></div>
         <div class="w-full h-full p-5">
             <!-- focus area -->
             <RouterView></RouterView>
