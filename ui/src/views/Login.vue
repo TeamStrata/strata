@@ -13,6 +13,7 @@ function login() {
         headers: {
             'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
             username: user.value,
             password: pass.value
@@ -23,10 +24,7 @@ function login() {
                 error = true;
                 throw new Error('Something went wrong');
             }
-            let data = response.json();
-            console.log(data)
             router.push("/")
-            //return data;
         })
         .catch(error => {
             console.error('Error:', error);
