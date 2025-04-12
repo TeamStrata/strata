@@ -18,11 +18,23 @@ import { RouterLink } from 'vue-router';
       <!-- admin controls -->
       <div>
         <RouterLink class="flex flex-row *:mr-2 mx-4 py-2" to="/admin">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-            <path fill="currentColor"
-              d="m12 1l8.217 1.826a1 1 0 0 1 .783.976v9.987a6 6 0 0 1-2.672 4.992L12 23l-6.328-4.219A6 6 0 0 1 3 13.79V3.802a1 1 0 0 1 .783-.976zm0 2.049L5 4.604v9.185a4 4 0 0 0 1.781 3.328L12 20.597l5.219-3.48A4 4 0 0 0 19 13.79V4.604zM12 7a2 2 0 0 1 1.001 3.732L13 15h-2v-4.268A2 2 0 0 1 12 7" />
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 512 512"><path fill="currentColor" d="m466.5 83.7l-192-80a48.15 48.15 0 0 0-36.9 0l-192 80C27.7 91.1 16 108.6 16 128c0 198.5 114.5 335.7 221.5 380.3c11.8 4.9 25.1 4.9 36.9 0C360.1 472.6 496 349.3 496 128c0-19.4-11.7-36.9-29.5-44.3M256.1 446.3l-.1-381l175.9 73.3c-3.3 151.4-82.1 261.1-175.8 307.7"/></svg>
+          Administration
+        </RouterLink>
+        <RouterLink class="flex flex-row *:mr-2 mx-4 py-2" to="/admin">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 48 48">
+            <defs>
+              <mask id="ipSLog0">
+                <g fill="none" stroke-linejoin="round" stroke-width="4">
+                  <path fill="#fff" stroke="#fff" d="M13 10h28v34H13z" />
+                  <path stroke="#fff" stroke-linecap="round" d="M35 10V4H8a1 1 0 0 0-1 1v33h6" />
+                  <path stroke="#000" stroke-linecap="round" d="M21 22h12m-12 8h12" />
+                </g>
+              </mask>
+            </defs>
+            <path fill="currentColor" d="M0 0h48v48H0z" mask="url(#ipSLog0)" />
           </svg>
-          Admin button
+          Audit Logs
         </RouterLink>
 
         <div class="w-full h-0.5 bg-neutral-200 my-3"></div>
