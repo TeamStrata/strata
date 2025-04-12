@@ -1,10 +1,13 @@
 <script setup>
 import router from '@/router';
 import { ref } from 'vue';
+import { useUserStore } from '@/stores/user';
 
 var user = ref("");
 var pass = ref("");
 var error = ref(false);
+
+const store = useUserStore()
 
 function login() {
     // submit user and pass to form
@@ -24,6 +27,7 @@ function login() {
                 error = true;
                 throw new Error('Something went wrong');
             }
+            store.username = user.value
             router.push("/")
         })
         .catch(error => {
