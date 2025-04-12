@@ -9,6 +9,7 @@ let users =
 var newUsername = ref("");
 var newPassword = ref("");
 
+var addModal = ref(false);
 
 function addUser() {
     // submit user and pass to form
@@ -37,19 +38,31 @@ function addUser() {
 </script>
 
 <template>
+    <!-- add user modal -->
+    <div class="static" v-if="addModal">
+        <div class="bg-black/20 w-screen h-screen absolute left-0 top-0 backdrop-blur-xs" @click="addModal = false">
+        </div>
+        <div class="bg-white p-5 mx-auto absolute rounded-lg">
+            <h1>Add User</h1>
+            <div>
+                <label for="newUser">Username:</label>
+                <input id="newUser" v-model="newUsername">
+            </div>
+            <div>
+                <label for="newPass">Password:</label>
+                <input id="newPass" type="password" v-model="newPassword">
+            </div>
+            <button class="bg-blue-100 rounded-sm w-fit px-2 cursor-pointer" @click="addUser">Add User</button>
+
+        </div>
+    </div>
+
     <h1 class="font-bold">Manage Users</h1>
-    <!-- new user area -->
-     add user placeholder
+
+
+    <button @click="addModal = true" class="bg-amber-200 p-3 rounded-xl cursor-pointer">Add User</button>
+
     <div class="flex flex-col">
-        <div>
-            <label for="newUser">Username:</label>
-            <input id="newUser" v-model="newUsername">
-        </div>
-        <div>
-            <label for="newPass">Password:</label>
-            <input id="newPass" type="password" v-model="newPassword">
-        </div>
-        <button class="bg-blue-100 rounded-sm w-fit px-2 cursor-pointer" @click="addUser">Add User</button>
     </div>
 
     Users list placeholder:
