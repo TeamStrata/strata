@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue';
+import Toast, { ToastTypes } from './Toast.vue';
 // placeholder user data 
 let users =
     [
@@ -10,6 +11,8 @@ var newUsername = ref("");
 var newPassword = ref("");
 
 var addModal = ref(false);
+
+const toastRef = ref(null)
 
 function addUser() {
     // submit user and pass to form
@@ -26,14 +29,17 @@ function addUser() {
         .then(response => {
             if (!response.ok) {
                 error = true;
+                toastRef.value?.showToast("Fail", ToastTypes.FAIL)
                 throw new Error('Something went wrong');
             }
             let data = response.json();
             console.log(data)
+            toastRef.value?.showToast("Success", ToastTypes.SUCCESS)
         })
         .catch(error => {
             console.error('Error:', error);
         });
+    addModal.value = false
 }
 </script>
 
@@ -59,6 +65,8 @@ function addUser() {
 
         </div>
     </div>
+
+    <Toast ref="toastRef" />
 
     <p>Maybe some flavor text</p>
 
