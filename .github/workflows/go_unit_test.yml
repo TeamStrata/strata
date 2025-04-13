@@ -29,7 +29,7 @@ jobs:
       run: go build -o strata -v ./cmd
 
     - name: Test
-      run: go test -json -v ./cmd | tee Go_Test_Results.json
+      run: go test -v ./pkg/test | tee Go_Test_Results.txt
 
     - name: Upload Test Result
       uses: actions/upload-artifact@v4
