@@ -75,21 +75,21 @@ function addUser() {
 
     <Toast ref="toastRef" />
 
-    <p class="text-gray-700 mb-4">Maybe some flavor text</p>
+    <p class="text-gray-700 mb-4">Manage your organizations members</p>
 
     <!-- list header -->
     <div class="flex flex-row justify-between items-center mb-6">
-        <h1 class="text-2xl font-semibold text-gray-800">Manage Users</h1>
+        <h1 class="text-2xl font-semibold text-gray-800">Members</h1>
 
 
         <div class="flex flex-row pb-2 items-center space-x-3">
-            <p class="text-gray-600">{{ users.length }} users</p>
-            <input placeholder="Search users"
+            <p class="text-gray-600">{{ users.length }} members</p>
+            <input placeholder="Search"
                 class="p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
                 type="text">
             <button @click="addModal = true"
                 class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200 cursor-pointer">
-                Add User
+                Add Member
             </button>
         </div>
 
