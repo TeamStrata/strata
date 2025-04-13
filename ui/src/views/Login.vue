@@ -2,6 +2,7 @@
 import router from '@/router';
 import { ref } from 'vue';
 import { useUserStore } from '@/stores/user';
+import { apiFetch } from '@/api/request';
 
 var user = ref("");
 var pass = ref("");
@@ -9,30 +10,43 @@ var error = ref(false);
 
 const store = useUserStore()
 
-function login() {
+async function login() {
     // submit user and pass to form
-    fetch('http://localhost:8080/login', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-            username: user.value,
-            password: pass.value
-        }),
-    })
-        .then(response => {
-            if (!response.ok) {
-                error = true;
-                throw new Error('Something went wrong');
-            }
-            store.username = user.value
-            router.push("/")
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
+    // fetch('http://localhost:8080/login', {
+    //     method: 'POST',
+    //     headers: {
+    //         'Content-Type': 'application/json',
+    //     },
+    //     credentials: 'include',
+    //     body: JSON.stringify({
+    //         username: user.value,
+    //         password: pass.value
+    //     }),
+    // })
+    //     .then(response => {
+    //         if (!response.ok) {
+    //             error = true;
+    //             throw new Error('Something went wrong');
+    //         }
+    //         store.username = user.value
+    //         router.push("/")
+    //     })
+    //     .catch(error => {
+    //         console.error('Error:', error);
+    //     });
+    const body = {
+        username: user.value,
+        password: pass.value
+    }
+    const res = await apiFetch('/login', 'POST', body, false)
+
+    if (res.status == 200) { 
+        store.username = user.value;
+        router.push("/");
+    } else {
+        error = true;
+    }
+
 }
 
 </script>
