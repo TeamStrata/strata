@@ -40,7 +40,7 @@ async function login() {
     }
     const res = await apiFetch('/login', 'POST', body, false)
 
-    if (res.status == 200) { 
+    if (res.status == 200) {
         store.username = user.value;
         router.push("/");
     } else {
@@ -58,15 +58,15 @@ async function login() {
             <label for="username" class="text-gray-600">Username</label>
             <input id="username" v-model="user"
                 class="mt-1 border border-gray-300 rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter your username">
+                placeholder="Enter your username" @keydown.enter="login">
 
             <label for="password" class="mt-4 text-gray-600">Password</label>
             <input id="password" type="password" v-model="pass"
                 class="mt-1 border border-gray-300 rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter your password">
+                placeholder="Enter your password" @keydown.enter="login">
 
             <button @click="login"
-                class="mt-6 bg-blue-500 text-white font-semibold py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200">Login</button>
+                class="cursor-pointer mt-6 bg-blue-500 text-white font-semibold py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200">Login</button>
 
             <p v-if="error" class="mt-4 text-red-500">Something went wrong</p>
         </div>
