@@ -7,6 +7,7 @@ const store = useUserStore()
 function logout() {
 
     store.username = "";
+    localStorage.removeItem('username');
     router.push("/login");
 }
 
