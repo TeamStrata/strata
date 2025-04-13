@@ -28,13 +28,12 @@ function addUser() {
     })
         .then(response => {
             if (!response.ok) {
-                error = true;
-                toastRef.value?.showToast("Fail", ToastTypes.FAIL)
+                toastRef.value?.showToast("There was an issue with creating the account", ToastTypes.FAIL)
                 throw new Error('Something went wrong');
             }
-            let data = response.json();
-            console.log(data)
-            toastRef.value?.showToast("Success", ToastTypes.SUCCESS)
+            // let data = response.json();
+            // console.log(data)
+            toastRef.value?.showToast("The account was successfully created", ToastTypes.SUCCESS)
         })
         .catch(error => {
             console.error('Error:', error);
