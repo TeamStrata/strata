@@ -2,11 +2,11 @@
 import { ref } from 'vue';
 
 
-const show = ref(true)
+const show = ref(false)
 const message = ref('Incorrect Toast Call')
 const typeInternal = ref(ToastTypes.SUCCESS)
 
-function showToast(msg = 'Incorrect Toast Call', type = ToastTypes.WARNING, duration = 3000) {
+function showToast(msg = 'Incorrect Toast Call', type = ToastTypes.WARNING, duration = 5000) {
     message.value = msg;
     typeInternal.value = type;
 
