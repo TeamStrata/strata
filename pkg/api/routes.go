@@ -41,7 +41,7 @@ func LoginHandler(d *database.DbManager, users map[string]string) gin.HandlerFun
 			int(24*time.Hour.Seconds()),
 			"/",
 			"localhost",
-			true,
+			false,
 			true,
 		)
 		c.Status(http.StatusOK)
@@ -77,7 +77,7 @@ func SignUpHandler(d *database.DbManager, users map[string]string) gin.HandlerFu
 			int(24*time.Hour.Seconds()),
 			"/",
 			"localhost",
-			true,
+			false,
 			true,
 		)
 		c.Status(http.StatusOK)

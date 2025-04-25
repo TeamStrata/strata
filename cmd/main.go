@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"time"
 
 	"github.com/TeamStrata/strata/pkg/api"
 	"github.com/TeamStrata/strata/pkg/database"
@@ -15,11 +16,13 @@ import (
 func main() {
 	server := gin.Default()
 
-	// Cors setup
-	config := cors.DefaultConfig()
-	config.AllowAllOrigins = true
-	config.AllowHeaders = []string{
-		"*",
+	//cors config (redux)
+	config := cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"}, // 👈 specify your frontend origin
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
+		AllowCredentials: true, // 👈 enable sending cookies
+		MaxAge:           12 * time.Hour,
 	}
 	server.Use(cors.New(config))
 
