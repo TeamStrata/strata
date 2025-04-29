@@ -30,4 +30,8 @@ go.work.sum
 strata
 
 # Database content
+psotgres/
 postgres/*
+
+# Ollama stuff
+ollama/*

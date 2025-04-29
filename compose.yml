@@ -12,9 +12,20 @@ services:
       POSTGRES_USER: strata
       POSTGRES_PASSWORD: atarts
       
+  ollama:
+    image: ollama/ollama
+    container_name: strata_ollama
+    ports:
+      - 11434:11434
+    volumes:
+      - ./ollama:/root/.ollama
+      - ./Modelfile:/root/.ollama/Modelfile
+
   strata:
     depends_on:
       postgres:
+        condition: service_started
+      ollama:
         condition: service_started
     build:
       context: ./
@@ -28,21 +39,21 @@ services:
       - ./:/opt/strata
 
 # This is a dev container for strata, used for live compiling and stuff
-  strata-dev:
-    stdin_open: true
-    tty: true
-    entrypoint: /bin/bash
-    depends_on:
-      postgres:
-        condition: service_started
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    container_name: strata-dev
-    image: strata:live
-    ports:
-      - 8081:8080
-    working_dir: /opt/strata
-    volumes:
-      - ./:/opt/strata
+#  strata-dev:
+#    stdin_open: true
+#    tty: true
+#    entrypoint: /bin/bash
+#    depends_on:
+#      postgres:
+#        condition: service_started
+#    build:
+#      context: ./
+#      dockerfile: Dockerfile
+#    container_name: strata-dev
+#    image: strata:live
+#    ports:
+#      - 8081:8080
+#    working_dir: /opt/strata
+#    volumes:
+#      - ./:/opt/strata
 
