@@ -52,7 +52,7 @@ func main() {
 	server.GET("/queries", api.GetQueryList(db))
 	server.GET("/query/:qid", api.ReadQueryLiteralHandler(db))     // Return the query SQL string
 	server.GET("/query/:qid/execute", api.ExecuteQueryHandler(db)) // Execute a saved query (custom or standard saved queries)
-	server.POST("/query/save", api.SaveQueryHandler(db))
+	server.POST("/query/:qid", api.SaveQueryHandler(db))
 	server.DELETE("/query/:qid", api.DeleteQueryHandler(db))
 
 	err = server.Run(":8080")

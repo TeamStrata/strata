@@ -89,7 +89,18 @@ func ExecuteQueryHandler(d *database.DbManager) gin.HandlerFunc {
 // Save a custom query to the database
 func SaveQueryHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		query_name := c.Query("name")
+		query_name := c.Param("qid")
+		
+		// To prevent the query from being inaccessible later on, we need to sanitize
+		// If the query name can be parsed to an integer, reject it. It will clash with the ID, the user may accidentally select the wrong thing.
+		_, err := strconv.Atoi(query_name)
+		// If there is NO error parsing to integer, then we raise our own error
+		if err == nil {
+			c.Data(400, "text/plain", []byte("The query name must not be an integer!"))
+			c.Done()
+			return
+		}
+
 
 		data, err := io.ReadAll(c.Request.Body)
 		if err != nil {
