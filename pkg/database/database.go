@@ -148,10 +148,6 @@ func (d *DbManager) ListCustomQueries() ([]Query, error) {
 func (d *DbManager) ExecuteCustomQuery(query string) ([]map[string]string, error) {
 	var retRows []map[string]string
 
-	//print(rows)
-	//rows = append(rows, map[string]string{})
-	//rows[0]["test"] = "value"
-
 	// Get Rows
 	rows, err := d.Connection.Query(d.context, query)
 	if err != nil {
@@ -185,7 +181,6 @@ func (d *DbManager) ExecuteCustomQuery(query string) ([]map[string]string, error
 		// Dereference
 		for i, valPtr := range values {
 			v := *(valPtr.(*interface{}))
-			//fmt.Printf("%s = %v\n", fields[i].Name, v)
 
 			// Add to retRows
 			retRows[row][fields[i].Name] = fmt.Sprintf("%v", v)
@@ -195,8 +190,6 @@ func (d *DbManager) ExecuteCustomQuery(query string) ([]map[string]string, error
 		row++
 	}
 
-
-	//fmt.Println(retRows)
 	// Success
 	return retRows, nil
 }
