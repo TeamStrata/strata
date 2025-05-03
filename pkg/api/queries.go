@@ -62,7 +62,43 @@ func ReadQueryLiteralHandler(d *database.DbManager) gin.HandlerFunc {
 
 // Execute a saved query (custom or standard saved queries)
 func ExecuteQueryHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {}
+	return func(c *gin.Context) {
+		query_id_str := c.Param("qid")
+
+		// Parse QID to a number
+		query_id, ierr := strconv.Atoi(query_id_str)
+		if ierr != nil {
+			c.Data(400, "text/plain", []byte(ierr.Error()))
+			c.Done()
+			return
+		}
+
+		query_string, serr := d.GetCustomQuery(query_id)
+		if serr != nil {
+			c.Data(500, "text/plain", []byte(serr.Error()))
+			c.Done()
+			return
+		}
+		
+		// Perform the custom query
+		rows, qerr := d.ExecuteCustomQuery(query_string);
+		if qerr != nil {
+			c.Data(500, "text/plain", []byte(qerr.Error()))
+			c.Done()
+			return
+		}
+
+		// Convert the resulting object to JSON
+		data, jerr := json.Marshal(rows)
+		if jerr != nil {
+			c.Data(500, "text/plain", []byte(jerr.Error()))
+			c.Done()
+			return
+		}
+
+		c.Data(418, "text/plain", data)
+		c.Done();
+	}
 }
 
 func SaveQueryHandler(d *database.DbManager) gin.HandlerFunc {

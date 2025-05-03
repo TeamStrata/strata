@@ -34,7 +34,8 @@ RUN go build -o strata ./cmd
 
 # Install
 USER root
-RUN cp strata /bin/strata
+#RUN cp strata /bin/strata
+RUN ln -sf /opt/strata/strata /bin/strata
 USER strata
 
 
