@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 	"errors"
-
+	"strconv"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"fmt"
 )
@@ -21,6 +21,7 @@ type DbManager struct {
 
 type Query struct {
 	Id      int    `json:"id"`
+	Name	string `json:"name"`
 	Literal string `json:"literal"`
 }
 
@@ -88,29 +89,48 @@ func (d *DbManager) InsertUser(username string, password string) error {
 }
 
 // Insert a custom query into the database
-func (d *DbManager) InsertCustomQuery(query_string string) (int, error) {
+func (d *DbManager) InsertCustomQuery(query_name string, query_string string) (int, error) {
 	query_id := 0
+	if len(query_name) == 0 {
+		return query_id, fmt.Errorf("Query name was empty!")
+	}
 
-	query := "INSERT INTO queries (query_string) VALUES ($1) RETURNING query_id"
-	err := d.Connection.QueryRow(d.context, query, query_string).Scan(&query_id)
+	query := "INSERT INTO queries (query_name, query_string) VALUES ($1, $2) RETURNING query_id"
+	err := d.Connection.QueryRow(d.context, query, query_name, query_string).Scan(&query_id)
 
 	return query_id, err
 }
 
-// Get the custom query string saved as some ID
-func (d *DbManager) GetCustomQuery(query_id int) (string, error) {
-	query_string := ""
+func GetQuerySearchSuffix(query_name string) string {
+	query := ""
 
-	query := "SELECT query_string FROM queries WHERE query_id = $1"
-	err := d.Connection.QueryRow(d.context, query, query_id).Scan(&query_string)
+	// Attempt to parse the ID into a separate variable
+	_, err := strconv.Atoi(query_name)
+	if err != nil {
+		query = "query_name LIKE $1;"
+	} else {
+		query = "query_id=$1;"
+	}
+	
+	// Return the query
+	return query
+}
+
+// Get the custom query string saved as some ID
+func (d *DbManager) GetCustomQuery(query_name string) (string, error) {
+	query_string := ""
+	query := "SELECT query_string FROM queries WHERE " + GetQuerySearchSuffix(query_name)
+
+	// Query the Db
+	err := d.Connection.QueryRow(d.context, query, query_name).Scan(&query_string)
 
 	return query_string, err
 }
 
 // Delete a custom query based on ID
-func (d *DbManager) DeleteCustomQuery(query_id int) error {
-	query := "DELETE FROM queries WHERE query_id = $1"
-	_, err := d.Connection.Exec(d.context, query, query_id)
+func (d *DbManager) DeleteCustomQuery(query_name string) error {
+	query := "DELETE FROM queries WHERE " + GetQuerySearchSuffix(query_name)
+	_, err := d.Connection.Exec(d.context, query, query_name)
 
 	return err
 }
@@ -133,7 +153,7 @@ func (d *DbManager) ListCustomQueries() ([]Query, error) {
 		var query Query
 
 		// Scan the row for the query ID and String Literal
-		err := rows.Scan(&query.Id, &query.Literal)
+		err := rows.Scan(&query.Id, &query.Name, &query.Literal)
 		if err != nil {
 			return nil, err
 		}

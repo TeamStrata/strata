@@ -24,7 +24,6 @@ func GetQueryList(d *database.DbManager) gin.HandlerFunc {
 			return
 		}
 
-		println(len(queries))
 		data, err2 := json.Marshal(queries)
 		if err2 != nil {
 			c.Data(500, "text/plain", []byte(err.Error()))
@@ -33,6 +32,7 @@ func GetQueryList(d *database.DbManager) gin.HandlerFunc {
 		}
 
 		c.Data(200, "application/json", data)
+		c.Done()
 	}
 }
 
@@ -41,21 +41,14 @@ func ReadQueryLiteralHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query_id_str := c.Param("qid")
 
-		query_id, err := strconv.Atoi(query_id_str)
-		if err != nil {
-			c.Data(400, "text/plain", []byte(err.Error()))
-			c.Done()
-			return
-		}
-
-		query_string, err := d.GetCustomQuery(query_id)
+		query_string, err := d.GetCustomQuery(query_id_str)
 		if err != nil {
 			c.Data(500, "text/plain", []byte(err.Error()))
 			c.Done()
 			return
 		}
 
-		c.Data(200, "text/plain", []byte(query_string))
+		c.Data(200, "application/sql", []byte(query_string))
 		c.Done()
 	}
 }
@@ -65,15 +58,7 @@ func ExecuteQueryHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query_id_str := c.Param("qid")
 
-		// Parse QID to a number
-		query_id, ierr := strconv.Atoi(query_id_str)
-		if ierr != nil {
-			c.Data(400, "text/plain", []byte(ierr.Error()))
-			c.Done()
-			return
-		}
-
-		query_string, serr := d.GetCustomQuery(query_id)
+		query_string, serr := d.GetCustomQuery(query_id_str)
 		if serr != nil {
 			c.Data(500, "text/plain", []byte(serr.Error()))
 			c.Done()
@@ -96,13 +81,16 @@ func ExecuteQueryHandler(d *database.DbManager) gin.HandlerFunc {
 			return
 		}
 
-		c.Data(418, "text/plain", data)
+		c.Data(418, "application/json", data)
 		c.Done();
 	}
 }
 
+// Save a custom query to the database
 func SaveQueryHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		query_name := c.Query("name")
+
 		data, err := io.ReadAll(c.Request.Body)
 		if err != nil {
 			c.Data(500, "text/plain", []byte(err.Error()))
@@ -111,7 +99,7 @@ func SaveQueryHandler(d *database.DbManager) gin.HandlerFunc {
 		}
 
 		// Inserting custom query
-		id, err := d.InsertCustomQuery(string(data))
+		id, err := d.InsertCustomQuery(query_name, string(data))
 		if err != nil {
 			c.Data(500, "text/plain", []byte(err.Error()))
 			c.Done()
@@ -119,24 +107,16 @@ func SaveQueryHandler(d *database.DbManager) gin.HandlerFunc {
 		}
 
 		c.Data(200, "text/plain", []byte(strconv.Itoa(id)))
-
 		c.Done()
-
 	}
 }
 
+// Delete a query 
 func DeleteQueryHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query_id_str := c.Param("qid")
 
-		query_id, err := strconv.Atoi(query_id_str)
-		if err != nil {
-			c.Data(400, "text/plain", []byte(err.Error()))
-			c.Done()
-			return
-		}
-
-		q_err := d.DeleteCustomQuery(query_id)
+		q_err := d.DeleteCustomQuery(query_id_str)
 		if q_err != nil {
 			c.Data(500, "text/plain", []byte(q_err.Error()))
 			c.Done()
