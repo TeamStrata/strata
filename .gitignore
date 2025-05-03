@@ -5,6 +5,7 @@
 *.so
 *.dylib
 strata*
+postgres
 
 # Test binary, built with `go test -c`
 *.test

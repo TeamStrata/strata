@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"fmt"
 )
 
 type User struct {
@@ -142,4 +143,53 @@ func (d *DbManager) ListCustomQueries() ([]Query, error) {
 
 	// Success!
 	return list, nil
+}
+
+func (d *DbManager) ExecuteCustomQuery(query string) ([]map[string]string, error) {
+	var retRows []map[string]string
+
+	// Get Rows
+	rows, err := d.Connection.Query(d.context, query)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure rows close
+	defer rows.Close()
+
+	// Get columns
+	fields := rows.FieldDescriptions()
+
+	// Get values
+	values := make([]interface{}, len(fields))
+
+	row := 0
+	for rows.Next() {
+		for i := range values {
+			values[i] = new(interface{})
+		}
+		
+		// Scan for values in the row to populate the interface
+		err := rows.Scan(values...)
+		if err != nil {
+			return nil, err
+		}
+
+		// Append a map to the list
+		retRows = append(retRows, map[string]string{})
+
+		// Dereference
+		for i, valPtr := range values {
+			v := *(valPtr.(*interface{}))
+
+			// Add to retRows
+			retRows[row][fields[i].Name] = fmt.Sprintf("%v", v)
+		}
+
+		// Increment the row counter
+		row++
+	}
+
+	// Success
+	return retRows, nil
 }
