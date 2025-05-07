@@ -1,16 +1,11 @@
 package api
 
 import (
-	//	"github.com/TeamStrata/strata/pkg/auth"
 	"encoding/json"
 	"io"
 	"strconv"
 
 	"github.com/TeamStrata/strata/pkg/database"
-	//	"github.com/google/uuid"
-	//	"net/http"
-	//	"time"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,8 +19,9 @@ func GetQueryList(d *database.DbManager) gin.HandlerFunc {
 			return
 		}
 
-		data, err2 := json.Marshal(queries)
-		if err2 != nil {
+
+		data, err := json.Marshal(queries)
+		if err != nil {
 			c.Data(500, "text/plain", []byte(err.Error()))
 			c.Done()
 			return
@@ -64,9 +60,9 @@ func ExecuteQueryHandler(d *database.DbManager) gin.HandlerFunc {
 			c.Done()
 			return
 		}
-		
+
 		// Perform the custom query
-		rows, qerr := d.ExecuteCustomQuery(query_string);
+		rows, qerr := d.ExecuteCustomQuery(query_string)
 		if qerr != nil {
 			c.Data(500, "text/plain", []byte(qerr.Error()))
 			c.Done()
@@ -81,7 +77,7 @@ func ExecuteQueryHandler(d *database.DbManager) gin.HandlerFunc {
 			return
 		}
 
-		c.Data(418, "application/json", data)
+		c.Data(200, "application/json", data)
 		c.Done();
 	}
 }

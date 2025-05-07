@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"strconv"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"fmt"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type User struct {
@@ -188,7 +188,7 @@ func (d *DbManager) ExecuteCustomQuery(query string) ([]map[string]string, error
 		for i := range values {
 			values[i] = new(interface{})
 		}
-		
+
 		// Scan for values in the row to populate the interface
 		err := rows.Scan(values...)
 		if err != nil {
