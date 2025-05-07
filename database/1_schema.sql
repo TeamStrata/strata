@@ -39,6 +39,7 @@ BEGIN
 	-- Table for storing custom, or any other queries. 
 	CREATE TABLE IF NOT EXISTS queries (
 		query_id SERIAL PRIMARY KEY,
+		query_name TEXT UNIQUE NOT NULL,
 		query_string TEXT UNIQUE NOT NULL
 	);
 
