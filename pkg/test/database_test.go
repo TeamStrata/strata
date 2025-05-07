@@ -2,21 +2,19 @@ package test
 
 import (
 	"context"
-	"github.com/TeamStrata/strata/pkg/database"
-	"github.com/joho/godotenv"
 	"log"
-	"os"
 	"testing"
+
+	"github.com/TeamStrata/strata/pkg/database"
 )
 
 func SetupDbManager() (*database.DbManager, error) {
 	// Get database connection string
-	err := godotenv.Load("../../.env")
+	conStr, err := database.GetConnectionString(database.DefaultPath)
 	if err != nil {
 		log.Fatalf("error loading .env file: %s", err.Error())
 		return nil, err
 	}
-	conStr := os.Getenv("CONNECTION_STRING")
 
 	// Initialize database manager
 	db, err := database.NewDbManager(conStr, context.Background())
@@ -41,8 +39,8 @@ func Test_GetUserByUsername(t *testing.T) {
 	}
 
 	realUser := database.User{
-		"gopher",
-		"123",
+		Name:     "admin",
+		Password: "$2a$10$GEqRMhGYBay/4uXY50eyP.heui16Vs9WC//cwxt9mHijfJ.4xvi9.",
 	}
 
 	actualUser, err := db.GetUserByUserName(realUser.Name)
@@ -54,5 +52,20 @@ func Test_GetUserByUsername(t *testing.T) {
 
 	if actualUser != realUser {
 		t.Fatalf("actual user does not match real user")
+	}
+}
+
+func Test_GetConnectionString(t *testing.T) {
+	connectionString, err := database.GetConnectionString(true)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	expectedString := "postgresql://strata:atarts@strata_psql:5432/strata"
+
+	if connectionString != expectedString {
+		t.Errorf("expected string != connection string...\n")
+		t.Errorf("expected: %s\nconnection string: %s\n", expectedString, connectionString)
+		t.Fail()
 	}
 }

@@ -3,8 +3,9 @@ package database
 import (
 	"context"
 	"errors"
-	"strconv"
 	"fmt"
+	"strconv"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -21,7 +22,7 @@ type DbManager struct {
 
 type Query struct {
 	Id      int    `json:"id"`
-	Name	string `json:"name"`
+	Name    string `json:"name"`
 	Literal string `json:"literal"`
 }
 
@@ -111,7 +112,7 @@ func GetQuerySearchSuffix(query_name string) string {
 	} else {
 		query = "query_id=$1;"
 	}
-	
+
 	// Return the query
 	return query
 }
