@@ -34,11 +34,12 @@ RUN go build -o strata ./cmd
 
 # Install
 USER root
-#RUN cp strata /bin/strata
-RUN ln -sf /opt/strata/strata /bin/strata
+RUN cp strata /bin/strata
 USER strata
 
 
 # Run strata
 # This has to have no '/' characters or it will/can error, so we have to install it above. 
-CMD ["strata"]
+# 
+# If ./strata exists, start that. Otherwise fall back to the version in /bin/strata, installed when the docker image was built. 
+CMD ["bash", "-c", "if [ -f strata ] ; then ./strata ; else strata ; fi"]
