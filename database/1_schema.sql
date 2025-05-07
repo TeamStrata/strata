@@ -2,7 +2,7 @@
 -- This script will setup the schema for the strata database.
 -- 
 -- EXAMPLE USAGE
--- psql.exe -U <postgres username> -d strata -f .\database\schema.sql
+-- psql.exe -U <postgres username> -d strata -f .\database\1_schema.sql
 
 DO
 $do$
