@@ -22,6 +22,10 @@ const router = createRouter({
         {
           path: "users",
           component: () => import("../components/AdminUsers.vue")
+        },
+        {
+          path: "roles",
+          component: () => import("../components/AdminRoles.vue")
         }
       ]
     }
