@@ -3,14 +3,12 @@ package main
 import (
 	"context"
 	"log"
-	"os"
 	"time"
 
 	"github.com/TeamStrata/strata/pkg/api"
 	"github.com/TeamStrata/strata/pkg/database"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -27,11 +25,10 @@ func main() {
 	server.Use(cors.New(config))
 
 	// Get database connection string
-	err := godotenv.Load()
+	conStr, err := database.GetConnectionString(database.DefaultPath)
 	if err != nil {
 		log.Fatalf("error loading .env file: %s", err.Error())
 	}
-	conStr := os.Getenv("CONNECTION_STRING")
 
 	// Initialize database manager
 	db, err := database.NewDbManager(conStr, context.Background())
