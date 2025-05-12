@@ -26,6 +26,11 @@ const router = createRouter({
         {
           path: "roles",
           component: () => import("../components/AdminRoles.vue")
+        },
+        {
+          path: "roleEdit/:id",
+          component: () => {"../components/roleEdit.vue"},
+          // alias: 
         }
       ]
     }
