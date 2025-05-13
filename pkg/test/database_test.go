@@ -55,6 +55,32 @@ func Test_GetUserByUsername(t *testing.T) {
 	}
 }
 
+func Test_GetAllUsers(t *testing.T) {
+	db, err := SetupDbManager()
+	if err != nil {
+		t.Fatalf("error initializing DB manager: %s", err.Error())
+	}
+
+	expectedUser := database.User{
+		Name: "admin",
+	}
+
+	users, err := db.GetAllUsers()
+	if err != nil {
+		t.Fatalf("error getting all user names: %s", err.Error())
+	}
+
+	if len(users) != 1 {
+		t.Fatalf("expected 1 user, received: %d", len(users))
+	}
+
+	log.Print(users[0])
+	log.Print(expectedUser)
+	if users[0].Name != expectedUser.Name {
+		t.Fatalf("expected username \"admin\", received: %s", users[0].Name)
+	}
+}
+
 func Test_GetConnectionString(t *testing.T) {
 	connectionString, err := database.GetConnectionString(true)
 	if err != nil {

@@ -64,6 +64,28 @@ func (d *DbManager) ConnectToDatabase() error {
 	return err
 }
 
+func (d *DbManager) GetAllUsers() ([]User, error) {
+	var users []User
+
+	query := "SELECT user_name FROM users"
+	rows, err := d.Connection.Query(d.context, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var user User
+		err = rows.Scan(&user.Name)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
 // Return a user based on username. Return error if no user found.
 func (d *DbManager) GetUserByUserName(name string) (User, error) {
 	user := User{}
