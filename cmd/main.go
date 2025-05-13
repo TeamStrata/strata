@@ -44,6 +44,8 @@ func main() {
 	server.POST("/signup", api.SignUpHandler(db, users))
 	server.POST("/logout", api.LogoutHandler(users))
 	server.POST("/auth", api.AuthHandler(users))
+
+	server.DELETE("/user/:name", api.DeleteUserHandler(db, users))
 	server.GET("/ping", api.PingHandler)
 	// Query Endpoints
 	server.GET("/queries", api.GetQueryList(db))
