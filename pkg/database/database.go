@@ -11,7 +11,7 @@ import (
 
 type User struct {
 	Name     string `json:"username"`
-	Password string `json:"password"`
+	Password string `json:"password,omitempty"`
 }
 
 type DbManager struct {
