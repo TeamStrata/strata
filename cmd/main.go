@@ -39,12 +39,22 @@ func main() {
 	// Initialize map for users and uuids
 	users := make(map[string]string)
 
-	// Endpoints
+	// API Endpoints
 	server.POST("/login", api.LoginHandler(db, users))
 	server.POST("/signup", api.SignUpHandler(db, users))
 	server.POST("/logout", api.LogoutHandler(users))
 	server.POST("/auth", api.AuthHandler(users))
 	server.GET("/ping", api.PingHandler)
+
+	// Frontend
+	server.Static("/assets", "ui/dist/assets")
+	server.StaticFile("/", "ui/dist/index.html")
+	server.StaticFile("/favicon.ico", "ui/dist/favicon.ico")
+
+	// Account / Roles
+
+	// Dashboard Components
+
 	// Query Endpoints
 	server.GET("/queries", api.GetQueryList(db))
 	server.GET("/query/:qid", api.ReadQueryLiteralHandler(db))     // Return the query SQL string
