@@ -35,8 +35,7 @@ services:
     ports:
       - 8080:8080
     working_dir: /opt/strata
-    volumes:
-      - ./:/opt/strata
+#   The non development container does not need a shared volume for strata itself.
 
 # This is a dev container for strata, used for live compiling and stuff
 #  strata-dev:
