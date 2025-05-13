@@ -39,7 +39,9 @@ docker exec -it strata_psql psql -U strata -d strata -f /*.d/1_schema.sql
 ```
 
 ## Go Setup
-The following set of commands can be used to install required packages, then build the 'strata' executable in the project root directory. These commands require your terminal's current working directory is the project's root directory.  
+The following set of commands can be used to install required packages, then build the 'strata' executable in the project root directory. These commands require your terminal's current working directory is the project's root directory. Once the executable is built, the docker container can be restarted. It will automatically use the new `strata` executable in favour of the fallback stored in the docker container filesystem, at `/bin/strata`. 
+<br>
+These commands can be prefixed by `docker exec -it strata` if you do not have go installed. 
 ```sh
 # Install packages:
 go install ./cmd

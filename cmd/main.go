@@ -36,7 +36,7 @@ func main() {
 		log.Fatalf("error initializing DB manager: %s", err.Error())
 	}
 
-	// Initialize map for activeUsers and uuids
+	// Initialize map for active users and uuids
 	activeUsers := make(map[string]string)
 
 	// Auth endpoints
@@ -45,6 +45,15 @@ func main() {
 	server.POST("/logout", api.LogoutHandler(activeUsers))
 	server.POST("/auth", api.AuthHandler(activeUsers))
 	server.GET("/users", api.GetUsersHandler(db))
+
+	// Frontend
+	server.Static("/assets", "ui/dist/assets")
+	server.StaticFile("/", "ui/dist/index.html")
+	server.StaticFile("/favicon.ico", "ui/dist/favicon.ico")
+
+	// Account / Roles
+
+	// Dashboard Components
 
 	// Query Endpoints
 	server.GET("/queries", api.GetQueryList(db))
