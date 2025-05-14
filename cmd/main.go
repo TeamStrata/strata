@@ -47,7 +47,6 @@ func main() {
 	server.GET("/users", api.GetUsersHandler(db))
 
 	server.DELETE("/user/:name", api.DeleteUserHandler(db, activeUsers))
-	server.GET("/ping", api.PingHandler)
 
 	// Frontend
 	server.Static("/assets", "ui/dist/assets")
