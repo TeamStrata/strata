@@ -180,8 +180,9 @@ loadUsers();
 			<div class="flex items-center">
 				<p class="text-gray-600 mr-4">User Type</p>
 				<button
-					class="bg-blue-500 text-white py-2 px-4 rounded-md cursor-pointer hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200"
+					class="bg-red-500 text-white py-2 px-4 rounded-md cursor-pointer hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-200"
 					@click="deleteUser(u.username)"
+					v-if="u.username != 'admin'"
 				>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
