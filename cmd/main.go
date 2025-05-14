@@ -46,6 +46,9 @@ func main() {
 	server.POST("/auth", api.AuthHandler(activeUsers))
 	server.GET("/users", api.GetUsersHandler(db))
 
+	server.DELETE("/user/:name", api.DeleteUserHandler(db, users))
+	server.GET("/ping", api.PingHandler)
+
 	// Frontend
 	server.Static("/assets", "ui/dist/assets")
 	server.StaticFile("/", "ui/dist/index.html")

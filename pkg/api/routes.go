@@ -124,6 +124,7 @@ func AuthHandler(activeUsers map[string]string) gin.HandlerFunc {
 	}
 }
 
+
 // Respond with JSON representation of all users
 func GetUsersHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -139,6 +140,28 @@ func GetUsersHandler(d *database.DbManager) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, users)
+  }
+}
+    
+// Delete a user that matches the name parameter
+func DeleteUserHandler(d *database.DbManager, activeUsers map[string]string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		name := c.Param("name")
+
+		for id, tmpName := range activeUsers {
+			if tmpName == name {
+				delete(activeUsers, id)
+				break
+			}
+		}
+
+		err := d.DeleteUser(name)
+		if err != nil {
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		c.Status(http.StatusOK)
 	}
 }
 

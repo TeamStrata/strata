@@ -60,7 +60,7 @@ func Test_GetAllUsers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error initializing DB manager: %s", err.Error())
 	}
-
+  
 	expectedUser := database.User{
 		Name: "admin",
 	}
@@ -78,6 +78,28 @@ func Test_GetAllUsers(t *testing.T) {
 	log.Printf("actual user: %+v", users[0])
 	if users[0].Name != expectedUser.Name {
 		t.Fatalf("expected username \"admin\", received: %s", users[0].Name)
+	}
+}
+  
+
+func Test_DeleteUser(t *testing.T) {
+	db, err := SetupDbManager()
+	if err != nil {
+		t.Fatalf("error initializing DB manager: %s", err.Error())
+	}
+
+	testUser := database.User{
+		Name:     "test",
+		Password: "test",
+	}
+	err = db.InsertUser(testUser.Name, testUser.Password)
+	if err != nil {
+		t.Fatalf("error inserting test user into database: %s", err.Error())
+	}
+
+	err = db.DeleteUser(testUser.Name)
+	if err != nil {
+		t.Fatalf("error deleting user: %s", err.Error())
 	}
 }
 
