@@ -31,6 +31,21 @@ func SetupDbManager() (*database.DbManager, error) {
 	return db, nil
 }
 
+func Test_GetConnectionString(t *testing.T) {
+	connectionString, err := database.GetConnectionString(true)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	expectedString := "postgresql://strata:atarts@strata_psql:5432/strata"
+
+	if connectionString != expectedString {
+		t.Errorf("expected string != connection string...\n")
+		t.Errorf("expected: %s\nconnection string: %s\n", expectedString, connectionString)
+		t.Fail()
+	}
+}
+
 // Passes if the database can return a user with the name 'gopher'
 func Test_GetUserByUsername(t *testing.T) {
 	db, err := SetupDbManager()
@@ -104,17 +119,31 @@ func Test_DeleteUser(t *testing.T) {
 	}
 }
 
-func Test_GetConnectionString(t *testing.T) {
-	connectionString, err := database.GetConnectionString(true)
+func Test_UpdateUserRole(t *testing.T) {
+	db, err := SetupDbManager()
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatalf("error initializing DB manager: %s", err.Error())
 	}
 
-	expectedString := "postgresql://strata:atarts@strata_psql:5432/strata"
+	testUser := database.User{
+		Name:     "test",
+		Password: "test",
+		Role:     "admin",
+	}
+	err = db.InsertUser(testUser.Name, testUser.Password)
+	if err != nil {
+		t.Fatalf("error inserting test user into database: %s", err.Error())
+	}
 
-	if connectionString != expectedString {
-		t.Errorf("expected string != connection string...\n")
-		t.Errorf("expected: %s\nconnection string: %s\n", expectedString, connectionString)
-		t.Fail()
+	err = db.UpdateUserRole(testUser.Name, testUser.Role)
+	if err != nil {
+		t.Fatalf("error updating user role: %s", err.Error())
+	}
+
+	actualUser, err := db.GetUserByUserName(testUser.Name)
+	if actualUser.Role != testUser.Role {
+		log.Printf("expected role:	%s", testUser.Role)
+		log.Printf("actual role:	%s", actualUser.Role)
+		t.Fatalf("expected role does not match actual role: %s", err.Error())
 	}
 }

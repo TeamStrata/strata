@@ -124,9 +124,30 @@ func (d *DbManager) GetUserByUserName(name string) (User, error) {
 // Insert user into the database. Expects the password to be hashed using the auth module.
 func (d *DbManager) InsertUser(username string, password string) error {
 	user := User{}
-	query := "INSERT INTO users (user_name, password_hash) VALUES ($1, $2) RETURNING user_name, password_hash"
-	err := d.Connection.QueryRow(d.context, query, username, password).Scan(&user.Name, &user.Password)
-	return err
+	query := "INSERT INTO users (user_name, password_hash) VALUES ($1, $2) RETURNING user_id, user_name, password_hash"
+	var userId int
+	err := d.Connection.QueryRow(d.context, query, username, password).Scan(&userId, &user.Name, &user.Password)
+	if err != nil {
+		return err
+	}
+
+	query =
+		`WITH default_role AS (
+			SELECT role_id
+			FROM roles
+			WHERE role_name = 'default'
+		)
+		INSERT INTO
+			userroles (user_id, role_id)
+			SELECT $1, default_role.role_id
+			FROM default_role`
+
+	_, err = d.Connection.Query(d.context, query, userId)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Delete a user from the database by username
@@ -147,6 +168,21 @@ func (d *DbManager) InsertCustomQuery(query_name string, query_string string) (i
 	err := d.Connection.QueryRow(d.context, query, query_name, query_string).Scan(&query_id)
 
 	return query_id, err
+}
+
+// Update a users role, requires a user name and role name
+func (d *DbManager) UpdateUserRole(user_name string, role_name string) error {
+	query :=
+		`UPDATE userroles
+		SET role_id = (
+			SELECT role_id FROM roles WHERE role_name = $1
+		)
+		WHERE user_id = (
+			SELECT user_id FROM users WHERE user_name = $2
+		)`
+
+	_, err := d.Connection.Query(d.context, query, role_name, user_name)
+	return err
 }
 
 func GetQuerySearchSuffix(query_name string) string {
