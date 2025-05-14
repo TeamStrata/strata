@@ -34,17 +34,46 @@ function addUser() {
 				);
 				throw new Error("Something went wrong");
 			}
-			// let data = response.json();
-			// console.log(data)
+
 			toastRef.value?.showToast(
 				"The account was successfully created",
 				ToastTypes.SUCCESS,
 			);
+
+			// Push new user to the list
+			users.value.push({username: newUsername.value});
 		})
 		.catch((error) => {
 			console.error("Error:", error);
 		});
 	addModal.value = false;
+}
+
+function deleteUser(username) {
+	fetch(`${window.location.origin}/user/${username}`, {
+		method: "DELETE",
+	})
+	.then(res => {
+		if (!res.ok) {
+			toastRef.value?.showToast(
+				"There was an issue deleting the user",
+				ToastTypes.FAIL
+			);
+			throw new Error("Error deleting user");
+		}
+
+		// Handle success
+		toastRef.value?.showToast(
+			"The user was succesfully deleted",
+			ToastTypes.SUCCESS
+		);
+
+		// Reload the user list
+		loadUsers()
+	})
+	.catch(err => {
+		console.error(err);
+	});
 }
 
 function loadUsers() {
@@ -62,7 +91,7 @@ function loadUsers() {
 			users.value = await response.json();
 		})
 		.catch((error) => {
-			console.error("Error loading users:", error);
+			console.error(error);
 		});
 }
 
@@ -150,18 +179,24 @@ loadUsers();
 			<span class="text-gray-800 font-medium">{{ u.username }}</span>
 			<div class="flex items-center">
 				<p class="text-gray-600 mr-4">User Type</p>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="25"
-					height="25"
-					viewBox="0 0 20 20"
-					class="text-gray-600"
+				<button
+					class="bg-red-500 text-white py-2 px-4 rounded-md cursor-pointer hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-200"
+					@click="deleteUser(u.username)"
+					v-if="u.username != 'admin'"
 				>
-					<path
-						fill="currentColor"
-						d="M5 6a4 4 0 1 1 8 0a4 4 0 0 1-8 0m-3 7c0-1.113.903-2 2.009-2h6.248A5.48 5.48 0 0 0 9 14.5c0 1.303.453 2.5 1.21 3.443Q9.617 18 9 18c-1.855 0-3.583-.386-4.865-1.203C2.833 15.967 2 14.69 2 13m17 1.5a4.5 4.5 0 1 1-9 0a4.5 4.5 0 0 1 9 0m-2.646-1.146a.5.5 0 0 0-.708-.708L14.5 13.793l-1.146-1.147a.5.5 0 0 0-.708.708l1.147 1.146l-1.147 1.146a.5.5 0 0 0 .708.708l1.146-1.147l1.146 1.147a.5.5 0 0 0 .708-.708L15.207 14.5z"
-					/>
-				</svg>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="25"
+						height="25"
+						viewBox="0 0 20 20"
+						class="text-gray-600"
+					>
+						<path
+							fill="currentColor"
+							d="M5 6a4 4 0 1 1 8 0a4 4 0 0 1-8 0m-3 7c0-1.113.903-2 2.009-2h6.248A5.48 5.48 0 0 0 9 14.5c0 1.303.453 2.5 1.21 3.443Q9.617 18 9 18c-1.855 0-3.583-.386-4.865-1.203C2.833 15.967 2 14.69 2 13m17 1.5a4.5 4.5 0 1 1-9 0a4.5 4.5 0 0 1 9 0m-2.646-1.146a.5.5 0 0 0-.708-.708L14.5 13.793l-1.146-1.147a.5.5 0 0 0-.708.708l1.147 1.146l-1.147 1.146a.5.5 0 0 0 .708.708l1.146-1.147l1.146 1.147a.5.5 0 0 0 .708-.708L15.207 14.5z"
+						/>
+					</svg>
+				</button>
 			</div>
 		</li>
 	</ul>
