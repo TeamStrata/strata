@@ -14,7 +14,7 @@ import (
 const uuidTag = "uuid"
 
 // Login, create and set UUID cookie, add user to the hash map
-func LoginHandler(d *database.DbManager, users map[string]string) gin.HandlerFunc {
+func LoginHandler(d *database.DbManager, activeUsers map[string]string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		login := database.User{}
 		err := c.ShouldBindJSON(&login)
@@ -35,7 +35,7 @@ func LoginHandler(d *database.DbManager, users map[string]string) gin.HandlerFun
 			return
 		}
 
-		newId := addNewUUID(user.Name, users)
+		newId := addNewUUID(user.Name, activeUsers)
 		c.SetCookie(
 			uuidTag,
 			newId,
@@ -50,7 +50,7 @@ func LoginHandler(d *database.DbManager, users map[string]string) gin.HandlerFun
 }
 
 // Create a new user, hash the password, store user in database
-func SignUpHandler(d *database.DbManager, users map[string]string) gin.HandlerFunc {
+func SignUpHandler(d *database.DbManager, activeUsers map[string]string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user := database.User{}
 		err := c.ShouldBindJSON(&user)
@@ -71,7 +71,7 @@ func SignUpHandler(d *database.DbManager, users map[string]string) gin.HandlerFu
 			return
 		}
 
-		newId := addNewUUID(user.Name, users)
+		newId := addNewUUID(user.Name, activeUsers)
 		c.SetCookie(
 			uuidTag,
 			newId,
@@ -86,7 +86,7 @@ func SignUpHandler(d *database.DbManager, users map[string]string) gin.HandlerFu
 }
 
 // Log out a user, delete their session UUID from the hash map
-func LogoutHandler(users map[string]string) gin.HandlerFunc {
+func LogoutHandler(activeUsers map[string]string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := c.Cookie(uuidTag)
 		if err != nil {
@@ -94,19 +94,19 @@ func LogoutHandler(users map[string]string) gin.HandlerFunc {
 			return
 		}
 
-		_, exists := users[id]
+		_, exists := activeUsers[id]
 		if !exists {
 			c.Status(http.StatusNoContent)
 			return
 		}
 
-		delete(users, id)
+		delete(activeUsers, id)
 		c.Status(http.StatusOK)
 	}
 }
 
 // Check if the UUID cookie is set and valid
-func AuthHandler(users map[string]string) gin.HandlerFunc {
+func AuthHandler(activeUsers map[string]string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := c.Cookie(uuidTag)
 		if err != nil {
@@ -114,7 +114,7 @@ func AuthHandler(users map[string]string) gin.HandlerFunc {
 			return
 		}
 
-		_, exists := users[id]
+		_, exists := activeUsers[id]
 		if !exists {
 			c.Status(http.StatusNoContent)
 			return
@@ -124,6 +124,25 @@ func AuthHandler(users map[string]string) gin.HandlerFunc {
 	}
 }
 
+
+// Respond with JSON representation of all users
+func GetUsersHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		users, err := d.GetAllUsers()
+		if err != nil {
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		if len(users) <= 0 {
+			c.Status(http.StatusNoContent)
+			return
+		}
+
+		c.JSON(http.StatusOK, users)
+  }
+}
+    
 // Delete a user that matches the name parameter
 func DeleteUserHandler(d *database.DbManager, activeUsers map[string]string) gin.HandlerFunc {
 	return func(c *gin.Context) {

@@ -11,7 +11,7 @@ import (
 
 type User struct {
 	Name     string `json:"username"`
-	Password string `json:"password"`
+	Password string `json:"password,omitempty"`
 }
 
 type DbManager struct {
@@ -62,6 +62,28 @@ func (d *DbManager) ConnectToDatabase() error {
 	d.Connection, err = pgxpool.New(context.Background(), d.conStr)
 
 	return err
+}
+
+func (d *DbManager) GetAllUsers() ([]User, error) {
+	var users []User
+
+	query := "SELECT user_name FROM users"
+	rows, err := d.Connection.Query(d.context, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var user User
+		err = rows.Scan(&user.Name)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
 }
 
 // Return a user based on username. Return error if no user found.

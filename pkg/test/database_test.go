@@ -38,22 +38,49 @@ func Test_GetUserByUsername(t *testing.T) {
 		t.Fatalf("error initializing DB manager: %s", err.Error())
 	}
 
-	realUser := database.User{
+	expectedUser := database.User{
 		Name:     "admin",
 		Password: "$2a$10$GEqRMhGYBay/4uXY50eyP.heui16Vs9WC//cwxt9mHijfJ.4xvi9.",
 	}
 
-	actualUser, err := db.GetUserByUserName(realUser.Name)
-	log.Print(realUser.Name)
-	log.Print(actualUser)
+	actualUser, err := db.GetUserByUserName(expectedUser.Name)
+	log.Printf("expected user: %+v", expectedUser.Name)
+	log.Printf("actual user: %+v", actualUser)
 	if err != nil {
 		t.Fatalf("error getting user by username: %s", err.Error())
 	}
 
-	if actualUser != realUser {
+	if actualUser != expectedUser {
 		t.Fatalf("actual user does not match real user")
 	}
 }
+
+func Test_GetAllUsers(t *testing.T) {
+	db, err := SetupDbManager()
+	if err != nil {
+		t.Fatalf("error initializing DB manager: %s", err.Error())
+	}
+  
+	expectedUser := database.User{
+		Name: "admin",
+	}
+
+	users, err := db.GetAllUsers()
+	if err != nil {
+		t.Fatalf("error getting all user names: %s", err.Error())
+	}
+
+	if len(users) != 1 {
+		t.Fatalf("expected 1 user, received: %d", len(users))
+	}
+
+	log.Printf("expected user: %+v", expectedUser)
+	log.Printf("actual user: %+v", users[0])
+	if users[0].Name != expectedUser.Name {
+		t.Fatalf("expected username \"admin\", received: %s", users[0].Name)
+	}
+}
+  
 
 func Test_DeleteUser(t *testing.T) {
 	db, err := SetupDbManager()

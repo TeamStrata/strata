@@ -36,16 +36,17 @@ func main() {
 		log.Fatalf("error initializing DB manager: %s", err.Error())
 	}
 
-	// Initialize map for users and uuids
-	users := make(map[string]string)
+	// Initialize map for active users and uuids
+	activeUsers := make(map[string]string)
 
-	// API Endpoints
-	server.POST("/login", api.LoginHandler(db, users))
-	server.POST("/signup", api.SignUpHandler(db, users))
-	server.POST("/logout", api.LogoutHandler(users))
-	server.POST("/auth", api.AuthHandler(users))
+	// Auth endpoints
+	server.POST("/login", api.LoginHandler(db, activeUsers))
+	server.POST("/signup", api.SignUpHandler(db, activeUsers))
+	server.POST("/logout", api.LogoutHandler(activeUsers))
+	server.POST("/auth", api.AuthHandler(activeUsers))
+	server.GET("/users", api.GetUsersHandler(db))
 
-	server.DELETE("/user/:name", api.DeleteUserHandler(db, users))
+	server.DELETE("/user/:name", api.DeleteUserHandler(db, activeUsers))
 	server.GET("/ping", api.PingHandler)
 
 	// Frontend
@@ -63,6 +64,9 @@ func main() {
 	server.GET("/query/:qid/execute", api.ExecuteQueryHandler(db)) // Execute a saved query (custom or standard saved queries)
 	server.POST("/query/:qid", api.SaveQueryHandler(db))
 	server.DELETE("/query/:qid", api.DeleteQueryHandler(db))
+
+	// Misc Endpoints
+	server.GET("/ping", api.PingHandler)
 
 	err = server.Run(":8080")
 	if err != nil {
