@@ -185,9 +185,8 @@ loadQueries();
 			:key="index"
 		>
 			<span class="text-gray-800 font-medium">{{ q.name }}</span>
-			<pre> <!-- HLJS SQL Highlighting -->
-				<code class="language-sql">{{ q.literal }}</code>
-			</pre>
+			 <!-- HLJS SQL Highlighting -->
+			<pre><code class="language-sql rounded">{{ q.literal }}</code></pre>
 			<div class="flex items-center">
 				<p class="text-gray-600 mr-4">ID: {{ q.id }}</p>
 				<button
