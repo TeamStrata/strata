@@ -11,7 +11,7 @@ import { RouterLink } from 'vue-router';
     <div class="w-xs h-full bg-neutral-100 flex flex-col p-7 border-r-1 border-r-gray-200">
       <!-- logo -->
       <div class="mx-auto p-4">
-        Logo Placeholder
+        <img src="@/assets/StrataFullx256.png" alt="STRATA"></img>
       </div>
       <div class="w-full h-0.5 bg-neutral-200 my-3"></div>
 
@@ -89,5 +89,5 @@ import { RouterLink } from 'vue-router';
     </div>
   </header>
 
-  <p>Huge content placeholder</p> 
+  <p>Huge content placeholder</p>
 </template> -->
