@@ -24,6 +24,17 @@ const router = createRouter({
           component: () => import("../components/AdminUsers.vue")
         }
       ]
+    },
+    {
+      path: '/queries',
+      name: 'queries',
+      component: HomeView,
+      children: [
+        {
+          path: "",
+          component: () => import("../components/Queries.vue")
+        }
+      ]
     }
   ],
 })
