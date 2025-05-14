@@ -157,6 +157,25 @@ func (d *DbManager) DeleteUser(username string) error {
 	return err
 }
 
+// Update a users role, requires a user name and role name
+func (d *DbManager) UpdateUserRole(role_name string, user_name string) error {
+	query :=
+		`UPDATE userroles
+		SET role_id = roles.role_id
+		FROM roles, users
+		WHERE userroles.user_id = users.user_id
+		AND roles.role_name = $1
+		AND users.user_name = $2`
+
+	tag, err := d.Connection.Exec(d.context, query, role_name, user_name)
+	if tag.RowsAffected() < 1 {
+		errMsg := "unable to update user role: user or role may not exist"
+		return errors.New(errMsg)
+	}
+
+	return err
+}
+
 // Insert a custom query into the database
 func (d *DbManager) InsertCustomQuery(query_name string, query_string string) (int, error) {
 	query_id := 0
@@ -168,21 +187,6 @@ func (d *DbManager) InsertCustomQuery(query_name string, query_string string) (i
 	err := d.Connection.QueryRow(d.context, query, query_name, query_string).Scan(&query_id)
 
 	return query_id, err
-}
-
-// Update a users role, requires a user name and role name
-func (d *DbManager) UpdateUserRole(user_name string, role_name string) error {
-	query :=
-		`UPDATE userroles
-		SET role_id = (
-			SELECT role_id FROM roles WHERE role_name = $1
-		)
-		WHERE user_id = (
-			SELECT user_id FROM users WHERE user_name = $2
-		)`
-
-	_, err := d.Connection.Query(d.context, query, role_name, user_name)
-	return err
 }
 
 func GetQuerySearchSuffix(query_name string) string {

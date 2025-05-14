@@ -46,6 +46,7 @@ func main() {
 	server.POST("/auth", api.AuthHandler(activeUsers))
 	server.GET("/users", api.GetUsersHandler(db))
 	server.DELETE("/user/:name", api.DeleteUserHandler(db, activeUsers))
+	server.PUT("/user/:name/role", api.UpdateUserRoleHandler(db))
 
 	// Frontend
 	server.Static("/assets", "ui/dist/assets")

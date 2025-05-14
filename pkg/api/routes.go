@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -124,7 +125,6 @@ func AuthHandler(activeUsers map[string]string) gin.HandlerFunc {
 	}
 }
 
-
 // Respond with JSON representation of all users
 func GetUsersHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -140,9 +140,9 @@ func GetUsersHandler(d *database.DbManager) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, users)
-  }
+	}
 }
-    
+
 // Delete a user that matches the name parameter
 func DeleteUserHandler(d *database.DbManager, activeUsers map[string]string) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -158,6 +158,35 @@ func DeleteUserHandler(d *database.DbManager, activeUsers map[string]string) gin
 		err := d.DeleteUser(name)
 		if err != nil {
 			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		c.Status(http.StatusOK)
+	}
+}
+
+func UpdateUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userName := c.Param("name")
+
+		var requestData map[string]string
+		err := c.ShouldBindJSON(&requestData)
+		if err != nil {
+			c.Status(http.StatusBadRequest)
+			return
+		}
+
+		role, ok := requestData["role"]
+		if !ok {
+			errMsg := "expected 'role' string JSON field"
+			c.String(http.StatusBadRequest, errMsg)
+			return
+		}
+
+		err = d.UpdateUserRole(role, userName)
+		if err != nil {
+			errMsg := fmt.Sprintf("unable to update user role: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
 			return
 		}
 

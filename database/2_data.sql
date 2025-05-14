@@ -25,6 +25,11 @@ BEGIN
 		-- Get user id
 		SELECT user_id INTO admin_user_id FROM users WHERE user_name = 'admin';
 
+		-- Create 'default' role
+		INSERT INTO roles (role_name)
+		VALUES ('default')
+		ON CONFLICT (role_name) DO NOTHING;
+
 		-- Create 'admin' role
 		INSERT INTO roles (role_name)
 		VALUES ('admin')

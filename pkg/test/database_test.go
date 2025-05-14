@@ -5,6 +5,7 @@ import (
 	"log"
 	"testing"
 
+	"github.com/TeamStrata/strata/pkg/auth"
 	"github.com/TeamStrata/strata/pkg/database"
 )
 
@@ -124,18 +125,19 @@ func Test_UpdateUserRole(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error initializing DB manager: %s", err.Error())
 	}
-
+	password := auth.HashPassword("test")
 	testUser := database.User{
 		Name:     "test",
-		Password: "test",
+		Password: password,
 		Role:     "admin",
 	}
+
 	err = db.InsertUser(testUser.Name, testUser.Password)
 	if err != nil {
 		t.Fatalf("error inserting test user into database: %s", err.Error())
 	}
 
-	err = db.UpdateUserRole(testUser.Name, testUser.Role)
+	err = db.UpdateUserRole(testUser.Role, testUser.Name)
 	if err != nil {
 		t.Fatalf("error updating user role: %s", err.Error())
 	}
