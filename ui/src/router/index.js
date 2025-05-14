@@ -26,13 +26,17 @@ const router = createRouter({
       ]
     },
     {
-      path: '/queries',
-      name: 'queries',
+      path: '/query',
+      name: 'query',
       component: HomeView,
       children: [
         {
-          path: "",
+          path: "list",
           component: () => import("../components/Queries.vue")
+        },
+        {
+          path: "run/:id",
+          component: () => import("../components/QueryExecute.vue")
         }
       ]
     }

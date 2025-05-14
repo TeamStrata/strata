@@ -189,19 +189,21 @@ loadQueries();
 			<pre><code class="language-sql rounded">{{ q.literal }}</code></pre>
 			<div class="flex items-center">
 				<p class="text-gray-600 mr-4">ID: {{ q.id }}</p>
+				<router-link class="bg-green-500 text-white py-2 px-4 rounded-md cursor-pointer hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-200 mr-4" :to="`/query/run/${q.id}`">
+					<svg xmlns="http://www.w3.org/2000/svg" width="25px" height="25px" viewBox="0 0 30 30" class="text-gray-600" >
+						<path 
+							fill="#fff" 
+							d="M28,10H22V4a2.0025,2.0025,0,0,0-2-2H4A2.0025,2.0025,0,0,0,2,4V20a2.0025,2.0025,0,0,0,2,2h6v6a2.0025,2.0025,0,0,0,2,2H28a2.0025,2.0025,0,0,0,2-2V12A2.0025,2.0025,0,0,0,28,10ZM4,20V4h6V20Zm18,8V12h6V28Z"
+						/>
+					</svg>
+				</router-link>
 				<button
 					class="bg-red-500 text-white py-2 px-4 rounded-md cursor-pointer hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-200"
 					@click="deleteQuery(q.name)"
 				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						width="25"
-						height="25"
-						viewBox="0 0 20 20"
-						class="text-gray-600"
-					>
+					<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 20 20" class="text-gray-600">
 						<path
-							fill="currentColor"
+							fill="#fff"
 							d="M5 6a4 4 0 1 1 8 0a4 4 0 0 1-8 0m-3 7c0-1.113.903-2 2.009-2h6.248A5.48 5.48 0 0 0 9 14.5c0 1.303.453 2.5 1.21 3.443Q9.617 18 9 18c-1.855 0-3.583-.386-4.865-1.203C2.833 15.967 2 14.69 2 13m17 1.5a4.5 4.5 0 1 1-9 0a4.5 4.5 0 0 1 9 0m-2.646-1.146a.5.5 0 0 0-.708-.708L14.5 13.793l-1.146-1.147a.5.5 0 0 0-.708.708l1.147 1.146l-1.147 1.146a.5.5 0 0 0 .708.708l1.146-1.147l1.146 1.147a.5.5 0 0 0 .708-.708L15.207 14.5z"
 						/>
 					</svg>
