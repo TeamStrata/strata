@@ -1,11 +1,12 @@
 package api
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/TeamStrata/strata/pkg/auth"
 	"github.com/TeamStrata/strata/pkg/database"
 	"github.com/google/uuid"
-	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -116,6 +117,28 @@ func AuthHandler(users map[string]string) gin.HandlerFunc {
 		_, exists := users[id]
 		if !exists {
 			c.Status(http.StatusNoContent)
+			return
+		}
+
+		c.Status(http.StatusOK)
+	}
+}
+
+// Delete a user that matches the name parameter
+func DeleteUserHandler(d *database.DbManager, activeUsers map[string]string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		name := c.Param("name")
+
+		for id, tmpName := range activeUsers {
+			if tmpName == name {
+				delete(activeUsers, id)
+				break
+			}
+		}
+
+		err := d.DeleteUser(name)
+		if err != nil {
+			c.Status(http.StatusInternalServerError)
 			return
 		}
 

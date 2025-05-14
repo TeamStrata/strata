@@ -10,7 +10,7 @@ import (
 
 func SetupDbManager() (*database.DbManager, error) {
 	// Get database connection string
-	conStr, err := database.GetConnectionString(database.DefaultPath)
+	conStr, err := database.GetConnectionString(database.TestPath)
 	if err != nil {
 		log.Fatalf("error loading .env file: %s", err.Error())
 		return nil, err
@@ -52,6 +52,27 @@ func Test_GetUserByUsername(t *testing.T) {
 
 	if actualUser != realUser {
 		t.Fatalf("actual user does not match real user")
+	}
+}
+
+func Test_DeleteUser(t *testing.T) {
+	db, err := SetupDbManager()
+	if err != nil {
+		t.Fatalf("error initializing DB manager: %s", err.Error())
+	}
+
+	testUser := database.User{
+		Name:     "test",
+		Password: "test",
+	}
+	err = db.InsertUser(testUser.Name, testUser.Password)
+	if err != nil {
+		t.Fatalf("error inserting test user into database: %s", err.Error())
+	}
+
+	err = db.DeleteUser(testUser.Name)
+	if err != nil {
+		t.Fatalf("error deleting user: %s", err.Error())
 	}
 }
 

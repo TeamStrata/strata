@@ -89,6 +89,13 @@ func (d *DbManager) InsertUser(username string, password string) error {
 	return err
 }
 
+// Delete a user from the database by username
+func (d *DbManager) DeleteUser(username string) error {
+	query := "DELETE FROM users WHERE user_name = $1"
+	_, err := d.Connection.Query(d.context, query, username)
+	return err
+}
+
 // Insert a custom query into the database
 func (d *DbManager) InsertCustomQuery(query_name string, query_string string) (int, error) {
 	query_id := 0
