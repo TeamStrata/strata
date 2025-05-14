@@ -41,11 +41,12 @@ func Test_GetUserByUsername(t *testing.T) {
 	expectedUser := database.User{
 		Name:     "admin",
 		Password: "$2a$10$GEqRMhGYBay/4uXY50eyP.heui16Vs9WC//cwxt9mHijfJ.4xvi9.",
+		Role:     "admin",
 	}
 
 	actualUser, err := db.GetUserByUserName(expectedUser.Name)
-	log.Printf("expected user: %+v", expectedUser.Name)
-	log.Printf("actual user: %+v", actualUser)
+	log.Printf("expected user:	%+v", expectedUser)
+	log.Printf("actual user:	%+v", actualUser)
 	if err != nil {
 		t.Fatalf("error getting user by username: %s", err.Error())
 	}
@@ -60,9 +61,10 @@ func Test_GetAllUsers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error initializing DB manager: %s", err.Error())
 	}
-  
+
 	expectedUser := database.User{
 		Name: "admin",
+		Role: "admin",
 	}
 
 	users, err := db.GetAllUsers()
@@ -74,13 +76,12 @@ func Test_GetAllUsers(t *testing.T) {
 		t.Fatalf("expected 1 user, received: %d", len(users))
 	}
 
-	log.Printf("expected user: %+v", expectedUser)
-	log.Printf("actual user: %+v", users[0])
+	log.Printf("expected user:	%+v", expectedUser)
+	log.Printf("actual user:	%+v", users[0])
 	if users[0].Name != expectedUser.Name {
 		t.Fatalf("expected username \"admin\", received: %s", users[0].Name)
 	}
 }
-  
 
 func Test_DeleteUser(t *testing.T) {
 	db, err := SetupDbManager()

@@ -45,9 +45,7 @@ func main() {
 	server.POST("/logout", api.LogoutHandler(activeUsers))
 	server.POST("/auth", api.AuthHandler(activeUsers))
 	server.GET("/users", api.GetUsersHandler(db))
-
 	server.DELETE("/user/:name", api.DeleteUserHandler(db, activeUsers))
-	server.GET("/ping", api.PingHandler)
 
 	// Frontend
 	server.Static("/assets", "ui/dist/assets")

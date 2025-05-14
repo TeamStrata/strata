@@ -9,15 +9,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type User struct {
-	Name     string `json:"username"`
-	Password string `json:"password,omitempty"`
-}
-
 type DbManager struct {
 	conStr     string
 	Connection *pgxpool.Pool
 	context    context.Context
+}
+
+type User struct {
+	Name     string `json:"username"`
+	Password string `json:"password,omitempty"`
+	Role     string `json:"role,omitempty"`
 }
 
 type Query struct {
@@ -67,7 +68,17 @@ func (d *DbManager) ConnectToDatabase() error {
 func (d *DbManager) GetAllUsers() ([]User, error) {
 	var users []User
 
-	query := "SELECT user_name FROM users"
+	query :=
+		`SELECT
+			users.user_name,
+			roles.role_name
+		FROM
+			userroles
+			JOIN users ON userroles.user_id = users.user_id
+			JOIN roles ON userroles.role_id = roles.role_id
+		ORDER BY
+			users.user_name;`
+
 	rows, err := d.Connection.Query(d.context, query)
 	if err != nil {
 		return nil, err
@@ -76,7 +87,7 @@ func (d *DbManager) GetAllUsers() ([]User, error) {
 
 	for rows.Next() {
 		var user User
-		err = rows.Scan(&user.Name)
+		err = rows.Scan(&user.Name, &user.Role)
 		if err != nil {
 			return nil, err
 		}
@@ -94,8 +105,15 @@ func (d *DbManager) GetUserByUserName(name string) (User, error) {
 		return User{}, err
 	}
 
-	query := "SELECT user_name, password_hash FROM users WHERE user_name = $1"
-	err = d.Connection.QueryRow(d.context, query, name).Scan(&user.Name, &user.Password)
+	query :=
+		`SELECT
+			user_name, password_hash, role_name
+		FROM
+			userroles
+			JOIN users ON userroles.user_id = users.user_id
+			JOIN roles ON userroles.role_id = roles.role_id
+		WHERE user_name = $1`
+	err = d.Connection.QueryRow(d.context, query, name).Scan(&user.Name, &user.Password, &user.Role)
 	if err != nil {
 		return User{}, err
 	}
