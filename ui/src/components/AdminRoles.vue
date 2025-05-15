@@ -111,7 +111,7 @@ function submitCreate() {
             <Card class="h-full">
                 <div class="flex items-center justify-between">
                     <h1 class="text-lg">{{ r.name }}</h1>
-                    <Badge>{{ r.color }}</Badge>
+                    <Badge :color="r.color">{{ r.color }}</Badge>
                 </div>
                 <div class="flex justify-end pt-5">
                     <button class="outline-1 rounded-sm px-2 py-1 outline-purple-800 text-purple-800 cursor-pointer"
