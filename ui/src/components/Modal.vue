@@ -37,7 +37,7 @@ const emit = defineEmits(['close'])
 <style scoped>
 .fade-enter-active,
 .fade-leave-active {
-    transition: opacity 0.2s ease;
+    transition: opacity 0.15s ease;
 }
 
 .fade-enter-from,
