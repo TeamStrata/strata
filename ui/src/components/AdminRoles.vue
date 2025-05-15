@@ -99,10 +99,10 @@ function submitCreate() {
             <input placeholder="Search"
                 class="p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
                 type="text">
-            <button @click="createModal = true"
+            <!-- <button @click="createModal = true"
                 class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200 cursor-pointer">
                 Add Role
-            </button>
+            </button> -->
         </div>
     </div>
 
