@@ -2,7 +2,7 @@
 defineProps({
   color: {
     type: String,
-    default: 'blue', // fallback color
+    default: '#87d395', // fallback color
   },
 })
 
