@@ -28,7 +28,7 @@ const emit = defineEmits(['close'])
       v-if="show"
       class="fixed z-50 left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2"
     >
-      <div class="bg-white p-8 w-96 rounded-lg shadow-md">
+      <div class="bg-white p-8 rounded-lg shadow-md">
         <slot />
       </div>
     </div>
