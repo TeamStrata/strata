@@ -37,7 +37,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Run Database Migrations
-      run: psql  psql -c "BEGIN TRANSACTION;" -f database/1_schema.sql -f database/2_data.sql -c "COMMIT;" postgresql://strata:atarts@postgres:5432/strata
+      run: docker exec postgres psql  psql -c "BEGIN TRANSACTION;" -f database/1_schema.sql -f database/2_data.sql -c "COMMIT;" postgresql://strata:atarts@postgres:5432/strata
 
     - name: Set up Go
       uses: actions/setup-go@v4
