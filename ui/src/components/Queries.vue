@@ -18,15 +18,8 @@ var addModal = ref(false);
 const toastRef = ref(null);
 
 function addQuery() {
-	apiFetch(`/query/${newQueryName.value}`, "POST", newQueryLiteral.value, "application/sql")
 	// submit user and pass to form
-	// fetch(`http://localhost:8080/query/${newQueryName.value}`, {
-	// 	method: "POST",
-	// 	headers: {
-	// 		"Content-Type": "application/sql",
-	// 	},
-	// 	body: newQueryLiteral.value,
-	// })
+	apiFetch(`/query/${newQueryName.value}`, "POST", newQueryLiteral.value, "application/sql")
 		.then(async (response) => {
 			if (!response.ok) {
 				toastRef.value?.showToast(
@@ -59,7 +52,6 @@ function addQuery() {
 
 function deleteQuery(name) {
 	apiFetch(`/query/${name}`, 'DELETE')
-
 		.then((res) => {
 			if (!res.ok) {
 				toastRef.value?.showToast(
