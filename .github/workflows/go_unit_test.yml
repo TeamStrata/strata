@@ -32,16 +32,7 @@ jobs:
           echo "Waiting for postgres..."
           sleep 2
         done
-        
-    - name: Run SQL commands
-      run: |
-        psql -U strata -d strata -h localhost -c 'BEGIN TRANSACTION;' -f database/1_schema.sql -f database/2_data.sql -c 'COMMIT;'
-      env:
-        PGPASSWORD: atarts
-
-    - name: Run Database Migrations
-      run: docker exec strata psql -c "BEGIN TRANSACTION;" -f database/1_schema.sql -f database/2_data.sql -c "COMMIT;" postgresql://strata:atarts@postgres:5432/strata
-
+      
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
