@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -165,27 +164,59 @@ func DeleteUserHandler(d *database.DbManager, activeUsers map[string]string) gin
 	}
 }
 
-func UpdateUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
+// func UpdateUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
+// 	return func(c *gin.Context) {
+// 		userName := c.Param("name")
+
+// 		var requestData map[string]string
+// 		err := c.ShouldBindJSON(&requestData)
+// 		if err != nil {
+// 			c.Status(http.StatusBadRequest)
+// 			return
+// 		}
+
+// 		role, ok := requestData["role"]
+// 		if !ok {
+// 			errMsg := "expected 'role' string JSON field"
+// 			c.String(http.StatusBadRequest, errMsg)
+// 			return
+// 		}
+
+// 		err = d.UpdateUserRole(role, userName)
+// 		if err != nil {
+// 			errMsg := fmt.Sprintf("unable to update user role: %s", err.Error())
+// 			c.String(http.StatusInternalServerError, errMsg)
+// 			return
+// 		}
+
+// 		c.Status(http.StatusOK)
+// 	}
+// }
+
+func AddUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userName := c.Param("name")
+		userName := c.Param("uname")
+		roleName := c.Param("rname")
 
-		var requestData map[string]string
-		err := c.ShouldBindJSON(&requestData)
+		err := d.AddUserRole(userName, roleName)
 		if err != nil {
-			c.Status(http.StatusBadRequest)
+			errMsg := ""
+			c.String(http.StatusInternalServerError, errMsg)
 			return
 		}
 
-		role, ok := requestData["role"]
-		if !ok {
-			errMsg := "expected 'role' string JSON field"
-			c.String(http.StatusBadRequest, errMsg)
-			return
-		}
+		c.Status(http.StatusOK)
+	}
+}
 
-		err = d.UpdateUserRole(role, userName)
+func DeleteUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userName := c.Param("uname")
+		roleName := c.Param("rname")
+
+		err := d.DeleteUserRole(userName, roleName)
 		if err != nil {
-			errMsg := fmt.Sprintf("unable to update user role: %s", err.Error())
+			errMsg := ""
 			c.String(http.StatusInternalServerError, errMsg)
 			return
 		}

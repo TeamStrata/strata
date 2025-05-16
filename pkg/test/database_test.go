@@ -3,11 +3,19 @@ package test
 import (
 	"context"
 	"log"
+	"slices"
 	"testing"
 
 	"github.com/TeamStrata/strata/pkg/auth"
 	"github.com/TeamStrata/strata/pkg/database"
 )
+
+// Return true if two users have identical field values.
+func compareUsers(first database.User, second database.User) bool {
+	return first.Name == second.Name &&
+		first.Password == second.Password &&
+		slices.Compare(first.Roles, second.Roles) == 0
+}
 
 func SetupDbManager() (*database.DbManager, error) {
 	// Get database connection string
@@ -57,7 +65,7 @@ func Test_GetUserByUsername(t *testing.T) {
 	expectedUser := database.User{
 		Name:     "admin",
 		Password: "$2a$10$GEqRMhGYBay/4uXY50eyP.heui16Vs9WC//cwxt9mHijfJ.4xvi9.",
-		Role:     "admin",
+		Roles:    []string{"admin"},
 	}
 
 	actualUser, err := db.GetUserByUserName(expectedUser.Name)
@@ -67,7 +75,7 @@ func Test_GetUserByUsername(t *testing.T) {
 		t.Fatalf("error getting user by username: %s", err.Error())
 	}
 
-	if actualUser != expectedUser {
+	if compareUsers(actualUser, expectedUser) {
 		t.Fatalf("actual user does not match real user")
 	}
 }
@@ -79,8 +87,8 @@ func Test_GetAllUsers(t *testing.T) {
 	}
 
 	expectedUser := database.User{
-		Name: "admin",
-		Role: "admin",
+		Name:  "admin",
+		Roles: []string{"admin"},
 	}
 
 	users, err := db.GetAllUsers()
@@ -120,7 +128,7 @@ func Test_DeleteUser(t *testing.T) {
 	}
 }
 
-func Test_UpdateUserRole(t *testing.T) {
+func Test_AddUserRole(t *testing.T) {
 	db, err := SetupDbManager()
 	if err != nil {
 		t.Fatalf("error initializing DB manager: %s", err.Error())
@@ -129,7 +137,6 @@ func Test_UpdateUserRole(t *testing.T) {
 	testUser := database.User{
 		Name:     "test",
 		Password: password,
-		Role:     "admin",
 	}
 
 	err = db.InsertUser(testUser.Name, testUser.Password)
@@ -137,15 +144,8 @@ func Test_UpdateUserRole(t *testing.T) {
 		t.Fatalf("error inserting test user into database: %s", err.Error())
 	}
 
-	err = db.UpdateUserRole(testUser.Role, testUser.Name)
+	err = db.AddUserRole(testUser.Name, "admin")
 	if err != nil {
-		t.Fatalf("error updating user role: %s", err.Error())
-	}
-
-	actualUser, err := db.GetUserByUserName(testUser.Name)
-	if actualUser.Role != testUser.Role {
-		log.Printf("expected role:	%s", testUser.Role)
-		log.Printf("actual role:	%s", actualUser.Role)
-		t.Fatalf("expected role does not match actual role: %s", err.Error())
+		t.Fatalf("error adding admin role to user: %s", err.Error())
 	}
 }

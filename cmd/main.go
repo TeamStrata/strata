@@ -44,9 +44,8 @@ func main() {
 	server.POST("/signup", api.SignUpHandler(db, activeUsers))
 	server.POST("/logout", api.LogoutHandler(activeUsers))
 	server.POST("/auth", api.AuthHandler(activeUsers))
-	server.GET("/users", api.GetUsersHandler(db))
+
 	server.DELETE("/user/:name", api.DeleteUserHandler(db, activeUsers))
-	server.PUT("/user/:name/role", api.UpdateUserRoleHandler(db))
 
 	// Frontend
 	server.Static("/assets", "ui/dist/assets")
@@ -54,6 +53,9 @@ func main() {
 	server.StaticFile("/favicon.ico", "ui/dist/favicon.ico")
 
 	// Account / Roles
+	server.GET("/users", api.GetUsersHandler(db))
+	server.PATCH("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
+	server.DELETE("/user/:uname/role/:rname", api.DeleteUserRoleHandler(db))
 
 	// Dashboard Components
 
