@@ -11,43 +11,31 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    services:
-      # Label used to access the service container
-      postgres:
-        #Docker Hub image
-        image: postgres
-        ports:
-            # Maps tcp port 5432 on service container to the host
-            - 5432:5432
-        # Provide the password for postgres
-        env:
-          POSTGRES_DB: strata
-          POSTGRES_USER: strata
-          POSTGRES_PASSWORD: atarts
-          # Set health checks to wait until postgres has started
-          options: >-
-            --health-cmd pg_isready
-            --health-interval 10s
-            --health-timeout 5s
-            --health-retries 5
-          
+  build:  
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
 
-    - name: Wait for Postgres to be ready
+    - name: Start postgres with init script
       run: |
-        until pg_isready -h postgres -p 5432 -U strata; do
+        docker run -d --name my-postgres \
+          -e POSTGRES_DB=strata \
+          -e POSTGRES_USER=strata \
+          -e POSTGRES_PASSWORD=atarts \
+          -v ${{ github.workspace }}/schema:/docker-entrypoint-initdb.d \
+          -p 5432:5432 \
+          postgres
+          
+    - name: Wait for Postgres
+      run: |
+        until docker exec my-postgres pg_isready; do
           echo "Waiting for postgres..."
           sleep 2
         done
-      env:
-        PGPASSWORD: atarts
-
+        
     - name: Run SQL commands
       run: |
-        psql -c 'BEGIN TRANSACTION;' -f database/1_schema.sql -f database/2_data.sql -c 'COMMIT;' postgresql://strata:atarts@postgres:5432/strata
+        psql -h postgres -c 'BEGIN TRANSACTION;' -f database/1_schema.sql -f database/2_data.sql -c 'COMMIT;'
       env:
         PGPASSWORD: atarts
 
