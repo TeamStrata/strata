@@ -18,11 +18,11 @@ jobs:
 
     - name: Start postgres with init script
       run: |
-        docker run -d --name my-postgres \
+        docker run -d --name strata \
           -e POSTGRES_DB=strata \
           -e POSTGRES_USER=strata \
           -e POSTGRES_PASSWORD=atarts \
-          -v ${{ github.workspace }}/schema:/docker-entrypoint-initdb.d \
+          -v ${{ github.workspace }}/database:/docker-entrypoint-initdb.d \
           -p 5432:5432 \
           postgres
           
@@ -40,7 +40,7 @@ jobs:
         PGPASSWORD: atarts
 
     - name: Run Database Migrations
-      run: docker exec postgres psql -c "BEGIN TRANSACTION;" -f database/1_schema.sql -f database/2_data.sql -c "COMMIT;" postgresql://strata:atarts@postgres:5432/strata
+      run: docker exec strata psql -c "BEGIN TRANSACTION;" -f database/1_schema.sql -f database/2_data.sql -c "COMMIT;" postgresql://strata:atarts@postgres:5432/strata
 
     - name: Set up Go
       uses: actions/setup-go@v4
