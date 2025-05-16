@@ -35,7 +35,7 @@ jobs:
         
     - name: Run SQL commands
       run: |
-        psql -h localhost -c 'BEGIN TRANSACTION;' -f database/1_schema.sql -f database/2_data.sql -c 'COMMIT;'
+        psql -U strata -d strata -h localhost -c 'BEGIN TRANSACTION;' -f database/1_schema.sql -f database/2_data.sql -c 'COMMIT;'
       env:
         PGPASSWORD: atarts
 
