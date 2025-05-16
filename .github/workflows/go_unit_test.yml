@@ -47,8 +47,8 @@ jobs:
     - name: Test
       run: go test -v ./pkg/test
       env: 
-        POSTGRES_HOST: postgres
-        DB_HOSTNAME: postgres
+        POSTGRES_HOST: localhost
+        DB_HOSTNAME: localhost
         DB_USERNAME: strata
         DB_PASSWORD: atarts
         DB_DATABASE: strata
