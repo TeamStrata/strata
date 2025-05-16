@@ -25,6 +25,13 @@ jobs:
           -v ${{ github.workspace }}/database:/docker-entrypoint-initdb.d \
           -p 5432:5432 \
           postgres
+
+    - name: Wait for Postgres
+      run: |
+        until docker exec my-postgres pg_isready; do
+          echo "Waiting for postgres..."
+          sleep 2
+        done
         
     - name: Run SQL commands
       run: |
