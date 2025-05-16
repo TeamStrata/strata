@@ -7,6 +7,9 @@ WORKDIR /opt/backend
 # Copy backend sources
 COPY . .
 
+# Overwrite the .env file with the Docker-specific .env file
+COPY .env.Docker .env
+
 # Install required Go Dependencies
 RUN go install ./cmd
 
