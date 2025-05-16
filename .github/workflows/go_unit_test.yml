@@ -36,11 +36,23 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: test
-      run: docker ps -a 
+    - name: Wait for Postgres to be ready
+      run: |
+        until pg_isready -h postgres -p 5432 -U strata; do
+          echo "Waiting for postgres..."
+          sleep 2
+        done
+      env:
+        PGPASSWORD: atarts
+
+    - name: Run SQL commands
+      run: |
+        psql -c 'BEGIN TRANSACTION;' -f database/1_schema.sql -f database/2_data.sql -c 'COMMIT;' postgresql://strata:atarts@postgres:5432/strata
+      env:
+        PGPASSWORD: atarts
 
     - name: Run Database Migrations
-      run: docker exec postgres psql  psql -c "BEGIN TRANSACTION;" -f database/1_schema.sql -f database/2_data.sql -c "COMMIT;" postgresql://strata:atarts@postgres:5432/strata
+      run: docker exec postgres psql -c "BEGIN TRANSACTION;" -f database/1_schema.sql -f database/2_data.sql -c "COMMIT;" postgresql://strata:atarts@postgres:5432/strata
 
     - name: Set up Go
       uses: actions/setup-go@v4
