@@ -164,35 +164,6 @@ func DeleteUserHandler(d *database.DbManager, activeUsers map[string]string) gin
 	}
 }
 
-// func UpdateUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
-// 	return func(c *gin.Context) {
-// 		userName := c.Param("name")
-
-// 		var requestData map[string]string
-// 		err := c.ShouldBindJSON(&requestData)
-// 		if err != nil {
-// 			c.Status(http.StatusBadRequest)
-// 			return
-// 		}
-
-// 		role, ok := requestData["role"]
-// 		if !ok {
-// 			errMsg := "expected 'role' string JSON field"
-// 			c.String(http.StatusBadRequest, errMsg)
-// 			return
-// 		}
-
-// 		err = d.UpdateUserRole(role, userName)
-// 		if err != nil {
-// 			errMsg := fmt.Sprintf("unable to update user role: %s", err.Error())
-// 			c.String(http.StatusInternalServerError, errMsg)
-// 			return
-// 		}
-
-// 		c.Status(http.StatusOK)
-// 	}
-// }
-
 func AddUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userName := c.Param("uname")

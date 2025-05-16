@@ -185,25 +185,6 @@ func (d *DbManager) DeleteUser(username string) error {
 	return err
 }
 
-// Update a users role, requires a user name and role name
-// func (d *DbManager) UpdateUserRole(roleName string, userName string) error {
-// 	query :=
-// 		`UPDATE userroles
-// 		SET role_id = roles.role_id
-// 		FROM roles, users
-// 		WHERE userroles.user_id = users.user_id
-// 		AND roles.role_name = $1
-// 		AND users.user_name = $2`
-
-// 	tag, err := d.Connection.Exec(d.context, query, roleName, userName)
-// 	if tag.RowsAffected() < 1 {
-// 		errMsg := "unable to update user role: user or role may not exist"
-// 		return errors.New(errMsg)
-// 	}
-
-// 	return err
-// }
-
 // Add a role to a user
 func (d *DbManager) AddUserRole(userName string, roleName string) error {
 	query :=
