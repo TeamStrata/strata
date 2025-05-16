@@ -147,14 +147,15 @@ func GetQuerySearchSuffix(query_name string) string {
 }
 
 // Get the custom query string saved as some ID
-func (d *DbManager) GetCustomQuery(query_name string) (string, error) {
+func (d *DbManager) GetCustomQuery(idName string) (string, string, error) {
 	query_string := ""
-	query := "SELECT query_string FROM queries WHERE " + GetQuerySearchSuffix(query_name)
+	query_name := ""
+	query := "SELECT query_name,query_string FROM queries WHERE " + GetQuerySearchSuffix(idName)
 
 	// Query the Db
-	err := d.Connection.QueryRow(d.context, query, query_name).Scan(&query_string)
+	err := d.Connection.QueryRow(d.context, query, idName).Scan(&query_name, &query_string)
 
-	return query_string, err
+	return query_name, query_string, err
 }
 
 // Delete a custom query based on ID

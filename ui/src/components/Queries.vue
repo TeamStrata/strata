@@ -1,32 +1,31 @@
 <script setup>
-import { ref } from "vue";
+import { ref, nextTick } from "vue";
 import Toast, { ToastTypes } from "./Toast.vue";
 
 // If we can't connect to the database, or while the fetch is in progress, this displays.
-var users = ref([
+var queries = ref([
 	{
-		username: "Loading...",
+		id: 0,
+		name: "Loading...",
+		literal: "Loading...",
 	},
 ]);
-var newUsername = ref("");
-var newPassword = ref("");
+var newQueryName = ref("");
+var newQueryLiteral = ref("");
 
 var addModal = ref(false);
 const toastRef = ref(null);
 
-function addUser() {
+function addQuery() {
 	// submit user and pass to form
-	fetch(`http://localhost:8080/signup`, {
+	fetch(`http://localhost:8080/query/${newQueryName.value}`, {
 		method: "POST",
 		headers: {
-			"Content-Type": "application/json",
+			"Content-Type": "application/sql",
 		},
-		body: JSON.stringify({
-			username: newUsername.value,
-			password: newPassword.value,
-		}),
+		body: newQueryLiteral.value,
 	})
-		.then((response) => {
+		.then(async (response) => {
 			if (!response.ok) {
 				toastRef.value?.showToast(
 					"There was an issue with creating the account",
@@ -41,7 +40,14 @@ function addUser() {
 			);
 
 			// Push new user to the list
-			users.value.push({ username: newUsername.value });
+			queries.value.push({
+				id: await response.text(),
+				name: newQueryName.value,
+				literal: newQueryLiteral.value,
+			});
+
+			// Wait for VUE DOM to update, then apply syntax highlighting
+			nextTick(hljs.highlightAll);
 		})
 		.catch((error) => {
 			console.error("Error:", error);
@@ -49,8 +55,8 @@ function addUser() {
 	addModal.value = false;
 }
 
-function deleteUser(username) {
-	fetch(`http://localhost:8080/user/${username}`, {
+function deleteQuery(name) {
+	fetch(`http://localhost:8080/query/${name}`, {
 		method: "DELETE",
 	})
 		.then((res) => {
@@ -69,15 +75,15 @@ function deleteUser(username) {
 			);
 
 			// Reload the user list
-			loadUsers();
+			loadQueries();
 		})
 		.catch((err) => {
 			console.error(err);
 		});
 }
 
-function loadUsers() {
-	fetch(`http://localhost:8080/users`)
+function loadQueries() {
+	fetch(`http://localhost:8080/queries`)
 		.then(async (response) => {
 			// Handle error
 			if (!response.ok) {
@@ -88,14 +94,17 @@ function loadUsers() {
 				throw new Error("Error loading users");
 			}
 
-			users.value = await response.json();
+			// If 'null' was provided, then set to an empty array
+			queries.value = (await response.json()) || [];
+
+			nextTick(hljs.highlightAll);
 		})
 		.catch((error) => {
 			console.error(error);
 		});
 }
 
-loadUsers();
+loadQueries();
 </script>
 
 <template>
@@ -108,24 +117,23 @@ loadUsers();
 		<div
 			class="bg-white p-8 w-96 m-auto rounded-lg shadow-md absolute left-1/2 transform -translate-x-1/2 top-1/3 -translate-y-1/2"
 		>
-			<h1 class="text-2xl font-semibold text-gray-800 mb-6">Add User</h1>
+			<h1 class="text-2xl font-semibold text-gray-800 mb-6">Add Query</h1>
 			<div>
-				<label for="newUser" class="text-gray-600">Username</label>
+				<label for="newQuery" class="text-gray-600">Query Name</label>
 				<input
-					id="newUser"
-					v-model="newUsername"
+					id="newQueryName"
+					v-model="newQueryName"
 					class="mt-1 border border-gray-300 rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-					placeholder="Enter username"
+					placeholder="Enter query name"
 				/>
 			</div>
 			<div class="mt-4">
-				<label for="newPass" class="text-gray-600">Password</label>
+				<label for="newPass" class="text-gray-600">Query Literal</label>
 				<input
-					id="newPass"
-					type="password"
-					v-model="newPassword"
+					id="newQueryLiteral"
+					v-model="newQueryLiteral"
 					class="mt-1 border border-gray-300 rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-					placeholder="Enter password"
+					placeholder="Enter query SQL string"
 				/>
 			</div>
 			<div class="flex flex-row justify-between mt-6">
@@ -137,9 +145,9 @@ loadUsers();
 				</button>
 				<button
 					class="bg-blue-500 text-white py-2 px-4 rounded-md cursor-pointer hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200"
-					@click="addUser"
+					@click="addQuery"
 				>
-					Add User
+					Add Query
 				</button>
 			</div>
 		</div>
@@ -147,14 +155,14 @@ loadUsers();
 
 	<Toast ref="toastRef" />
 
-	<p class="text-gray-700 mb-4">Manage your organizations members</p>
+	<p class="text-gray-700 mb-4">Manage your organizations queries</p>
 
 	<!-- list header -->
 	<div class="flex flex-row justify-between items-center mb-6">
-		<h1 class="text-2xl font-semibold text-gray-800">Members</h1>
+		<h1 class="text-2xl font-semibold text-gray-800">Queries</h1>
 
 		<div class="flex flex-row pb-2 items-center space-x-3">
-			<p class="text-gray-600">{{ users.length }} members</p>
+			<p class="text-gray-600">{{ queries?.length }} queries</p>
 			<input
 				placeholder="Search"
 				class="p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
@@ -164,7 +172,7 @@ loadUsers();
 				@click="addModal = true"
 				class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200 cursor-pointer"
 			>
-				Add Member
+				Add Query
 			</button>
 		</div>
 	</div>
@@ -173,16 +181,34 @@ loadUsers();
 	<ul>
 		<li
 			class="border-t-2 border-neutral-200 py-4 flex flex-row justify-between items-center px-5 hover:bg-gray-50 transition-colors"
-			v-for="(u, index) in users"
+			v-for="(q, index) in queries"
 			:key="index"
 		>
-			<span class="text-gray-800 font-medium">{{ u.username }}</span>
+			<span class="text-gray-800 font-medium">{{ q.name }}</span>
+			<!-- HLJS SQL Highlighting -->
+			<pre><code class="language-sql rounded">{{ q.literal }}</code></pre>
 			<div class="flex items-center">
-				<p class="text-gray-600 mr-4">User Type</p>
+				<p class="text-gray-600 mr-4">ID: {{ q.id }}</p>
+				<router-link
+					class="bg-green-500 text-white py-2 px-4 rounded-md cursor-pointer hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-200 mr-4"
+					:to="`/query/run/${q.id}`"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="25px"
+						height="25px"
+						viewBox="0 0 30 30"
+						class="text-gray-600"
+					>
+						<path
+							fill="#fff"
+							d="M28,10H22V4a2.0025,2.0025,0,0,0-2-2H4A2.0025,2.0025,0,0,0,2,4V20a2.0025,2.0025,0,0,0,2,2h6v6a2.0025,2.0025,0,0,0,2,2H28a2.0025,2.0025,0,0,0,2-2V12A2.0025,2.0025,0,0,0,28,10ZM4,20V4h6V20Zm18,8V12h6V28Z"
+						/>
+					</svg>
+				</router-link>
 				<button
 					class="bg-red-500 text-white py-2 px-4 rounded-md cursor-pointer hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-200"
-					@click="deleteUser(u.username)"
-					v-if="u.username != 'admin'"
+					@click="deleteQuery(q.name)"
 				>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"

@@ -19,7 +19,6 @@ func GetQueryList(d *database.DbManager) gin.HandlerFunc {
 			return
 		}
 
-
 		data, err := json.Marshal(queries)
 		if err != nil {
 			c.Data(500, "text/plain", []byte(err.Error()))
@@ -37,14 +36,17 @@ func ReadQueryLiteralHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query_id_str := c.Param("qid")
 
-		query_string, err := d.GetCustomQuery(query_id_str)
+		query_name, query_string, err := d.GetCustomQuery(query_id_str)
 		if err != nil {
 			c.Data(500, "text/plain", []byte(err.Error()))
 			c.Done()
 			return
 		}
 
-		c.Data(200, "application/sql", []byte(query_string))
+		c.JSON(200, gin.H{
+			"name":    query_name,
+			"literal": query_string,
+		})
 		c.Done()
 	}
 }
@@ -54,7 +56,7 @@ func ExecuteQueryHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query_id_str := c.Param("qid")
 
-		query_string, serr := d.GetCustomQuery(query_id_str)
+		_, query_string, serr := d.GetCustomQuery(query_id_str)
 		if serr != nil {
 			c.Data(500, "text/plain", []byte(serr.Error()))
 			c.Done()
@@ -78,7 +80,7 @@ func ExecuteQueryHandler(d *database.DbManager) gin.HandlerFunc {
 		}
 
 		c.Data(200, "application/json", data)
-		c.Done();
+		c.Done()
 	}
 }
 
@@ -86,7 +88,7 @@ func ExecuteQueryHandler(d *database.DbManager) gin.HandlerFunc {
 func SaveQueryHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query_name := c.Param("qid")
-		
+
 		// To prevent the query from being inaccessible later on, we need to sanitize
 		// If the query name can be parsed to an integer, reject it. It will clash with the ID, the user may accidentally select the wrong thing.
 		_, err := strconv.Atoi(query_name)
@@ -96,7 +98,6 @@ func SaveQueryHandler(d *database.DbManager) gin.HandlerFunc {
 			c.Done()
 			return
 		}
-
 
 		data, err := io.ReadAll(c.Request.Body)
 		if err != nil {
@@ -118,7 +119,7 @@ func SaveQueryHandler(d *database.DbManager) gin.HandlerFunc {
 	}
 }
 
-// Delete a query 
+// Delete a query
 func DeleteQueryHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query_id_str := c.Param("qid")
