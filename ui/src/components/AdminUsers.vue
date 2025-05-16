@@ -16,7 +16,7 @@ const toastRef = ref(null);
 
 function addUser() {
 	// submit user and pass to form
-	fetch(`${window.location.origin}/signup`, {
+	fetch(`http://localhost:8080/signup`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
@@ -41,7 +41,7 @@ function addUser() {
 			);
 
 			// Push new user to the list
-			users.value.push({username: newUsername.value});
+			users.value.push({ username: newUsername.value });
 		})
 		.catch((error) => {
 			console.error("Error:", error);
@@ -50,34 +50,34 @@ function addUser() {
 }
 
 function deleteUser(username) {
-	fetch(`${window.location.origin}/user/${username}`, {
+	fetch(`http://localhost:8080/user/${username}`, {
 		method: "DELETE",
 	})
-	.then(res => {
-		if (!res.ok) {
+		.then((res) => {
+			if (!res.ok) {
+				toastRef.value?.showToast(
+					"There was an issue deleting the user",
+					ToastTypes.FAIL,
+				);
+				throw new Error("Error deleting user");
+			}
+
+			// Handle success
 			toastRef.value?.showToast(
-				"There was an issue deleting the user",
-				ToastTypes.FAIL
+				"The user was succesfully deleted",
+				ToastTypes.SUCCESS,
 			);
-			throw new Error("Error deleting user");
-		}
 
-		// Handle success
-		toastRef.value?.showToast(
-			"The user was succesfully deleted",
-			ToastTypes.SUCCESS
-		);
-
-		// Reload the user list
-		loadUsers()
-	})
-	.catch(err => {
-		console.error(err);
-	});
+			// Reload the user list
+			loadUsers();
+		})
+		.catch((err) => {
+			console.error(err);
+		});
 }
 
 function loadUsers() {
-	fetch(`${window.location.origin}/users`)
+	fetch(`http://localhost:8080/users`)
 		.then(async (response) => {
 			// Handle error
 			if (!response.ok) {

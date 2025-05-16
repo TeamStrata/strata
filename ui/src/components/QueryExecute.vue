@@ -1,13 +1,13 @@
 <script setup>
-import router from '@/router';
+import router from "@/router";
 import { ref, nextTick } from "vue";
 import Toast, { ToastTypes } from "./Toast.vue";
 
 var customQuery = ref({
 	id: 0,
 	name: "Loading...",
-	literal: "Loading..."
-})
+	literal: "Loading...",
+});
 
 // If we can't connect to the database, or while the fetch is in progress, this displays.
 var table = ref([
@@ -22,48 +22,52 @@ var newQueryLiteral = ref("");
 var addModal = ref(false);
 const toastRef = ref(null);
 // Get current query ID
-const id = window.location.pathname.split("/").pop()
+const id = window.location.pathname.split("/").pop();
 
 function updateTable() {
 	// Execute the query and get the result
-	fetch(`${window.location.origin}/query/${id}/execute`)
-	.then(async (response) => {
-		// Handle error
-		if (!response.ok) {
-			toasRef.value?.showToast(
-				"There was an error when loading users",
-				ToastTypes.FAIL,
-			);
-			throw new Error("Error loading users");
-		}
+	fetch(`http://localhost:8080/query/${id}/execute`)
+		.then(async (response) => {
+			// Handle error
+			if (!response.ok) {
+				toasRef.value?.showToast(
+					"There was an error when loading users",
+					ToastTypes.FAIL,
+				);
+				throw new Error("Error loading users");
+			}
 
-		// If 'null' was provided, then set to an empty array
-		table.value = await response.json() || [];
-	})
-	.catch((error) => {
-		console.error(error);
-	});
+			// If 'null' was provided, then set to an empty array
+			table.value = (await response.json()) || [];
+		})
+		.catch((error) => {
+			console.error(error);
+		});
 }
 
 function getQuery() {
 	// Execute the query and get the result
-	fetch(`${window.location.origin}/query/${id}`)
-	.then(async (response) => {
-		// Handle error
-		if (!response.ok) {
-			toasRef.value?.showToast(
-				"There was an error when loading users",
-				ToastTypes.FAIL,
-			);
-			throw new Error("Error loading users");
-		}
+	fetch(`http://localhost:8080/query/${id}`)
+		.then(async (response) => {
+			// Handle error
+			if (!response.ok) {
+				toasRef.value?.showToast(
+					"There was an error when loading users",
+					ToastTypes.FAIL,
+				);
+				throw new Error("Error loading users");
+			}
 
-		// If 'null' was provided, then set to something known
-		customQuery.value = await response.json() || {id:0,name:"Nil",literal:"Nil"};
-	})
-	.catch((error) => {
-		console.error(error);
-	});
+			// If 'null' was provided, then set to something known
+			customQuery.value = (await response.json()) || {
+				id: 0,
+				name: "Nil",
+				literal: "Nil",
+			};
+		})
+		.catch((error) => {
+			console.error(error);
+		});
 }
 
 getQuery();
@@ -77,7 +81,9 @@ updateTable();
 
 	<!-- list header -->
 	<div class="flex flex-row justify-between items-center mb-6">
-		<h1 class="text-2xl font-semibold text-gray-800">'{{ customQuery.name }}' output:</h1>
+		<h1 class="text-2xl font-semibold text-gray-800">
+			'{{ customQuery.name }}' output:
+		</h1>
 
 		<div class="flex flex-row pb-2 items-center space-x-3">
 			<p class="text-gray-600">{{ table?.length }} rows</p>
@@ -106,11 +112,7 @@ updateTable();
 				<pre>{{ colIndex }}</pre>
 			</th>
 		</tr>
-		<tr
-			class=""
-			v-for="(row, rowIndex) in table"
-			:key="index"
-		>
+		<tr class="" v-for="(row, rowIndex) in table" :key="index">
 			<td
 				class="border border-neutral-300 py-3 px-5"
 				v-for="(column, colIndex) in row"
