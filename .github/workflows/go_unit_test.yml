@@ -11,12 +11,28 @@ on:
   workflow_dispatch:
 
 jobs:
-
-  build:
+  build:  
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
 
+    - name: Start postgres with init script
+      run: |
+        docker run -d --name strata \
+          -e POSTGRES_DB=strata \
+          -e POSTGRES_USER=strata \
+          -e POSTGRES_PASSWORD=atarts \
+          -v ${{ github.workspace }}/database:/docker-entrypoint-initdb.d \
+          -p 5432:5432 \
+          postgres
+
+    - name: Wait for Postgres
+      run: |
+        until docker exec strata pg_isready; do
+          echo "Waiting for postgres..."
+          sleep 2
+        done
+      
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
@@ -30,5 +46,13 @@ jobs:
 
     - name: Test
       run: go test -v ./pkg/test
+      env: 
+        POSTGRES_HOST: localhost
+        DB_HOSTNAME: localhost
+        DB_USERNAME: strata
+        DB_PASSWORD: atarts
+        DB_DATABASE: strata
+        DB_PORT: 5432
+      
 
 

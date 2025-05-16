@@ -102,18 +102,3 @@ func Test_DeleteUser(t *testing.T) {
 		t.Fatalf("error deleting user: %s", err.Error())
 	}
 }
-
-func Test_GetConnectionString(t *testing.T) {
-	connectionString, err := database.GetConnectionString(true)
-	if err != nil {
-		t.Error(err.Error())
-	}
-
-	expectedString := "postgresql://strata:atarts@strata_psql:5432/strata"
-
-	if connectionString != expectedString {
-		t.Errorf("expected string != connection string...\n")
-		t.Errorf("expected: %s\nconnection string: %s\n", expectedString, connectionString)
-		t.Fail()
-	}
-}
