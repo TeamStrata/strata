@@ -4,13 +4,28 @@
 name: Go Unit Test
 
 on:
-  push:
-    branches: [ "*" ]
+#  push:
+#    branches: [ "*" ]
   pull_request:
     branches: [ "*" ]
   workflow_dispatch:
 
 jobs:
+  # Label used to access the service container
+  postgres:
+    #Docker Hub image
+    image: postgres
+    # Provide the password for postgres
+    env:
+      POSTGRES_DB: strata
+      POSTGRES_USER: strata
+      POSTGRES_PASSWORD: atarts
+      # Set health checks to wait until postgres has started
+      options: >-
+        --health-cmd pg_isready
+        --health-interval 10s
+        --health-timeout 5s
+        --health-retries 5
 
   build:
     runs-on: ubuntu-latest
@@ -30,5 +45,13 @@ jobs:
 
     - name: Test
       run: go test -v ./pkg/test
+      env: 
+        POSTGRES_HOST: postgres
+        DB_HOSTNAME: strata_psql
+        DB_USERNAME: strata
+        DB_PASSWORD: atarts
+        DB_DATABASE: strata
+        DB_PORT: 5432
+      
 
 
