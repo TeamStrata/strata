@@ -48,7 +48,7 @@ jobs:
       run: go test -v ./pkg/test
       env: 
         POSTGRES_HOST: localhost
-	STRATA_RELEASE: true
+        STRATA_RELEASE: true
         DB_HOSTNAME: localhost
         DB_USERNAME: strata
         DB_PASSWORD: atarts
