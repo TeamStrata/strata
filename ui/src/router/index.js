@@ -22,6 +22,25 @@ const router = createRouter({
         {
           path: "users",
           component: () => import("../components/AdminUsers.vue")
+        },
+        {
+          path: "roles",
+          component: () => import("../components/AdminRoles.vue")
+        },
+      ]
+    },
+    {
+      path: '/query',
+      name: 'query',
+      component: HomeView,
+      children: [
+        {
+          path: "list",
+          component: () => import("../components/Queries.vue")
+        },
+        {
+          path: "run/:id",
+          component: () => import("../components/QueryExecute.vue")
         }
       ]
     }

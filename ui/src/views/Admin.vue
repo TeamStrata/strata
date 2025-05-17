@@ -11,7 +11,7 @@ import { RouterLink, RouterView } from 'vue-router';
         <!-- sidebar -->
         <div class="w-3xs h-full p-5 flex flex-col">
             <RouterLink to="/admin/users">Users Button</RouterLink>
-            <RouterLink to="">Roles Button</RouterLink>
+            <RouterLink to="/admin/roles">Roles Button</RouterLink>
         </div>
         <div class="h-full w-0.5 bg-neutral-200"></div>
         <div class="w-full h-full p-5">
