@@ -65,6 +65,7 @@ func Test_GetUserByUsername(t *testing.T) {
 	}
 }
 
+// Passes if `database.GetAllUsers()` returns an expected user.
 func Test_GetAllUsers(t *testing.T) {
 	db, err := SetupDbManager()
 	if err != nil {
@@ -92,6 +93,7 @@ func Test_GetAllUsers(t *testing.T) {
 	}
 }
 
+// Passes if `database.User` delete a User without returning an error.
 func Test_DeleteUser(t *testing.T) {
 	db, err := SetupDbManager()
 	if err != nil {
@@ -113,6 +115,8 @@ func Test_DeleteUser(t *testing.T) {
 	}
 }
 
+// Passes if `database.AddUserRole` is able to associate a role to a user
+// without returning an error.
 func Test_AddUserRole(t *testing.T) {
 	db, err := SetupDbManager()
 	if err != nil {
@@ -137,6 +141,8 @@ func Test_AddUserRole(t *testing.T) {
 	_ = db.DeleteUser(testUser.Name)
 }
 
+// Passes if `database.DeleteUserRole()` removes a role from a user
+// without returning an error.
 func Test_DeleteUserRole(t *testing.T) {
 	db, err := SetupDbManager()
 	if err != nil {
@@ -165,4 +171,75 @@ func Test_DeleteUserRole(t *testing.T) {
 	}
 
 	_ = db.DeleteUser(testUser.Name)
+}
+
+// Passes if `database.AddRole()` creates a new role
+// without returning an error.
+func Test_AddRole(t *testing.T) {
+	db, err := SetupDbManager()
+	if err != nil {
+		t.Fatalf("error initializing DB manager: %s", err.Error())
+	}
+
+	testRole := "testAddRole"
+
+	// Add the role
+	err = db.AddRole(testRole)
+	if err != nil {
+		t.Fatalf("error adding '%s' role : %s", testRole, err.Error())
+	}
+
+	// Clean up
+	err = db.DeleteRole(testRole)
+	if err != nil {
+		t.Fatalf("error deleting '%s' role: %s", testRole, err.Error())
+	}
+}
+
+// Passes if `database.UpdateRoleName()` changes the name of a role
+// without returning an error.
+func Test_UpdateRoleName(t *testing.T) {
+	db, err := SetupDbManager()
+	if err != nil {
+		t.Fatalf("error initializing DB manager: %s", err.Error())
+	}
+
+	oldRoleName := "testOldRole"
+	newRoleName := "testNewRole"
+
+	err = db.AddRole(oldRoleName)
+	if err != nil {
+		t.Fatalf("error adding '%s' role : %s", oldRoleName, err.Error())
+	}
+
+	err = db.UpdateRoleName(oldRoleName, newRoleName)
+	if err != nil {
+		t.Fatalf("error updating role name from '%s' to '%s': %s", oldRoleName, newRoleName, err.Error())
+	}
+
+	err = db.DeleteRole(newRoleName)
+	if err != nil {
+		t.Fatalf("error deleting updated '%s' role: %s", newRoleName, err.Error())
+	}
+}
+
+// Passes if `database.DeleteRole()` deletes a role
+// without returning an error.
+func Test_DeleteRole(t *testing.T) {
+	db, err := SetupDbManager()
+	if err != nil {
+		t.Fatalf("error initializing DB manager: %s", err.Error())
+	}
+
+	testRoleToDelete := "testDeleteRole"
+
+	err = db.AddRole(testRoleToDelete)
+	if err != nil {
+		t.Fatalf("error adding role '%s' for deletion test: %s", testRoleToDelete, err.Error())
+	}
+
+	err = db.DeleteRole(testRoleToDelete)
+	if err != nil {
+		t.Fatalf("error deleting role '%s': %s", testRoleToDelete, err.Error())
+	}
 }

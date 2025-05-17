@@ -196,6 +196,65 @@ func DeleteUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
 	}
 }
 
+// Get list of roles, and number of users per role
+func GetUsersPerRoleHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		roles, err := d.UsersPerRole()
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		c.JSON(http.StatusOK, roles)
+	}
+}
+
+// Add a new role to the database using the 'rname' route parameter.
+func AddRoleHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		roleName := c.Param("rname")
+
+		err := d.AddRole(roleName)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		c.Status(http.StatusOK)
+	}
+}
+
+// Update an existing role, user `rname` and `newname“ route parameters.
+func UpdateRoleHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		oldRole := c.Param("rname")
+		newRole := c.Param("newname")
+
+		err := d.UpdateRoleName(oldRole, newRole)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		c.Status(http.StatusOK)
+	}
+}
+
+// Delete a role, using `rname` route parameter.
+func DeleteRoleHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		roleName := c.Param("rname")
+
+		err := d.DeleteRole(roleName)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		c.Status(http.StatusOK)
+	}
+}
+
 // Example endpoint that returns "pong" in the response body JSON
 func PingHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{

@@ -45,17 +45,22 @@ func main() {
 	server.POST("/logout", api.LogoutHandler(activeUsers))
 	server.POST("/auth", api.AuthHandler(activeUsers))
 
-	server.DELETE("/user/:name", api.DeleteUserHandler(db, activeUsers))
-
 	// Frontend
 	server.Static("/assets", "ui/dist/assets")
 	server.StaticFile("/", "ui/dist/index.html")
 	server.StaticFile("/favicon.ico", "ui/dist/favicon.ico")
 
-	// Account / Roles
+	// User roles
 	server.GET("/users", api.GetUsersHandler(db))
-	server.PATCH("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
 	server.DELETE("/user/:uname/role/:rname", api.DeleteUserRoleHandler(db))
+	server.DELETE("/user/:uname", api.DeleteUserHandler(db, activeUsers))
+
+	// Roles
+	server.GET("/roles", api.GetUsersPerRoleHandler(db))
+	server.POST("/role/:rname", api.AddRoleHandler(db))
+	server.PUT("/role/:rname/:newname", api.UpdateRoleHandler(db))
+	server.DELETE("/role/:rname", api.DeleteRoleHandler(db))
+	server.PATCH("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
 
 	// Dashboard Components
 
