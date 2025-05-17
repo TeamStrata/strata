@@ -207,8 +207,8 @@ func (d *DbManager) AddUserRole(userName string, roleName string) error {
 func (d *DbManager) DeleteUserRole(userName string, roleName string) error {
 	query :=
 		`DELETE FROM userroles
-		WHERE user_id = $1
-		AND role_id = $2`
+		WHERE user_id = (SELECT user_id FROM users WHERE user_name = $1)
+		AND role_id = (SELECT role_id FROM roles WHERE role_name = $2)`
 
 	_, err := d.Connection.Exec(d.context, query, userName, roleName)
 	if err != nil {

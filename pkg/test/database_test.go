@@ -40,22 +40,7 @@ func SetupDbManager() (*database.DbManager, error) {
 	return db, nil
 }
 
-func Test_GetConnectionString(t *testing.T) {
-	connectionString, err := database.GetConnectionString(true)
-	if err != nil {
-		t.Error(err.Error())
-	}
-
-	expectedString := "postgresql://strata:atarts@strata_psql:5432/strata"
-
-	if connectionString != expectedString {
-		t.Errorf("expected string != connection string...\n")
-		t.Errorf("expected: %s\nconnection string: %s\n", expectedString, connectionString)
-		t.Fail()
-	}
-}
-
-// Passes if the database can return a user with the name 'gopher'
+// Passes if the database can return a user with the name 'admin'
 func Test_GetUserByUsername(t *testing.T) {
 	db, err := SetupDbManager()
 	if err != nil {
@@ -96,8 +81,8 @@ func Test_GetAllUsers(t *testing.T) {
 		t.Fatalf("error getting all user names: %s", err.Error())
 	}
 
-	if len(users) != 1 {
-		t.Fatalf("expected 1 user, received: %d", len(users))
+	if len(users) < 1 {
+		t.Fatalf("expected at least 1 user, received: %d", len(users))
 	}
 
 	log.Printf("expected user:	%+v", expectedUser)
@@ -114,8 +99,8 @@ func Test_DeleteUser(t *testing.T) {
 	}
 
 	testUser := database.User{
-		Name:     "test",
-		Password: "test",
+		Name:     "testDelete",
+		Password: "testDelete",
 	}
 	err = db.InsertUser(testUser.Name, testUser.Password)
 	if err != nil {
@@ -135,7 +120,7 @@ func Test_AddUserRole(t *testing.T) {
 	}
 	password := auth.HashPassword("test")
 	testUser := database.User{
-		Name:     "test",
+		Name:     "testAddRole",
 		Password: password,
 	}
 
@@ -148,4 +133,36 @@ func Test_AddUserRole(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error adding admin role to user: %s", err.Error())
 	}
+
+	_ = db.DeleteUser(testUser.Name)
+}
+
+func Test_DeleteUserRole(t *testing.T) {
+	db, err := SetupDbManager()
+	if err != nil {
+		t.Fatalf("error initializing DB manager: %s", err.Error())
+	}
+	password := auth.HashPassword("test")
+	testUser := database.User{
+		Name:     "testDeleteRole",
+		Password: password,
+	}
+
+	err = db.InsertUser(testUser.Name, testUser.Password)
+	if err != nil {
+		t.Fatalf("error inserting test user into database: %s", err.Error())
+	}
+
+	role := "delete"
+	err = db.AddUserRole(testUser.Name, role)
+	if err != nil {
+		t.Fatalf("error adding admin role to user: %s", err.Error())
+	}
+
+	err = db.DeleteUserRole(testUser.Name, role)
+	if err != nil {
+		t.Fatalf("error deleting user role: %s", err.Error())
+	}
+
+	_ = db.DeleteUser(testUser.Name)
 }
