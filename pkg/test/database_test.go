@@ -54,9 +54,9 @@ func Test_GetUserByUsername(t *testing.T) {
 	}
 
 	actualUser, err := db.GetUserByUserName(expectedUser.Name)
-	log.Printf("expected user:	%+v", expectedUser)
-	log.Printf("actual user:	%+v", actualUser)
 	if err != nil {
+		log.Printf("expected user:	%+v", expectedUser)
+		log.Printf("actual user:	%+v", actualUser)
 		t.Fatalf("error getting user by username: %s", err.Error())
 	}
 
@@ -85,9 +85,9 @@ func Test_GetAllUsers(t *testing.T) {
 		t.Fatalf("expected at least 1 user, received: %d", len(users))
 	}
 
-	log.Printf("expected user:	%+v", expectedUser)
-	log.Printf("actual user:	%+v", users[0])
 	if users[0].Name != expectedUser.Name {
+		log.Printf("expected user:	%+v", expectedUser)
+		log.Printf("actual user:	%+v", users[0])
 		t.Fatalf("expected username \"admin\", received: %s", users[0].Name)
 	}
 }
