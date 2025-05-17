@@ -53,8 +53,8 @@ BEGIN
 
 	-- Table to store relations between users and roles
 	CREATE TABLE IF NOT EXISTS userRoles (
-		user_id INTEGER NOT NULL references users(user_id),
-		role_id INTEGER NOT NULL references roles(role_id)
+		user_id INTEGER NOT NULL references users(user_id) ON DELETE CASCADE,
+		role_id INTEGER NOT NULL references roles(role_id) ON DELETE CASCADE
 	);
 
 	-- Table to store relations between permissions and queries

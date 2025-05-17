@@ -4,20 +4,22 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type User struct {
-	Name     string `json:"username"`
-	Password string `json:"password,omitempty"`
-}
-
 type DbManager struct {
 	conStr     string
 	Connection *pgxpool.Pool
 	context    context.Context
+}
+
+type User struct {
+	Name     string   `json:"username"`
+	Password string   `json:"password,omitempty"`
+	Roles    []string `json:"role,omitempty"`
 }
 
 type Query struct {
@@ -67,20 +69,42 @@ func (d *DbManager) ConnectToDatabase() error {
 func (d *DbManager) GetAllUsers() ([]User, error) {
 	var users []User
 
-	query := "SELECT user_name FROM users"
+	// FIND A WAY TO RETURN ALL ROLES ASSOCIATED WITH USER
+	query :=
+		`SELECT
+			users.user_name,
+			roles.role_name
+		FROM
+			userroles
+			JOIN users ON userroles.user_id = users.user_id
+			JOIN roles ON userroles.role_id = roles.role_id
+		ORDER BY
+			users.user_name;`
+
 	rows, err := d.Connection.Query(d.context, query)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
+	userRoleData := map[string][]string{}
 	for rows.Next() {
-		var user User
-		err = rows.Scan(&user.Name)
+		var userName string
+		var roleName string
+
+		err = rows.Scan(&userName, &roleName)
 		if err != nil {
 			return nil, err
 		}
-		users = append(users, user)
+
+		userRoleData[userName] = append(userRoleData[userName], roleName)
+	}
+
+	for name, roles := range userRoleData {
+		slices.Sort(roles)
+		users = append(users, User{
+			Name:  name,
+			Roles: roles})
 	}
 
 	return users, nil
@@ -88,17 +112,39 @@ func (d *DbManager) GetAllUsers() ([]User, error) {
 
 // Return a user based on username. Return error if no user found.
 func (d *DbManager) GetUserByUserName(name string) (User, error) {
-	user := User{}
 	var err error
 	if err = d.Connection.Ping(context.Background()); err != nil {
 		return User{}, err
 	}
 
-	query := "SELECT user_name, password_hash FROM users WHERE user_name = $1"
-	err = d.Connection.QueryRow(d.context, query, name).Scan(&user.Name, &user.Password)
+	query :=
+		`SELECT
+			password_hash, role_name
+		FROM
+			userroles
+			JOIN users ON userroles.user_id = users.user_id
+			JOIN roles ON userroles.role_id = roles.role_id
+		WHERE user_name = $1`
+	rows, err := d.Connection.Query(d.context, query, name)
 	if err != nil {
 		return User{}, err
 	}
+
+	user := User{}
+	roles := []string{}
+	for rows.Next() {
+		var role string
+
+		err = rows.Scan(&user.Password, &role)
+		if err != nil {
+			return User{}, err
+		}
+
+		roles = append(roles, role)
+	}
+
+	slices.Sort(roles)
+	user.Roles = roles
 
 	return user, nil
 }
@@ -106,9 +152,30 @@ func (d *DbManager) GetUserByUserName(name string) (User, error) {
 // Insert user into the database. Expects the password to be hashed using the auth module.
 func (d *DbManager) InsertUser(username string, password string) error {
 	user := User{}
-	query := "INSERT INTO users (user_name, password_hash) VALUES ($1, $2) RETURNING user_name, password_hash"
-	err := d.Connection.QueryRow(d.context, query, username, password).Scan(&user.Name, &user.Password)
-	return err
+	query := "INSERT INTO users (user_name, password_hash) VALUES ($1, $2) RETURNING user_id, user_name, password_hash"
+	var userId int
+	err := d.Connection.QueryRow(d.context, query, username, password).Scan(&userId, &user.Name, &user.Password)
+	if err != nil {
+		return err
+	}
+
+	query =
+		`WITH default_role AS (
+			SELECT role_id
+			FROM roles
+			WHERE role_name = 'default'
+		)
+		INSERT INTO
+			userroles (user_id, role_id)
+			SELECT $1, default_role.role_id
+			FROM default_role`
+
+	_, err = d.Connection.Query(d.context, query, userId)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Delete a user from the database by username
@@ -116,6 +183,41 @@ func (d *DbManager) DeleteUser(username string) error {
 	query := "DELETE FROM users WHERE user_name = $1"
 	_, err := d.Connection.Query(d.context, query, username)
 	return err
+}
+
+// Add a role to a user
+func (d *DbManager) AddUserRole(userName string, roleName string) error {
+	query :=
+		`INSERT INTO userroles (user_id, role_id)
+		SELECT users.user_id, roles.role_id
+		FROM users, roles
+		WHERE users.user_name = $1
+		AND roles.role_name = $2`
+
+	_, err := d.Connection.Exec(d.context, query, userName, roleName)
+	if err != nil {
+		errMsg := fmt.Sprintf("unable to add new role to: %s", err.Error())
+		return errors.New(errMsg)
+	}
+
+	return nil
+}
+
+// Delete a role from a user
+func (d *DbManager) DeleteUserRole(userName string, roleName string) error {
+	query :=
+		`DELETE FROM userroles
+		WHERE user_id = (SELECT user_id FROM users WHERE user_name = $1)
+		AND role_id = (SELECT role_id FROM roles WHERE role_name = $2)`
+
+	_, err := d.Connection.Exec(d.context, query, userName, roleName)
+	if err != nil {
+		errMsg := fmt.Sprintf("unable to delete '%s' role from '%s': %s",
+			roleName, userName, err.Error())
+		return errors.New(errMsg)
+	}
+
+	return nil
 }
 
 // Insert a custom query into the database

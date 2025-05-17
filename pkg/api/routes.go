@@ -124,7 +124,6 @@ func AuthHandler(activeUsers map[string]string) gin.HandlerFunc {
 	}
 }
 
-
 // Respond with JSON representation of all users
 func GetUsersHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -140,9 +139,9 @@ func GetUsersHandler(d *database.DbManager) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, users)
-  }
+	}
 }
-    
+
 // Delete a user that matches the name parameter
 func DeleteUserHandler(d *database.DbManager, activeUsers map[string]string) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -158,6 +157,38 @@ func DeleteUserHandler(d *database.DbManager, activeUsers map[string]string) gin
 		err := d.DeleteUser(name)
 		if err != nil {
 			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		c.Status(http.StatusOK)
+	}
+}
+
+func AddUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userName := c.Param("uname")
+		roleName := c.Param("rname")
+
+		err := d.AddUserRole(userName, roleName)
+		if err != nil {
+			errMsg := ""
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+
+		c.Status(http.StatusOK)
+	}
+}
+
+func DeleteUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userName := c.Param("uname")
+		roleName := c.Param("rname")
+
+		err := d.DeleteUserRole(userName, roleName)
+		if err != nil {
+			errMsg := ""
+			c.String(http.StatusInternalServerError, errMsg)
 			return
 		}
 
