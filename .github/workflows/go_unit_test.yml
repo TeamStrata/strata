@@ -32,6 +32,9 @@ jobs:
           echo "Waiting for postgres..."
           sleep 2
         done
+
+    - name: Overwrite .env File
+      run: cp .env.actions .env
       
     - name: Set up Go
       uses: actions/setup-go@v4
@@ -41,13 +44,11 @@ jobs:
     - name: Install Dependencies
       run: go get ./cmd
 
-    - name: Build
-      run: go build -o strata -v ./cmd
-
     - name: Test
       run: go test -v ./pkg/test
       env: 
         POSTGRES_HOST: localhost
+	STRATA_RELEASE: true
         DB_HOSTNAME: localhost
         DB_USERNAME: strata
         DB_PASSWORD: atarts

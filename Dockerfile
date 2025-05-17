@@ -8,7 +8,7 @@ WORKDIR /opt/backend
 COPY . .
 
 # Overwrite the .env file with the Docker-specific .env file
-COPY .env.Docker .env
+COPY .env.docker .env
 
 # Install required Go Dependencies
 RUN go install ./cmd
@@ -37,6 +37,9 @@ RUN npm run build
 #################################
 FROM golang:tip-alpine3.20 AS production
 WORKDIR /opt/strata
+
+# Set the RELEASE flag
+ENV STRATA_RELEASE=true
 
 # Copy in the backend sources
 COPY --from=backend /opt/backend .

@@ -12,7 +12,7 @@ type PathType bool
 const (
 	DefaultPath     PathType = false
 	TestPath        PathType = true
-	dockerBuildFlag          = "DOCKER_BUILD"
+	dockerBuildFlag          = "STRATA_RELEASE"
 )
 
 func GetConnectionString(testPath PathType) (string, error) {
@@ -23,11 +23,11 @@ func GetConnectionString(testPath PathType) (string, error) {
 
 	var suffix string
 	if os.Getenv(dockerBuildFlag) == "true" {
-		suffix = "Docker"
+		suffix = "" // Any release version is expected to populate .env with the desired environment variables
 	} else {
-		suffix = "local"
+		suffix = ".local"
 	}
-	path = fmt.Sprintf("%s.%s", path, suffix)
+	path = fmt.Sprintf("%s%s", path, suffix)
 
 	err := godotenv.Load(path)
 	if err != nil {
