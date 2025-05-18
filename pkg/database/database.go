@@ -122,8 +122,8 @@ func (d *DbManager) GetUserByUserName(name string) (User, error) {
 			password_hash, role_name
 		FROM
 			userroles
-			JOIN users ON userroles.user_id = users.user_id
-			JOIN roles ON userroles.role_id = roles.role_id
+			RIGHT JOIN users ON userroles.user_id = users.user_id
+			RIGHT JOIN roles ON userroles.role_id = roles.role_id
 		WHERE user_name = $1`
 	rows, err := d.Connection.Query(d.context, query, name)
 	if err != nil {
@@ -152,7 +152,11 @@ func (d *DbManager) GetUserByUserName(name string) (User, error) {
 // Insert user into the database. Expects the password to be hashed using the auth module.
 func (d *DbManager) InsertUser(username string, password string) error {
 	user := User{}
-	query := "INSERT INTO users (user_name, password_hash) VALUES ($1, $2) RETURNING user_id, user_name, password_hash"
+	query :=
+		`INSERT INTO users (user_name, password_hash)
+		VALUES ($1, $2)
+		RETURNING user_id, user_name, password_hash`
+
 	var userId int
 	err := d.Connection.QueryRow(d.context, query, username, password).Scan(&userId, &user.Name, &user.Password)
 	if err != nil {
@@ -180,7 +184,9 @@ func (d *DbManager) InsertUser(username string, password string) error {
 
 // Delete a user from the database by username
 func (d *DbManager) DeleteUser(username string) error {
-	query := "DELETE FROM users WHERE user_name = $1"
+	query :=
+		`DELETE FROM users
+		WHERE user_name = $1`
 	_, err := d.Connection.Query(d.context, query, username)
 	return err
 }
@@ -220,11 +226,89 @@ func (d *DbManager) DeleteUserRole(userName string, roleName string) error {
 	return nil
 }
 
+// Get count of users per role
+func (d *DbManager) UsersPerRole() (map[string]int, error) {
+	query :=
+		`SELECT r.role_name, COUNT(ur.role_id)
+		FROM roles r
+		LEFT JOIN userroles ur ON r.role_id = ur.role_id 
+		GROUP BY r.role_name`
+
+	rows, err := d.Connection.Query(d.context, query)
+	if err != nil {
+		errMsg := fmt.Sprintf("error getting roles: %s", err.Error())
+		return nil, errors.New(errMsg)
+	}
+	defer rows.Close()
+
+	roles := map[string]int{}
+	for rows.Next() {
+		var roleName string
+		var count int
+		err = rows.Scan(&roleName, &count)
+		if err != nil {
+			errMsg := fmt.Sprintf("error scanning row: %s", err.Error())
+			return nil, errors.New(errMsg)
+		}
+
+		roles[roleName] = count
+	}
+
+	return roles, nil
+}
+
+// Add a new role to the database
+func (d *DbManager) AddRole(roleName string) error {
+	query :=
+		`INSERT INTO roles (role_name)
+		VALUES ($1)
+		ON CONFLICT (role_name) DO NOTHING`
+
+	_, err := d.Connection.Exec(d.context, query, roleName)
+	if err != nil {
+		errMsg := fmt.Sprintf("unable to add new role: %s", err.Error())
+		return errors.New(errMsg)
+	}
+
+	return nil
+}
+
+// Update a role name
+func (d *DbManager) UpdateRoleName(oldName string, newName string) error {
+	query :=
+		`UPDATE roles
+		SET role_name = $1
+		WHERE role_name = $2`
+
+	_, err := d.Connection.Exec(d.context, query, newName, oldName)
+	if err != nil {
+		errMsg := fmt.Sprintf("unable to update '%s' role: %s", oldName, err.Error())
+		return errors.New(errMsg)
+	}
+
+	return nil
+}
+
+// Delete
+func (d *DbManager) DeleteRole(roleName string) error {
+	query :=
+		`DELETE FROM roles
+		WHERE role_name = $1`
+
+	_, err := d.Connection.Exec(d.context, query, roleName)
+	if err != nil {
+		errMsg := fmt.Sprintf("unable to delete '%s' role: %s", roleName, err.Error())
+		return errors.New(errMsg)
+	}
+
+	return nil
+}
+
 // Insert a custom query into the database
 func (d *DbManager) InsertCustomQuery(query_name string, query_string string) (int, error) {
 	query_id := 0
 	if len(query_name) == 0 {
-		return query_id, fmt.Errorf("Query name was empty!")
+		return query_id, fmt.Errorf("Query name was empty")
 	}
 
 	query := "INSERT INTO queries (query_name, query_string) VALUES ($1, $2) RETURNING query_id"
