@@ -15,18 +15,19 @@ const (
 	dockerBuildFlag          = "STRATA_RELEASE"
 )
 
+// Construct database connection string using `.env` variables.
+// Sets up `.env` path for testing when testPath is true.
 func GetConnectionString(testPath PathType) (string, error) {
 	path := ".env"
 	if testPath {
 		path = fmt.Sprintf("../../%s", path)
 	}
 
-	var suffix string
+	suffix := ".local"
 	if os.Getenv(dockerBuildFlag) == "true" {
 		suffix = "" // Any release version is expected to populate .env with the desired environment variables
-	} else {
-		suffix = ".local"
 	}
+
 	path = fmt.Sprintf("%s%s", path, suffix)
 
 	err := godotenv.Load(path)
