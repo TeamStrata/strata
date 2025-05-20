@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import Toast, { ToastTypes } from "./Toast.vue";
 import { apiFetch } from "@/api/request";
+import Modal from "./Modal.vue";
 
 // If we can't connect to the database, or while the fetch is in progress, this displays.
 var users = ref([
@@ -96,38 +97,33 @@ loadUsers();
 
 <template>
 	<!-- add user modal -->
-	<div class="static" v-if="addModal">
-		<div class="bg-black/20 w-screen h-screen absolute left-0 top-0 backdrop-blur-xs" @click="addModal = false">
+	<Modal :show="addModal" @close="addModal = false">
+		<h1 class="text-2xl font-semibold text-gray-800 mb-6">Add User</h1>
+		<div>
+			<label for="newUser" class="text-gray-600">Username</label>
+			<input id="newUser" v-model="newUsername"
+				class="mt-1 border border-gray-300 rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+				placeholder="Enter username" />
 		</div>
-		<div
-			class="bg-white p-8 w-96 m-auto rounded-lg shadow-md absolute left-1/2 transform -translate-x-1/2 top-1/3 -translate-y-1/2">
-			<h1 class="text-2xl font-semibold text-gray-800 mb-6">Add User</h1>
-			<div>
-				<label for="newUser" class="text-gray-600">Username</label>
-				<input id="newUser" v-model="newUsername"
-					class="mt-1 border border-gray-300 rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-					placeholder="Enter username" />
-			</div>
-			<div class="mt-4">
-				<label for="newPass" class="text-gray-600">Password</label>
-				<input id="newPass" type="password" v-model="newPassword"
-					class="mt-1 border border-gray-300 rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-					placeholder="Enter password" />
-			</div>
-			<div class="flex flex-row justify-between mt-6">
-				<button
-					class="bg-neutral-200 px-4 py-2 rounded-md cursor-pointer hover:bg-neutral-300 focus:outline-none focus:ring-2 focus:ring-gray-300"
-					@click="addModal = false">
-					Cancel
-				</button>
-				<button
-					class="bg-blue-500 text-white py-2 px-4 rounded-md cursor-pointer hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200"
-					@click="addUser">
-					Add User
-				</button>
-			</div>
+		<div class="mt-4">
+			<label for="newPass" class="text-gray-600">Password</label>
+			<input id="newPass" type="password" v-model="newPassword"
+				class="mt-1 border border-gray-300 rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+				placeholder="Enter password" />
 		</div>
-	</div>
+		<div class="flex flex-row justify-between mt-6">
+			<button
+				class="bg-neutral-200 px-4 py-2 rounded-md cursor-pointer hover:bg-neutral-300 focus:outline-none focus:ring-2 focus:ring-gray-300"
+				@click="addModal = false">
+				Cancel
+			</button>
+			<button
+				class="bg-blue-500 text-white py-2 px-4 rounded-md cursor-pointer hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200"
+				@click="addUser">
+				Add User
+			</button>
+		</div>
+	</Modal>
 
 	<Toast ref="toastRef" />
 
