@@ -122,12 +122,16 @@ func Test_AddUserRole(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error initializing DB manager: %s", err.Error())
 	}
-	password := auth.HashPassword("test")
-	testUser := database.User{
-		Name:     "testAddRole",
-		Password: password,
+	password := "test"
+	password_hash, err := auth.HashPassword(password)
+	if err != nil {
+		t.Fatalf("unable to hash password '%s': %s", password, err.Error())
 	}
 
+	testUser := database.User{
+		Name:     "testAddRole",
+		Password: password_hash,
+	}
 	err = db.InsertUser(testUser.Name, testUser.Password)
 	if err != nil {
 		t.Fatalf("error inserting test user into database: %s", err.Error())
@@ -148,12 +152,17 @@ func Test_DeleteUserRole(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error initializing DB manager: %s", err.Error())
 	}
-	password := auth.HashPassword("test")
-	testUser := database.User{
-		Name:     "testDeleteRole",
-		Password: password,
+	
+	password := "test"
+	password_hash, err := auth.HashPassword(password)
+	if err != nil {
+		t.Fatalf("unable to hash password '%s': %s", password, err.Error())
 	}
 
+	testUser := database.User{
+		Name:     "testDeleteRole",
+		Password: password_hash,
+	}
 	err = db.InsertUser(testUser.Name, testUser.Password)
 	if err != nil {
 		t.Fatalf("error inserting test user into database: %s", err.Error())
