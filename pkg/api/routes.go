@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -197,9 +198,9 @@ func DeleteUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
 }
 
 // Get list of roles, and number of users per role
-func GetUsersPerRoleHandler(d *database.DbManager) gin.HandlerFunc {
+func GetRolesHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		roles, err := d.UsersPerRole()
+		roles, err := d.GetRoles()
 		if err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
@@ -213,8 +214,9 @@ func GetUsersPerRoleHandler(d *database.DbManager) gin.HandlerFunc {
 func AddRoleHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		roleName := c.Param("rname")
+		colorName := c.Param("cname")
 
-		err := d.AddRole(roleName)
+		err := d.AddRole(roleName, colorName)
 		if err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
@@ -225,7 +227,7 @@ func AddRoleHandler(d *database.DbManager) gin.HandlerFunc {
 }
 
 // Update an existing role, user `rname` and `newname“ route parameters.
-func UpdateRoleHandler(d *database.DbManager) gin.HandlerFunc {
+func UpdateRoleNameHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		oldRole := c.Param("rname")
 		newRole := c.Param("newname")
@@ -237,6 +239,21 @@ func UpdateRoleHandler(d *database.DbManager) gin.HandlerFunc {
 		}
 
 		c.Status(http.StatusOK)
+	}
+}
+
+// Update a role's color
+func UpdateRoleColorHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		roleName := c.Param("rname")
+		newColor := c.Param("cname")
+
+		err := d.UpdateRoleColor(roleName, newColor)
+		if err != nil {
+			errMsg := fmt.Sprintf("unable to update role color: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
 	}
 }
 
