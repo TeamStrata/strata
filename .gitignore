@@ -39,3 +39,7 @@ ollama/*
 
 # Local .env
 .env.local
+
+# Docs
+docs
+docs/**
