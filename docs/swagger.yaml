@@ -1,0 +1,458 @@
+definitions:
+  database.Query:
+    properties:
+      id:
+        type: integer
+      literal:
+        type: string
+      name:
+        type: string
+    type: object
+  database.User:
+    properties:
+      password:
+        type: string
+      role:
+        items:
+          type: string
+        type: array
+      username:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /auth:
+    get:
+      description: Checks if the session UUID cookie is set and corresponds to an
+        active user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: Authenticate session
+      tags:
+      - Authentication
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user and sets a session cookie.
+      parameters:
+      - description: User credentials
+        in: body
+        name: login
+        required: true
+        schema:
+          $ref: '#/definitions/database.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: User login
+      tags:
+      - Authentication
+  /logout:
+    post:
+      description: Deletes the user's session UUID from the active users map.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: User logout
+      tags:
+      - Authentication
+  /ping:
+    get:
+      description: Responds with "pong" to check API status.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Returns message: pong'
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+      summary: Ping test
+      tags:
+      - Utility
+  /queries:
+    get:
+      description: Returns the list of custom queries created on the system.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved users
+          schema:
+            items:
+              $ref: '#/definitions/database.Query'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List Queries
+      tags:
+      - Queries
+  /query/{qid}:
+    delete:
+      description: Delete a custom query from the database.
+      parameters:
+      - description: Query name or ID
+        in: query
+        name: qid
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete Query
+      tags:
+      - Queries
+    get:
+      description: Returns information about a single query
+      parameters:
+      - description: Query name or ID to retrieve
+        in: query
+        name: qid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/database.Query'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get Single Query
+      tags:
+      - Queries
+    post:
+      consumes:
+      - application/json
+      description: Save a custom query to the database. Responds with the Query ID.
+      parameters:
+      - description: New query details
+        in: body
+        name: query
+        required: true
+        schema:
+          $ref: '#/definitions/database.Query'
+      - description: Query name or ID
+        in: query
+        name: qid
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: integer
+        "400":
+          description: Query Name Invalid
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Save Query
+      tags:
+      - Queries
+  /query/{qid}/execute:
+    get:
+      description: Execute a custom query and return the custom rows and columns
+      parameters:
+      - description: Query name or ID
+        in: query
+        name: qid
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Execute Query
+      tags:
+      - Queries
+  /role/{rname}:
+    delete:
+      description: Deletes a role from the database.
+      parameters:
+      - description: Role name to delete
+        in: path
+        name: rname
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete a role
+      tags:
+      - Roles
+    post:
+      description: Creates a new role in the database.
+      parameters:
+      - description: Role name
+        in: path
+        name: rname
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Add a new role
+      tags:
+      - Roles
+  /role/{rname}/{newname}:
+    put:
+      description: Renames an existing role in the database.
+      parameters:
+      - description: Current role name
+        in: path
+        name: rname
+        required: true
+        type: string
+      - description: New role name
+        in: path
+        name: newname
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Update an existing role
+      tags:
+      - Roles
+  /roles/users:
+    get:
+      description: Retrieves a list of roles and the count of users assigned to each
+        role.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved roles with user counts
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get users per role
+      tags:
+      - Roles
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user, hashes their password, stores them in the database,
+        and sets a session cookie.
+      parameters:
+      - description: New user details
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/database.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: User signup
+      tags:
+      - Authentication
+  /user/{name}:
+    delete:
+      description: Deletes a user from the database and removes their session from
+        active users.
+      parameters:
+      - description: User name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete user by name
+      tags:
+      - Users
+  /user/{uname}/role/{rname}:
+    delete:
+      description: Removes a specific role from a user.
+      parameters:
+      - description: User name
+        in: path
+        name: uname
+        required: true
+        type: string
+      - description: Role name
+        in: path
+        name: rname
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete user role
+      tags:
+      - User Roles
+    post:
+      description: Assigns a specific role to a user.
+      parameters:
+      - description: User name
+        in: path
+        name: uname
+        required: true
+        type: string
+      - description: Role name
+        in: path
+        name: rname
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Add user role
+      tags:
+      - User Roles
+  /users:
+    get:
+      description: Retrieves a list of all users from the database.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved users
+          schema:
+            items:
+              $ref: '#/definitions/database.User'
+            type: array
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get all users
+      tags:
+      - Users
+swagger: "2.0"
