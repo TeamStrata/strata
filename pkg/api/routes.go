@@ -287,9 +287,9 @@ func DeleteUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
 // @Description Retrieves a list of roles and the count of users assigned to each role.
 // @Tags Roles
 // @Produce json
-// @Success 200 {object} map[string]int "Successfully retrieved roles with user counts"
+// @Success 200 {object} []database.Role "Successfully retrieved roles with user counts"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /roles/users [get]
+// @Router /roles [get]
 func GetRolesHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		roles, err := d.GetRoles()

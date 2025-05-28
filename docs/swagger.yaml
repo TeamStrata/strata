@@ -8,6 +8,15 @@ definitions:
       name:
         type: string
     type: object
+  database.Role:
+    properties:
+      color:
+        type: string
+      name:
+        type: string
+      userCount:
+        type: integer
+    type: object
   database.User:
     properties:
       password:
@@ -299,10 +308,10 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      summary: Update an existing role
+      summary: Update an existing role name
       tags:
       - Roles
-  /roles/users:
+  /roles:
     get:
       description: Retrieves a list of roles and the count of users assigned to each
         role.
@@ -312,14 +321,14 @@ paths:
         "200":
           description: Successfully retrieved roles with user counts
           schema:
-            additionalProperties:
-              type: integer
-            type: object
+            items:
+              $ref: '#/definitions/database.Role'
+            type: array
         "500":
           description: Internal Server Error
           schema:
             type: string
-      summary: Get users per role
+      summary: Get roles
       tags:
       - Roles
   /signup:
