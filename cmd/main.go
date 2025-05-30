@@ -4,7 +4,9 @@ import (
 	"context"
 	"log"
 	"time"
-
+	_ "github.com/TeamStrata/strata/docs"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/TeamStrata/strata/pkg/api"
 	"github.com/TeamStrata/strata/pkg/database"
 	"github.com/gin-contrib/cors"
@@ -39,6 +41,8 @@ func main() {
 	// Initialize map for active users and uuids
 	activeUsers := make(map[string]string)
 
+	server.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	// Auth endpoints
 	server.POST("/login", api.LoginHandler(db, activeUsers))
 	server.POST("/signup", api.SignUpHandler(db, activeUsers))
@@ -56,9 +60,10 @@ func main() {
 	server.DELETE("/user/:uname", api.DeleteUserHandler(db, activeUsers))
 
 	// Roles
-	server.GET("/roles", api.GetUsersPerRoleHandler(db))
+	server.GET("/roles", api.GetRolesHandler(db))
 	server.POST("/role/:rname", api.AddRoleHandler(db))
-	server.PUT("/role/:rname/:newname", api.UpdateRoleHandler(db))
+	server.PUT("/role/:rname/:newname", api.UpdateRoleNameHandler(db))
+	server.PUT("/role/:rname/color/:cname", api.UpdateRoleColorHandler(db))
 	server.DELETE("/role/:rname", api.DeleteRoleHandler(db))
 	server.PATCH("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
 

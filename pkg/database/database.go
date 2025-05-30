@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -20,6 +21,12 @@ type User struct {
 	Name     string   `json:"username"`
 	Password string   `json:"password,omitempty"`
 	Roles    []string `json:"role,omitempty"`
+}
+
+type Role struct {
+	Name string `json:"name"`
+	Color string `json:"color"`
+	UserCount int `json:""`
 }
 
 type Query struct {
@@ -227,12 +234,12 @@ func (d *DbManager) DeleteUserRole(userName string, roleName string) error {
 }
 
 // Get count of users per role
-func (d *DbManager) UsersPerRole() (map[string]int, error) {
+func (d *DbManager) GetRoles() ([]Role, error) {
 	query :=
-		`SELECT r.role_name, COUNT(ur.role_id)
+		`SELECT r.role_name, r.role_color, COUNT(ur.role_id)
 		FROM roles r
 		LEFT JOIN userroles ur ON r.role_id = ur.role_id 
-		GROUP BY r.role_name`
+		GROUP BY r.role_name, r.role_color`
 
 	rows, err := d.Connection.Query(d.context, query)
 	if err != nil {
@@ -241,30 +248,33 @@ func (d *DbManager) UsersPerRole() (map[string]int, error) {
 	}
 	defer rows.Close()
 
-	roles := map[string]int{}
+	roles := []Role{}
 	for rows.Next() {
-		var roleName string
-		var count int
-		err = rows.Scan(&roleName, &count)
+		newRole := Role{}
+		colorField := pgtype.Text{}
+		err = rows.Scan(&newRole.Name, &colorField, &newRole.UserCount)
 		if err != nil {
 			errMsg := fmt.Sprintf("error scanning row: %s", err.Error())
 			return nil, errors.New(errMsg)
 		}
+		if colorField.Valid {
+			newRole.Color = colorField.String
+		}
 
-		roles[roleName] = count
+		roles = append(roles, newRole)
 	}
 
 	return roles, nil
 }
 
 // Add a new role to the database
-func (d *DbManager) AddRole(roleName string) error {
+func (d *DbManager) AddRole(roleName string, roleColor string) error {
 	query :=
-		`INSERT INTO roles (role_name)
-		VALUES ($1)
+		`INSERT INTO roles (role_name, role_color)
+		VALUES ($1, $2)
 		ON CONFLICT (role_name) DO NOTHING`
 
-	_, err := d.Connection.Exec(d.context, query, roleName)
+	_, err := d.Connection.Exec(d.context, query, roleName, roleColor)
 	if err != nil {
 		errMsg := fmt.Sprintf("unable to add new role: %s", err.Error())
 		return errors.New(errMsg)
@@ -289,7 +299,23 @@ func (d *DbManager) UpdateRoleName(oldName string, newName string) error {
 	return nil
 }
 
-// Delete
+// Update a role color
+func (d *DbManager) UpdateRoleColor(roleName string, newColor string) error {
+	query :=
+		`UPDATE roles
+		SET role_color = $1
+		WHERE role_name = $2
+		`
+
+	_, err := d.Connection.Exec(d.context, query, newColor, roleName)
+	if err != nil {
+		return err
+	}
+	
+	return nil
+}
+
+// Delete a role
 func (d *DbManager) DeleteRole(roleName string) error {
 	query :=
 		`DELETE FROM roles
