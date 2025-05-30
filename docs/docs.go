@@ -407,7 +407,7 @@ const docTemplate = `{
                 "tags": [
                     "Roles"
                 ],
-                "summary": "Update an existing role",
+                "summary": "Update an existing role name",
                 "parameters": [
                     {
                         "type": "string",
@@ -440,7 +440,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/roles/users": {
+        "/roles": {
             "get": {
                 "description": "Retrieves a list of roles and the count of users assigned to each role.",
                 "produces": [
@@ -449,14 +449,14 @@ const docTemplate = `{
                 "tags": [
                     "Roles"
                 ],
-                "summary": "Get users per role",
+                "summary": "Get roles",
                 "responses": {
                     "200": {
                         "description": "Successfully retrieved roles with user counts",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "integer"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/database.Role"
                             }
                         }
                     },
@@ -680,6 +680,20 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "database.Role": {
+            "type": "object",
+            "properties": {
+                "color": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "userCount": {
+                    "type": "integer"
                 }
             }
         },

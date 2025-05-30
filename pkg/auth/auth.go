@@ -5,13 +5,13 @@ import (
 )
 
 // Return a bcrypt password hash, return empty string if error occurred.
-func HashPassword(password string) string {
+func HashPassword(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return ""
+		return "", err
 	}
 
-	return string(hash)
+	return string(hash), nil
 }
 
 // Check if login password matches user's hashed password.

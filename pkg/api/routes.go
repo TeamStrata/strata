@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -82,15 +83,17 @@ func SignUpHandler(d *database.DbManager, activeUsers map[string]string) gin.Han
 			return
 		}
 
-		hash := auth.HashPassword(user.Password)
-		if hash == "" {
-			c.Status(http.StatusInternalServerError)
+		hash, err := auth.HashPassword(user.Password)
+		if err != nil {
+			errMsg := fmt.Sprintf("unable to hash provided password: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
 			return
 		}
 
 		err = d.InsertUser(user.Name, hash)
 		if err != nil {
-			c.Status(http.StatusInternalServerError)
+			errMsg := fmt.Sprintf("unable to add user to database: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
 			return
 		}
 
@@ -179,7 +182,8 @@ func GetUsersHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		users, err := d.GetAllUsers()
 		if err != nil {
-			c.Status(http.StatusInternalServerError)
+			errMsg := fmt.Sprintf("unable to get users: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
 			return
 		}
 
@@ -215,7 +219,8 @@ func DeleteUserHandler(d *database.DbManager, activeUsers map[string]string) gin
 
 		err := d.DeleteUser(name)
 		if err != nil {
-			c.Status(http.StatusInternalServerError)
+			errMsg := fmt.Sprintf("unable to delete user: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
 			return
 		}
 
@@ -241,9 +246,9 @@ func AddUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
 
 		err := d.AddUserRole(userName, roleName)
 		if err != nil {
-			// This errMsg needs to be more descriptive based on the actual error.
+      // This errMsg needs to be more descriptive based on the actual error.
 			// For now, I'll leave it as a generic message.
-			errMsg := "Failed to add user role"
+			errMsg := fmt.Sprintf("unable to add user role: %s", err.Error())
 			c.String(http.StatusInternalServerError, errMsg)
 			return
 		}
@@ -270,9 +275,9 @@ func DeleteUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
 
 		err := d.DeleteUserRole(userName, roleName)
 		if err != nil {
-			// This errMsg needs to be more descriptive based on the actual error.
+      // This errMsg needs to be more descriptive based on the actual error.
 			// For now, I'll leave it as a generic message.
-			errMsg := "Failed to delete user role"
+			errMsg := fmt.Sprintf("unable to delete user role: %s", err.Error())
 			c.String(http.StatusInternalServerError, errMsg)
 			return
 		}
@@ -281,20 +286,20 @@ func DeleteUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
 	}
 }
 
-// Get list of roles, and number of users per role
 //
-// @Summary Get users per role
+// @Summary Get roles
 // @Description Retrieves a list of roles and the count of users assigned to each role.
 // @Tags Roles
 // @Produce json
-// @Success 200 {object} map[string]int "Successfully retrieved roles with user counts"
+// @Success 200 {object} []database.Role "Successfully retrieved roles with user counts"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /roles/users [get]
-func GetUsersPerRoleHandler(d *database.DbManager) gin.HandlerFunc {
+// @Router /roles [get]
+func GetRolesHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		roles, err := d.UsersPerRole()
+		roles, err := d.GetRoles()
 		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
+			errMsg := fmt.Sprintf("unable to get roles: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
 			return
 		}
 
@@ -315,10 +320,12 @@ func GetUsersPerRoleHandler(d *database.DbManager) gin.HandlerFunc {
 func AddRoleHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		roleName := c.Param("rname")
+		colorName := c.Param("cname")
 
-		err := d.AddRole(roleName)
+		err := d.AddRole(roleName, colorName)
 		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
+			errMsg := fmt.Sprintf("unable to add role: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
 			return
 		}
 
@@ -328,7 +335,7 @@ func AddRoleHandler(d *database.DbManager) gin.HandlerFunc {
 
 // Update an existing role, user `rname` and `newname“ route parameters.
 //
-// @Summary Update an existing role
+// @Summary Update an existing role name
 // @Description Renames an existing role in the database.
 // @Tags Roles
 // @Produce json
@@ -337,18 +344,34 @@ func AddRoleHandler(d *database.DbManager) gin.HandlerFunc {
 // @Success 200 {string} string "OK"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /role/{rname}/{newname} [put]
-func UpdateRoleHandler(d *database.DbManager) gin.HandlerFunc {
+func UpdateRoleNameHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		oldRole := c.Param("rname")
 		newRole := c.Param("newname")
 
 		err := d.UpdateRoleName(oldRole, newRole)
 		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
+			errMsg := fmt.Sprintf("unable to update role: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
 			return
 		}
 
 		c.Status(http.StatusOK)
+	}
+}
+
+// Update a role's color
+func UpdateRoleColorHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		roleName := c.Param("rname")
+		newColor := c.Param("cname")
+
+		err := d.UpdateRoleColor(roleName, newColor)
+		if err != nil {
+			errMsg := fmt.Sprintf("unable to update role color: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
 	}
 }
 
@@ -368,7 +391,8 @@ func DeleteRoleHandler(d *database.DbManager) gin.HandlerFunc {
 
 		err := d.DeleteRole(roleName)
 		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
+			errMsg := fmt.Sprintf("unable to delete role: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
 			return
 		}
 
