@@ -110,8 +110,6 @@ func ExecuteQueryHandler(d *database.DbManager) gin.HandlerFunc {
 	}
 }
 
-// Save a custom query to the database
-//
 // @Summary Save Query
 // @Description Save a custom query to the database. Responds with the Query ID.
 // @Tags Queries
@@ -119,9 +117,11 @@ func ExecuteQueryHandler(d *database.DbManager) gin.HandlerFunc {
 // @Param query body database.Query true "New query details"
 // @Success 200 {integer} 3
 // @Failure 400 {string} string "Query Name Invalid"
-// @Failure 500 {string} string "Internal Server Error" 
+// @Failure 500 {string} string "Internal Server Error"
 // @Param qid query string type "Query name or ID"
 // @Router /query/{qid} [post]
+
+// Save a custom query to the database
 func SaveQueryHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query_name := c.Param("qid")

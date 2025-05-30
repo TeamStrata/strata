@@ -4,13 +4,14 @@ import (
 	"context"
 	"log"
 	"time"
+
 	_ "github.com/TeamStrata/strata/docs"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/TeamStrata/strata/pkg/api"
 	"github.com/TeamStrata/strata/pkg/database"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func main() {
@@ -67,6 +68,25 @@ func main() {
 	server.PATCH("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
 
 	// Dashboard Components
+	/// Charts
+	server.GET("/charts", api.GetChartListHandler(db))
+	server.GET("/chart/:cid", api.GetChartHandler(db))
+	server.POST("/chart", api.CreateChartHandler(db))
+	server.DELETE("/chart/:cid", api.DeleteChartHandler(db))
+	/// Chart Series
+	server.GET("/chart/:cid/series", api.GetChartSeriesListHandler(db))
+	server.GET("/chart/:cid/series/:sid", api.GetChartSingleSeriesHandler(db))
+	server.POST("/chart/:cid/series", api.AddChartSeriesHandler(db))
+	server.DELETE("/chart/:cid/series/:sid", api.DeleteChartSingleSeriesHandler(db))
+	server.DELETE("/chart/:cid/series", api.DeleteAllChartSeriesHandler(db))
+	/// Dashboard itself
+	server.GET("/dashboards", api.GetDashboardListHandler(db))
+	server.GET("/dashboard/:did", api.GetDashboardHandler(db))
+	server.POST("/dashboard", api.CreateDashboardPageHandler(db))
+	server.DELETE("/dashboard/:did", api.DeleteDashboardHandler(db))
+	server.GET("/dashboard/:did/charts", api.ListDashboardChartsHandler(db))
+	server.PATCH("/dashboard/:did/chart/:cid", api.AppendChartToDashboardHandler(db))
+	server.DELETE("/dashboard/:did/chart/:cid", api.RemoveChartFromDashboardHandler(db))
 
 	// Query Endpoints
 	server.GET("/queries", api.GetQueryList(db))
