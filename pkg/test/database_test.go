@@ -190,18 +190,19 @@ func Test_AddRole(t *testing.T) {
 		t.Fatalf("error initializing DB manager: %s", err.Error())
 	}
 
-	testRole := "testAddRole"
+	roleName := "testAddRole"
+	roleColor := "FFFFFF"
 
 	// Add the role
-	err = db.AddRole(testRole)
+	err = db.AddRole(roleName, roleColor)
 	if err != nil {
-		t.Fatalf("error adding '%s' role : %s", testRole, err.Error())
+		t.Fatalf("error adding '%s' role : %s", roleName, err.Error())
 	}
 
 	// Clean up
-	err = db.DeleteRole(testRole)
+	err = db.DeleteRole(roleName)
 	if err != nil {
-		t.Fatalf("error deleting '%s' role: %s", testRole, err.Error())
+		t.Fatalf("error deleting '%s' role: %s", roleName, err.Error())
 	}
 }
 
@@ -215,8 +216,9 @@ func Test_UpdateRoleName(t *testing.T) {
 
 	oldRoleName := "testOldRole"
 	newRoleName := "testNewRole"
+	roleColor := "FFFFFF"
 
-	err = db.AddRole(oldRoleName)
+	err = db.AddRole(oldRoleName, roleColor)
 	if err != nil {
 		t.Fatalf("error adding '%s' role : %s", oldRoleName, err.Error())
 	}
@@ -241,8 +243,9 @@ func Test_DeleteRole(t *testing.T) {
 	}
 
 	testRoleToDelete := "testDeleteRole"
+	roleColor := "FFFFFF"
 
-	err = db.AddRole(testRoleToDelete)
+	err = db.AddRole(testRoleToDelete, roleColor)
 	if err != nil {
 		t.Fatalf("error adding role '%s' for deletion test: %s", testRoleToDelete, err.Error())
 	}

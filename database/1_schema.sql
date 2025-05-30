@@ -14,7 +14,13 @@ BEGIN
 		WHERE table_schema = 'public'
 		AND table_name = 'users'
 	) THEN
-		DROP TABLE public.users;
+		DROP TABLE public.users CASCADE;
+        DROP TABLE IF EXISTS public.roles CASCADE;
+        DROP TABLE IF EXISTS public.permissions CASCADE;
+        DROP TABLE IF EXISTS public.queries CASCADE;
+        DROP TABLE IF EXISTS public.userRoles CASCADE;
+        DROP TABLE IF EXISTS public.rolePermissions CASCADE;
+        DROP TABLE IF EXISTS public.queryPermissions CASCADE;
 	END IF;
 
 	-- Table for storing users
@@ -27,7 +33,8 @@ BEGIN
 	-- Table for storing Roles
 	CREATE TABLE IF NOT EXISTS roles (
 		role_id SERIAL PRIMARY KEY,
-		role_name TEXT UNIQUE NOT NULL
+		role_name TEXT UNIQUE NOT NULL,
+        role_color TEXT
 	);
 
 	-- Table for storing Permissions
@@ -47,8 +54,8 @@ BEGIN
 	---=== RELATIONS ===---
 	-- Table to store relations between roles and permissions
 	CREATE TABLE IF NOT EXISTS rolePermissions (
-		role_id INTEGER NOT NULL references roles(role_id),
-		permission_id INTEGER NOT NULL references permissions(permission_id)
+		role_id INTEGER NOT NULL references roles(role_id) ON DELETE CASCADE,
+		permission_id INTEGER NOT NULL references permissions(permission_id) ON DELETE CASCADE
 	);
 
 	-- Table to store relations between users and roles
@@ -59,8 +66,8 @@ BEGIN
 
 	-- Table to store relations between permissions and queries
 	CREATE TABLE IF NOT EXISTS queryPermissions (
-		query_id INTEGER NOT NULL references queries(query_id),
-		role_id INTEGER NOT NULL references roles(role_id)
+		query_id INTEGER NOT NULL references queries(query_id) ON DELETE CASCADE,
+		role_id INTEGER NOT NULL references roles(role_id) ON DELETE CASCADE
 	);
 END
 $do$
