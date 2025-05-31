@@ -33,7 +33,30 @@ func GetChartListHandler(d *database.DbManager) gin.HandlerFunc {
 
 func GetChartHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		chart_id_str := c.Param("cid")
+		chart_id, err := strconv.Atoi(chart_id_str)
+		if err == nil {
+			c.Data(400, "text/plain", []byte("The chart ID must be an integer!"))
+			c.Done()
+			return
+		}
 
+		chart, err := d.GetChart(chart_id)
+		if err != nil {
+			c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
+			return
+		}
+
+		data, err := json.Marshal(chart)
+		if err != nil {
+			c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
+			return
+		}
+
+		c.Data(200, "application/json", data)
+		c.Done()
 	}
 }
 

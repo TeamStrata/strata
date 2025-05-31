@@ -76,3 +76,15 @@ func (d *DbManager) InsertChart(chart Chart) (int, error) {
 
 	return chart_id, err
 }
+
+func (d *DbManager) GetChart(chart_id int) (Chart, error) {
+	var chart Chart
+
+	query := "SELECT * FROM chart WHERE chart_id = $1;"
+	err := d.Connection.QueryRow(d.context, query, chart_id).Scan(&chart)
+	if err != nil {
+		return Chart{}, err
+	}
+
+	return chart, nil
+}
