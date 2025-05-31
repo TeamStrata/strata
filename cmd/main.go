@@ -61,9 +61,10 @@ func main() {
 	server.DELETE("/user/:uname", api.DeleteUserHandler(db, activeUsers))
 
 	// Roles
-	server.GET("/roles", api.GetUsersPerRoleHandler(db))
+	server.GET("/roles", api.GetRolesHandler(db))
 	server.POST("/role/:rname", api.AddRoleHandler(db))
-	server.PUT("/role/:rname/:newname", api.UpdateRoleHandler(db))
+	server.PUT("/role/:rname/:newname", api.UpdateRoleNameHandler(db))
+	server.PUT("/role/:rname/color/:cname", api.UpdateRoleColorHandler(db))
 	server.DELETE("/role/:rname", api.DeleteRoleHandler(db))
 	server.PATCH("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
 

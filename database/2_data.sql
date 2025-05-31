@@ -31,8 +31,8 @@ BEGIN
 		ON CONFLICT (role_name) DO NOTHING;
 
 		-- Create 'admin' role
-		INSERT INTO roles (role_name)
-		VALUES ('admin')
+		INSERT INTO roles (role_name, role_color)
+		VALUES ('admin', '00ADD8')
 		ON CONFLICT (role_name) DO NOTHING;
 
 		-- Get the 'admin' role id
