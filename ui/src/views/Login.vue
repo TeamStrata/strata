@@ -38,14 +38,14 @@ async function login() {
         username: user.value,
         password: pass.value
     }
-    const res = await apiFetch('/login', 'POST', body, false)
-
-    if (res.status == 200) {
-        store.username = user.value;
-        router.push("/");
-    } else {
-        error = true;
-    }
+    await apiFetch('/login', 'POST', JSON.stringify(body), false).then(res => {
+        if (res.status == 200) {
+            store.username = user.value;
+            router.push("/");
+        } else {
+            error = true;
+        }
+    })
 
 }
 

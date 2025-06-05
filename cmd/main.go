@@ -5,10 +5,13 @@ import (
 	"log"
 	"time"
 
+	_ "github.com/TeamStrata/strata/docs"
 	"github.com/TeamStrata/strata/pkg/api"
 	"github.com/TeamStrata/strata/pkg/database"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func main() {
@@ -39,6 +42,8 @@ func main() {
 	// Initialize map for active users and uuids
 	activeUsers := make(map[string]string)
 
+	server.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	// Auth endpoints
 	server.POST("/login", api.LoginHandler(db, activeUsers))
 	server.POST("/signup", api.SignUpHandler(db, activeUsers))
@@ -56,13 +61,33 @@ func main() {
 	server.DELETE("/user/:uname", api.DeleteUserHandler(db, activeUsers))
 
 	// Roles
-	server.GET("/roles", api.GetUsersPerRoleHandler(db))
+	server.GET("/roles", api.GetRolesHandler(db))
 	server.POST("/role/:rname", api.AddRoleHandler(db))
-	server.PUT("/role/:rname/:newname", api.UpdateRoleHandler(db))
+	server.PUT("/role/:rname/:newname", api.UpdateRoleNameHandler(db))
+	server.PUT("/role/:rname/color/:cname", api.UpdateRoleColorHandler(db))
 	server.DELETE("/role/:rname", api.DeleteRoleHandler(db))
 	server.PATCH("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
 
 	// Dashboard Components
+	/// Charts
+	server.GET("/charts", api.GetChartListHandler(db))
+	server.GET("/chart/:cid", api.GetChartHandler(db))
+	server.POST("/chart", api.CreateChartHandler(db))
+	server.DELETE("/chart/:cid", api.DeleteChartHandler(db))
+	/// Chart Series
+	server.GET("/chart/:cid/series", api.GetChartSeriesListHandler(db))
+	server.GET("/chart/:cid/series/:sid", api.GetChartSingleSeriesHandler(db))
+	server.POST("/chart/:cid/series", api.AddChartSeriesHandler(db))
+	server.DELETE("/chart/:cid/series/:sid", api.DeleteChartSingleSeriesHandler(db))
+	server.DELETE("/chart/:cid/series", api.DeleteAllChartSeriesHandler(db))
+	/// Dashboard itself
+	server.GET("/dashboards", api.GetDashboardListHandler(db))
+	server.GET("/dashboard/:did", api.GetDashboardHandler(db))
+	server.POST("/dashboard", api.CreateDashboardPageHandler(db))
+	server.DELETE("/dashboard/:did", api.DeleteDashboardHandler(db))
+	server.GET("/dashboard/:did/charts", api.ListDashboardChartsHandler(db))
+	server.PATCH("/dashboard/:did/chart/:cid", api.AppendChartToDashboardHandler(db))
+	server.DELETE("/dashboard/:did/chart/:cid", api.RemoveChartFromDashboardHandler(db))
 
 	// Query Endpoints
 	server.GET("/queries", api.GetQueryList(db))
