@@ -43,7 +43,18 @@ const router = createRouter({
           component: () => import("../components/QueryExecute.vue")
         }
       ]
-    }
+    },
+    {
+      path: '/graphs',
+      name: 'graphs',
+      component: HomeView,
+      children: [
+        {
+          path: "list",
+          component: () => import("../components/Graphs.vue")
+        }
+      ]
+    },
   ],
 })
 
