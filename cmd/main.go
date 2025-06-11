@@ -19,10 +19,10 @@ func main() {
 
 	//cors config (redux)
 	config := cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"}, // 👈 specify your frontend origin
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowMethods:     []string{"GET", "PATCH", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
-		AllowCredentials: true, // 👈 enable sending cookies
+		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}
 	server.Use(cors.New(config))

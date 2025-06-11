@@ -2,7 +2,6 @@
 import { ref } from 'vue';
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-// import Card from './Card.vue';
 import { Card, CardFooter, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import CardDotted from './CardDotted.vue';
 import {
@@ -12,11 +11,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogClose, // Important for closing buttons
+  DialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import Modal from './Modal.vue';
 import { apiFetch } from '@/api/request';
 import Toast, { ToastTypes } from './Toast.vue';
 
@@ -29,6 +27,7 @@ const editModal = ref(false);
 const createModal = ref(false);
 const deleteModal = ref(false);
 
+// Show the edit role dialog
 function showEdit(id) {
     console.log(id)
     const roleToEdit = roles.value.find(item => { return item.id == id });
@@ -37,6 +36,7 @@ function showEdit(id) {
     editModal.value = true;
 }
 
+// Send PATCH request to backend API
 function submitEdit() {
     let body = {};
 
@@ -80,6 +80,7 @@ function showCreate() {
     createModal.value = true;
 }
 
+// Send POST role request to backend API
 function submitCreate() {
     let body = {};
     if (tempRole.value.name != undefined) {
@@ -99,7 +100,7 @@ function submitCreate() {
                 );
                 throw new Error("Failed to create role");
             } else {
-                deleteModal.value = false;
+                createModal.value = false;
                 toastRef.value?.showToast(
                     "Role created  successfully",
                     ToastTypes.SUCCESS,
@@ -112,12 +113,14 @@ function submitCreate() {
         });
 }
 
+// Show delete role dialog
 function showDelete(id) {
     const roleToEdit = roles.value.find(item => { return item.id == id });
     tempRole.value = JSON.parse(JSON.stringify(roleToEdit));
     deleteModal.value = true;
 }
 
+// Send DELETE role request to backend API
 function submitDelete() {
     const route = "/role/" + tempRole.value.id;
     apiFetch(route, "DELETE")
@@ -186,7 +189,6 @@ loadRoles();
                 </div>
             </div>
             <DialogFooter>
-                <!-- Using DialogClose to simply close the dialog -->
                 <DialogClose as-child>
                     <Button type="button" variant="outline">
                         Cancel
