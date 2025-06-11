@@ -19,10 +19,10 @@ func main() {
 
 	//cors config (redux)
 	config := cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"}, // 👈 specify your frontend origin
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowMethods:     []string{"GET", "PATCH", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
-		AllowCredentials: true, // 👈 enable sending cookies
+		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}
 	server.Use(cors.New(config))
@@ -55,18 +55,19 @@ func main() {
 	server.StaticFile("/", "ui/dist/index.html")
 	server.StaticFile("/favicon.ico", "ui/dist/favicon.ico")
 
-	// User roles
+	// Users
 	server.GET("/users", api.GetUsersHandler(db))
-	server.DELETE("/user/:uname/role/:rname", api.DeleteUserRoleHandler(db))
 	server.DELETE("/user/:uname", api.DeleteUserHandler(db, activeUsers))
+
+	// User roles
+	server.DELETE("/user/:uname/role/:rname", api.DeleteUserRoleHandler(db))
+	server.PATCH("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
 
 	// Roles
 	server.GET("/roles", api.GetRolesHandler(db))
-	server.POST("/role/:rname", api.AddRoleHandler(db))
-	server.PUT("/role/:rname/:newname", api.UpdateRoleNameHandler(db))
-	server.PUT("/role/:rname/color/:cname", api.UpdateRoleColorHandler(db))
-	server.DELETE("/role/:rname", api.DeleteRoleHandler(db))
-	server.PATCH("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
+	server.POST("/role", api.AddRoleHandler(db))
+	server.PATCH("/role/:rid", api.UpdateRoleHandler(db))
+	server.DELETE("/role/:rid", api.DeleteRoleHandler(db))
 
 	// Dashboard Components
 	/// Charts
