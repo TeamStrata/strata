@@ -1,7 +1,7 @@
 import router from "@/router";
 
 //this line is proof that there either is no god, or he is powerless to prevent what I have done
-const URL = (import.meta.env.MODE === "development" ? "http://localhost:8080/" : window.location.href).slice(0, -1);
+const URL = (import.meta.env.MODE === "development" ? "http://localhost:8080" : window.location.origin);
 
 
 export async function apiFetch(route, verb = 'GET', body = false, content = "application/json") {
