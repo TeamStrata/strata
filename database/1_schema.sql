@@ -7,6 +7,24 @@
 DO
 $do$
 BEGIN
+	DO $$ BEGIN
+		-- Enums
+		CREATE TYPE CHART_TYPE AS ENUM (
+			'line',
+			'area',
+			'column',
+			'bar',
+			'treemap',
+			'heatmap',
+			'pie',
+			'radar',
+			'polar',
+			'scatter'
+		);
+	EXCEPTION
+		WHEN duplicate_object THEN null;
+	END $$;
+
 	-- Users table
 	IF EXISTS (
 		SELECT 1
@@ -50,6 +68,37 @@ BEGIN
 		query_string TEXT NOT NULL
 	);
 
+	-- Table for storing charts
+	CREATE TABLE IF NOT EXISTS chart (
+		chart_id SERIAL PRIMARY KEY,
+		chart_title TEXT NOT NULL,
+		chart_type CHART_TYPE NOT NULL
+	);
+
+	-- Chart series
+	CREATE TABLE IF NOT EXISTS chartSeries (
+		series_id SERIAL PRIMARY KEY,
+		chart_id INTEGER NOT NULL references chart(chart_id),
+		query_id INTEGER NOT NULL references queries(query_id),
+		x_column TEXT NOT NULL,
+		y_column TEXT NOT NULL 
+	);
+
+	-- Dashboard 
+	CREATE TABLE IF NOT EXISTS dashboard (
+		dash_id SERIAL PRIMARY KEY,
+		dash_title TEXT,
+		dash_content TEXT
+	);
+
+	-- Dashboard Graphs
+	CREATE TABLE IF NOT EXISTS dashbordGraphs (
+		dash_id INTEGER NOT NULL references dashboard(dash_id),
+		chart_id INTEGER NOT NULL references chart(chart_id),
+		size_x INTEGER NOT NULL,
+		size_y INTEGER NOT NULL,
+		chart_order INTEGER NOT NULL
+	);
 
 	---=== RELATIONS ===---
 	-- Table to store relations between roles and permissions
