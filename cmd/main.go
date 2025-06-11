@@ -4,13 +4,14 @@ import (
 	"context"
 	"log"
 	"time"
+
 	_ "github.com/TeamStrata/strata/docs"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/TeamStrata/strata/pkg/api"
 	"github.com/TeamStrata/strata/pkg/database"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func main() {
@@ -54,18 +55,19 @@ func main() {
 	server.StaticFile("/", "ui/dist/index.html")
 	server.StaticFile("/favicon.ico", "ui/dist/favicon.ico")
 
-	// User roles
+	// Users
 	server.GET("/users", api.GetUsersHandler(db))
-	server.DELETE("/user/:uname/role/:rname", api.DeleteUserRoleHandler(db))
 	server.DELETE("/user/:uname", api.DeleteUserHandler(db, activeUsers))
+
+	// User roles
+	server.DELETE("/user/:uname/role/:rname", api.DeleteUserRoleHandler(db))
+	server.PATCH("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
 
 	// Roles
 	server.GET("/roles", api.GetRolesHandler(db))
-	server.POST("/role/:rname", api.AddRoleHandler(db))
-	server.PUT("/role/:rname/:newname", api.UpdateRoleNameHandler(db))
-	server.PUT("/role/:rname/color/:cname", api.UpdateRoleColorHandler(db))
-	server.DELETE("/role/:rname", api.DeleteRoleHandler(db))
-	server.PATCH("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
+	server.POST("/role", api.AddRoleHandler(db))
+	server.PATCH("/role/:rid", api.UpdateRoleHandler(db))
+	server.DELETE("/role/:rid", api.DeleteRoleHandler(db))
 
 	// Dashboard Components
 

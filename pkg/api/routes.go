@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/TeamStrata/strata/pkg/auth"
@@ -205,10 +206,10 @@ func GetUsersHandler(d *database.DbManager) gin.HandlerFunc {
 // @Param name path string true "User name"
 // @Success 200 {string} string "OK"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /user/{name} [delete]
+// @Router /user/{uname} [delete]
 func DeleteUserHandler(d *database.DbManager, activeUsers map[string]string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		name := c.Param("name")
+		name := c.Param("uname")
 
 		for id, tmpName := range activeUsers {
 			if tmpName == name {
@@ -246,7 +247,7 @@ func AddUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
 
 		err := d.AddUserRole(userName, roleName)
 		if err != nil {
-      // This errMsg needs to be more descriptive based on the actual error.
+			// This errMsg needs to be more descriptive based on the actual error.
 			// For now, I'll leave it as a generic message.
 			errMsg := fmt.Sprintf("unable to add user role: %s", err.Error())
 			c.String(http.StatusInternalServerError, errMsg)
@@ -275,7 +276,7 @@ func DeleteUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
 
 		err := d.DeleteUserRole(userName, roleName)
 		if err != nil {
-      // This errMsg needs to be more descriptive based on the actual error.
+			// This errMsg needs to be more descriptive based on the actual error.
 			// For now, I'll leave it as a generic message.
 			errMsg := fmt.Sprintf("unable to delete user role: %s", err.Error())
 			c.String(http.StatusInternalServerError, errMsg)
@@ -286,7 +287,6 @@ func DeleteUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
 	}
 }
 
-//
 // @Summary Get roles
 // @Description Retrieves a list of roles and the count of users assigned to each role.
 // @Tags Roles
@@ -312,17 +312,23 @@ func GetRolesHandler(d *database.DbManager) gin.HandlerFunc {
 // @Summary Add a new role
 // @Description Creates a new role in the database.
 // @Tags Roles
+// @Accept json
 // @Produce json
-// @Param rname path string true "Role name"
+// @Param role body database.Role true "Role to be added"
 // @Success 200 {string} string "OK"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /role/{rname} [post]
+// @Router /role [post]
 func AddRoleHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		roleName := c.Param("rname")
-		colorName := c.Param("cname")
+		var newRole database.Role
+		err := c.ShouldBindJSON(&newRole)
+		if err != nil {
+			errMsg := fmt.Sprintf("unable to bind role to JSON: %s", err.Error())
+			c.String(http.StatusBadRequest, errMsg)
+			return
+		}
 
-		err := d.AddRole(roleName, colorName)
+		_, err = d.AddRole(newRole)
 		if err != nil {
 			errMsg := fmt.Sprintf("unable to add role: %s", err.Error())
 			c.String(http.StatusInternalServerError, errMsg)
@@ -333,63 +339,61 @@ func AddRoleHandler(d *database.DbManager) gin.HandlerFunc {
 	}
 }
 
-// Update an existing role, user `rname` and `newname“ route parameters.
+// Update an existing role using the 'rid' route parameter.
 //
-// @Summary Update an existing role name
-// @Description Renames an existing role in the database.
+// @Summary Update a role
+// @Description Creates a new role in the database.
 // @Tags Roles
 // @Produce json
-// @Param rname path string true "Current role name"
-// @Param newname path string true "New role name"
+// @Param rid path string true "Role Id"
 // @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /role/{rname}/{newname} [put]
-func UpdateRoleNameHandler(d *database.DbManager) gin.HandlerFunc {
+// @Router /role/{rid} [post]
+func UpdateRoleHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		oldRole := c.Param("rname")
-		newRole := c.Param("newname")
-
-		err := d.UpdateRoleName(oldRole, newRole)
+		roleIdStr := c.Param("rid")
+		roleId, err := strconv.Atoi(roleIdStr)
 		if err != nil {
-			errMsg := fmt.Sprintf("unable to update role: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
+			errMsg := fmt.Sprintf("role id not provided as route parameter: %s", err.Error())
+			c.String(http.StatusBadRequest, errMsg)
 		}
 
-		c.Status(http.StatusOK)
-	}
-}
-
-// Update a role's color
-func UpdateRoleColorHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		roleName := c.Param("rname")
-		newColor := c.Param("cname")
-
-		err := d.UpdateRoleColor(roleName, newColor)
+		// Bind JSON request body
+		var roleUpdate database.Role
+		err = c.ShouldBindJSON(&roleUpdate)
 		if err != nil {
-			errMsg := fmt.Sprintf("unable to update role color: %s", err.Error())
+			errMsg := fmt.Sprintf("unable to bind request JSON body: %s", err.Error())
+			c.String(http.StatusBadRequest, errMsg)
+		}
+
+		err = d.UpdateRole(roleId, roleUpdate.Name, roleUpdate.Color)
+		if err != nil {
+			errMsg := fmt.Sprintf("unable to update role '%d': %s", roleId, err.Error())
 			c.String(http.StatusInternalServerError, errMsg)
-			return
 		}
 	}
 }
 
-// Delete a role, using `rname` route parameter.
+// Delete a role, using `rid` route parameter.
 //
 // @Summary Delete a role
 // @Description Deletes a role from the database.
 // @Tags Roles
 // @Produce json
-// @Param rname path string true "Role name to delete"
+// @Param rid path string true "Id of role to delete"
 // @Success 200 {string} string "OK"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /role/{rname} [delete]
+// @Router /role/{rid} [delete]
 func DeleteRoleHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		roleName := c.Param("rname")
+		roleId, err := strconv.Atoi(c.Param("rid"))
+		if err != nil {
+			c.String(http.StatusBadRequest, "unable to convert role id to int")
+			return
+		}
 
-		err := d.DeleteRole(roleName)
+		err = d.DeleteRole(roleId)
 		if err != nil {
 			errMsg := fmt.Sprintf("unable to delete role: %s", err.Error())
 			c.String(http.StatusInternalServerError, errMsg)
