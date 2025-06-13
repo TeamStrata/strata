@@ -53,7 +53,7 @@ func Test_GetUserByUsername(t *testing.T) {
 		Roles:    []string{"admin"},
 	}
 
-	actualUser, err := db.GetUserByUserName(expectedUser.Name)
+	actualUser, err := db.GetSingleUser(expectedUser.Name)
 	if err != nil {
 		log.Printf("expected user:	%+v", expectedUser)
 		log.Printf("actual user:	%+v", actualUser)

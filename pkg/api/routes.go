@@ -37,7 +37,7 @@ func LoginHandler(d *database.DbManager, activeUsers map[string]string) gin.Hand
 			return
 		}
 
-		user, err := d.GetUserByUserName(login.Name)
+		user, err := d.GetSingleUser(login.Name)
 		if err != nil {
 			c.Status(http.StatusUnauthorized)
 			return
@@ -196,6 +196,32 @@ func GetUsersHandler(d *database.DbManager) gin.HandlerFunc {
 		c.JSON(http.StatusOK, users)
 	}
 }
+
+// Respond with JSON representation of all users
+//
+// @Summary Get all users
+// @Description Retrieves a list of all users from the database.
+// @Tags Users
+// @Produce json
+// @Success 200 {array} database.User "Successfully retrieved users"
+// @Failure 500 {string} string "Internal Server Error"
+// @Failure 204 {string} string "No Content"
+// @Router /users [get]
+func GetUserHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user_id_str := c.Param("uid")
+		user, err := d.GetSingleUser(user_id_str)
+		if err != nil {
+			errMsg := fmt.Sprintf("unable to get user: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+
+		c.JSON(http.StatusOK, user)
+		c.Done()
+	}
+}
+
 
 // Delete a user that matches the name parameter
 //

@@ -57,6 +57,7 @@ func main() {
 
 	// Users
 	server.GET("/users", api.GetUsersHandler(db))
+	server.GET("/user/:uid", api.GetUserHandler(db))
 	server.DELETE("/user/:uname", api.DeleteUserHandler(db, activeUsers))
 
 	// User roles

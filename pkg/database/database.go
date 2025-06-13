@@ -20,9 +20,10 @@ type DbManager struct {
 }
 
 type User struct {
+	Id		 int      `json:"id,omitempty"`
 	Name     string   `json:"username"`
 	Password string   `json:"password,omitempty"`
-	Roles    []string `json:"role,omitempty"`
+	Roles    []int    `json:"role,omitempty"`
 }
 
 type Role struct {
@@ -77,13 +78,11 @@ func (d *DbManager) ConnectToDatabase() error {
 }
 
 func (d *DbManager) GetAllUsers() ([]User, error) {
-	var users []User
-
-	// FIND A WAY TO RETURN ALL ROLES ASSOCIATED WITH USER
 	query :=
 		`SELECT
+			users.user_id,
 			users.user_name,
-			roles.role_name
+			roles.role_id
 		FROM
 			userroles
 			JOIN users ON userroles.user_id = users.user_id
@@ -97,59 +96,68 @@ func (d *DbManager) GetAllUsers() ([]User, error) {
 	}
 	defer rows.Close()
 
-	userRoleData := map[string][]string{}
+	userMap := map[int]User{}
 	for rows.Next() {
-		var userName string
-		var roleName string
+		user := User{}
+		var roleId int
 
-		err = rows.Scan(&userName, &roleName)
+		err = rows.Scan(&user.Id, &user.Name, &roleId)
 		if err != nil {
 			return nil, err
 		}
 
-		userRoleData[userName] = append(userRoleData[userName], roleName)
+		if _, exists := userMap[user.Id]; !exists {
+			userMap[user.Id] = User{
+				Id:    user.Id,
+				Name:  user.Name,
+				Roles: []int{},
+			}
+		}
+
+		u := userMap[user.Id]
+		u.Roles = append(u.Roles, roleId)
+		userMap[user.Id] = u
 	}
 
-	for name, roles := range userRoleData {
-		slices.Sort(roles)
-		users = append(users, User{
-			Name:  name,
-			Roles: roles})
+	// Convert map to array
+	users := make([]User, 0, len(userMap))
+	for _, user := range userMap {
+		users = append(users, user)
 	}
 
 	return users, nil
 }
 
 // Return a user based on username. Return error if no user found.
-func (d *DbManager) GetUserByUserName(name string) (User, error) {
+func (d *DbManager) GetSingleUser(name string) (User, error) {
 	var err error
-	if err = d.Connection.Ping(context.Background()); err != nil {
-		return User{}, err
-	}
-
 	query :=
 		`SELECT
-			password_hash, role_name
+			user_id, password_hash, role_id, user_name
 		FROM
 			userroles
 			RIGHT JOIN users ON userroles.user_id = users.user_id
 			RIGHT JOIN roles ON userroles.role_id = roles.role_id
-		WHERE user_name = $1`
-	rows, err := d.Connection.Query(d.context, query, name)
+		WHERE user_name = $1 OR users.user_id::text = $1`
+	args := []interface{}{name}
+
+	rows, err := d.Connection.Query(d.context, query, args...)
 	if err != nil {
 		return User{}, err
 	}
+	defer rows.Close()
 
 	user := User{}
-	roles := []string{}
+	roles := []int{}
 	for rows.Next() {
-		var role string
+		var role, userName string
 
-		err = rows.Scan(&user.Password, &role)
+		err = rows.Scan(&user.Id, &user.Password, &role, &userName)
 		if err != nil {
 			return User{}, err
 		}
 
+		user.Name = userName
 		roles = append(roles, role)
 	}
 
