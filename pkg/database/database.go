@@ -150,7 +150,8 @@ func (d *DbManager) GetSingleUser(name string) (User, error) {
 	user := User{}
 	roles := []int{}
 	for rows.Next() {
-		var role, userName string
+		var userName string
+		var role int
 
 		err = rows.Scan(&user.Id, &user.Password, &role, &userName)
 		if err != nil {
