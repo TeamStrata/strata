@@ -45,13 +45,13 @@ const router = createRouter({
       ]
     },
     {
-      path: '/graphs',
-      name: 'graphs',
+      path: '/charts',
+      name: 'charts',
       component: HomeView,
       children: [
         {
           path: "list",
-          component: () => import("../components/Graphs.vue")
+          component: () => import("../components/Charts.vue")
         }
       ]
     },
