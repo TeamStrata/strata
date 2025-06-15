@@ -34,7 +34,6 @@
 //     yColumn: columns[1],
 //   })
 // }
-
 // apiFetch('/queries')
 //   .then(async (response) => {
 // 			// Handle error
@@ -71,6 +70,7 @@
 // 		.catch((error) => {
 // 			console.error(error);
 // });
+
 import { ref, reactive, onMounted } from 'vue'
 import { apiFetch } from '@/api/request'
 
@@ -86,7 +86,62 @@ const savedChartTitles = ref([])
 const selectedChartTitle = ref('')
 
 const seriesSections = reactive([])
+const Columns = ref([])
+const series = ref([
+  {
+    query: {},
+    x_column: '',
+    y_column: ''
+  }
+])
 
+// Fetch saved queries
+apiFetch('/queries')
+  .then(async (response) => {
+    if (!response.ok) {
+      toasRef.value?.showToast(
+        'There was an error when loading saved queries',
+        ToastTypes.FAIL
+      )
+      throw new Error('Error loading saved queries')
+    }
+
+    savedQueries.value = await response.json()
+
+    // Only continue if queries exist
+    if (savedQueries.value.length > 0) {
+      series.value[0].query = savedQueries.value[0]
+
+      // Now fetch columns for selected query
+      return apiFetch(`/query/${series.value[0].query.id}/execute`)
+    } else {
+      throw new Error('No queries found')
+    }
+  })
+  .then(async (response) => {
+    if (!response.ok) {
+      toasRef.value?.showToast(
+        'There was an error when executing the query',
+        ToastTypes.FAIL
+      )
+      throw new Error('Error executing query')
+    }
+
+    const data = await response.json()
+    Columns.value = Object.keys(data[0] || {})
+    series.value[0].x_column = Columns.value[0]
+    series.value[0].y_column = Columns.value[1]
+
+    // Optional: fetch saved chart titles here too
+    return apiFetch('/chart/titles')
+  })
+  .then(async (response) => {
+    if (!response.ok) throw new Error('Failed to fetch chart titles')
+    savedChartTitles.value = await response.json()
+  })
+  .catch((error) => {
+    console.error('Initialization error:', error)
+  })
 const addSeriesSection = () => {
   seriesSections.push({
     query: savedQueries.value[0] || {},
@@ -156,28 +211,6 @@ const fetchSavedChartTitles = async () => {
     console.error('Error fetching titles:', err)
   }
 }
-
-onMounted(async () => {
-  try {
-    const response = await apiFetch('/queries')
-    if (!response.ok) throw new Error('Failed to load queries')
-    savedQueries.value = await response.json()
-
-    if (savedQueries.value.length > 0) {
-      const queryId = savedQueries.value[0].id
-      const result = await apiFetch(`/query/${queryId}/execute`)
-      if (!result.ok) throw new Error('Failed to execute query')
-      const data = await result.json()
-      columns.value = Object.keys(data[0] || {})
-
-      addSeriesSection()
-    }
-
-    fetchSavedChartTitles()
-  } catch (err) {
-    console.error('Error loading initial data:', err)
-  }
-})
 </script>
 <template>
   <div class="max-w-full mx-auto mt-10 p-6 bg-white shadow-md rounded-lg">
