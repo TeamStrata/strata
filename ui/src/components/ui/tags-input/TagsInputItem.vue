@@ -19,7 +19,6 @@ const delegatedProps = reactiveOmit(props, "class");
 const forwardedProps = useForwardProps(delegatedProps);
 
 const customBG = computed(() => {
-  console.log(props.color);
   return props.color ? { backgroundColor: "#" + props.color } : {}
 })
 </script>
