@@ -153,19 +153,22 @@ func LogoutHandler(activeUsers map[string]string) gin.HandlerFunc {
 // @Router /auth [get]
 func AuthHandler(activeUsers map[string]string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id, err := c.Cookie(uuidTag)
+		uuid, err := c.Cookie(uuidTag)
 		if err != nil {
-			c.Status(http.StatusUnauthorized)
+			errMsg := fmt.Sprintf("expected a uuid cookie: %s", err.Error())
+			c.String(http.StatusBadRequest, errMsg)
+			c.Abort()
 			return
 		}
 
-		_, exists := activeUsers[id]
+		_, exists := activeUsers[uuid]
 		if !exists {
-			c.Status(http.StatusNoContent)
+			c.String(http.StatusUnauthorized, "uuid not valid")
+			c.Abort()
 			return
 		}
 
-		c.Status(http.StatusOK)
+		c.Next()
 	}
 }
 

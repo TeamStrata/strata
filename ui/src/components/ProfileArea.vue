@@ -1,4 +1,5 @@
 <script setup>
+import { apiFetch } from '@/api/request';
 import router from '@/router';
 import { useUserStore } from '@/stores/user';
 
@@ -8,7 +9,14 @@ function logout() {
 
     store.username = "";
     localStorage.removeItem('username');
-    router.push("/login");
+    apiFetch("/logout", 'POST').then((res) => {
+        if (res.ok) {
+            router.push("/login");
+        } else {
+            console.error("Something went wrong while logging out")
+        }
+    })
+
 }
 
 </script>
