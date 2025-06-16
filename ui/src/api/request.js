@@ -19,12 +19,10 @@ export async function apiFetch(route, verb = 'GET', body = false, content = "app
     })
     console.log(res.status)
 
-    if (route != "/login") {
-        // handle not logged in from request
-        if (res.status == 401) {
-            router.push('/');
-        }
+    if (res.status == 401) {
+        router.push('/login');
     }
+
 
     return res;
 }
