@@ -45,9 +45,9 @@ const emits = defineEmits(['roleAdd', 'roleRemove']);
     <ComboboxAnchor as-child>
       <TagsInput v-model="modelValue" class="px-2 gap-2 w-80">
         <div class="flex gap-2 flex-wrap items-center">
-          <TagsInputItem v-for="item in activeRolesFull" :key="item.id" :value="item.name">
+          <TagsInputItem v-for="item in activeRolesFull" :key="item.id" :value="item.name" :color="item.color">
             <TagsInputItemText />
-            <TagsInputItemDelete />
+            <TagsInputItemDelete/>
           </TagsInputItem>
         </div>
 
@@ -60,7 +60,7 @@ const emits = defineEmits(['roleAdd', 'roleRemove']);
       <ComboboxList class="w-[--reka-popper-anchor-width]">
         <ComboboxEmpty />
         <ComboboxGroup>
-          <ComboboxItem v-for="val in availableRoles" :key="val.id" :value="val.name" @select.prevent="() => {
+          <ComboboxItem v-for="val in availableRoles" :key="val.id" :value="val.name" :color="val.color" @select.prevent="() => {
             $emit('roleAdd', val.id);
           }">
             {{ val.name }}
