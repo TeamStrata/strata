@@ -61,7 +61,7 @@ func main() {
 
 	// User roles
 	server.DELETE("/user/:uname/role/:rname", api.DeleteUserRoleHandler(db))
-	server.PATCH("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
+	server.POST("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
 
 	// Roles
 	server.GET("/roles", api.GetRolesHandler(db))

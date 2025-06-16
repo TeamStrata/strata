@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"slices"
@@ -79,17 +80,13 @@ func (d *DbManager) ConnectToDatabase() error {
 func (d *DbManager) GetAllUsers() ([]User, error) {
 	var users []User
 
-	// FIND A WAY TO RETURN ALL ROLES ASSOCIATED WITH USER
 	query :=
-		`SELECT
-			users.user_name,
-			roles.role_name
-		FROM
-			userroles
-			JOIN users ON userroles.user_id = users.user_id
-			JOIN roles ON userroles.role_id = roles.role_id
-		ORDER BY
-			users.user_name;`
+		`SELECT users.user_name,
+				roles.role_name
+		FROM users
+				LEFT JOIN userroles ON userroles.user_id = users.user_id
+				LEFT JOIN roles ON userroles.role_id = roles.role_id
+		ORDER BY users.user_name;`
 
 	rows, err := d.Connection.Query(d.context, query)
 	if err != nil {
@@ -99,12 +96,17 @@ func (d *DbManager) GetAllUsers() ([]User, error) {
 
 	userRoleData := map[string][]string{}
 	for rows.Next() {
+		var roleText sql.NullString
 		var userName string
-		var roleName string
 
-		err = rows.Scan(&userName, &roleName)
+		err = rows.Scan(&userName, &roleText)
 		if err != nil {
 			return nil, err
+		}
+
+		roleName := ""
+		if roleText.Valid {
+			roleName = roleText.String
 		}
 
 		userRoleData[userName] = append(userRoleData[userName], roleName)
