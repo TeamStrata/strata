@@ -6,7 +6,7 @@ import { RouterLink, RouterView } from 'vue-router';
 </script>
 
 <template>
-    <button class="absolute left-40 top-10 cursor-pointer" @click="router.push('/')">Back</button>
+    <button class="absolute left-40 top-10 cursor-pointer" @click="router.push('/dashboard')">Back</button>
     <div class="flex flex-row max-w-[1100px] mx-auto h-screen p-20">
         <!-- sidebar -->
         <div class="w-3xs h-full p-5 flex flex-col">
