@@ -13,7 +13,7 @@ export interface Role {
 
 const props = defineProps<{
   allVals: Role[]
-  activeRoles: string[]
+  activeRoles: number[]
 }>();
 
 const modelValue = ref<Role[]>([])
@@ -24,7 +24,7 @@ const { contains } = useFilter({ sensitivity: 'base' })
 
 //compute list of detailed roles that the user has
 const activeRolesFull = computed(() => {
-  const roleMap = new Map(props.allVals.map(role => [role.name, role]));
+  const roleMap = new Map(props.allVals.map(role => [role.id, role]));
   return props.activeRoles.map(id => roleMap.get(id)).filter(Boolean) as Role[];
 })
 

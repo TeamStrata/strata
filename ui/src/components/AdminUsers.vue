@@ -188,7 +188,7 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 			v-for="(u, index) in users" :key="index">
 			<td class="text-gray-800 font-medium">{{ u.username }}</td>
 			<td>
-				<RoleMultiSelect :activeRoles="u.role" :allVals="roleList" @roleAdd="(role) => {addUserRole(u, role)}" @roleRemove="(role) => {removeUserRole(u, role)}"></RoleMultiSelect>
+				<RoleMultiSelect :activeRoles="u.role" :allVals="roleList" @roleAdd="(role) => {addUserRole(u.id, role)}" @roleRemove="(role) => {removeUserRole(u.id, role)}"></RoleMultiSelect>
 			</td>
 			<td class="flex items-center">
 				

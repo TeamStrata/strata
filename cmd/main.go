@@ -63,8 +63,8 @@ func main() {
 		protected.DELETE("/user/:uname", api.DeleteUserHandler(db, activeUsers))
 
 		// User roles
-		server.DELETE("/user/:uname/role/:rname", api.DeleteUserRoleHandler(db))
-		server.POST("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
+		protected.DELETE("/user/:uname/role/:rname", api.DeleteUserRoleHandler(db))
+		protected.POST("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
 
 		// Roles
 		protected.GET("/roles", api.GetRolesHandler(db))
