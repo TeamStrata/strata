@@ -46,7 +46,7 @@ func main() {
 	server.Static("/assets", "ui/dist/assets")
 	server.StaticFile("/", "ui/dist/index.html")
 	server.StaticFile("/favicon.ico", "ui/dist/favicon.ico")
-  
+
 	// Auth endpoints
 	server.POST("/login", api.LoginHandler(db, activeUsers))
 
@@ -59,7 +59,7 @@ func main() {
 
 		// Users
 		protected.GET("/users", api.GetUsersHandler(db))
-    protected.GET("/user/:uid", api.GetUserHandler(db))
+    	protected.GET("/user/:uid", api.GetUserHandler(db))
 		protected.DELETE("/user/:uname", api.DeleteUserHandler(db, activeUsers))
 
 		// User roles

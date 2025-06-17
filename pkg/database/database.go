@@ -128,17 +128,34 @@ func (d *DbManager) GetAllUsers() ([]User, error) {
 	return users, nil
 }
 
+
+func GetUserSearchSuffix(user_name string) string {
+	query := ""
+
+	// Attempt to parse the ID into a separate variable
+	_, err := strconv.Atoi(user_name)
+	if err != nil {
+		query = "user_name = $1;"
+	} else {
+		query = "user_id=$1;"
+	}
+
+	// Return the query
+	return query
+}
+
+
 // Return a user based on username. Return error if no user found.
 func (d *DbManager) GetSingleUser(name string) (User, error) {
 	var err error
 	query :=
 		`SELECT
-			user_id, password_hash, role_id, user_name
+			users.user_id, users.password_hash, roles.role_id, users.user_name
 		FROM
 			userroles
 			RIGHT JOIN users ON userroles.user_id = users.user_id
 			RIGHT JOIN roles ON userroles.role_id = roles.role_id
-		WHERE user_name = $1 OR users.user_id::text = $1`
+		WHERE ` + GetUserSearchSuffix(name)
 	args := []interface{}{name}
 
 	rows, err := d.Connection.Query(d.context, query, args...)
@@ -250,7 +267,7 @@ func (d *DbManager) GetRoles() ([]Role, error) {
 	query :=
 		`SELECT r.role_id, r.role_name, r.role_color, COUNT(ur.role_id)
 		FROM roles r
-		LEFT JOIN userroles ur ON r.role_id = ur.role_id 
+		LEFT JOIN userroles ur ON r.role_id = ur.role_id
 		WHERE r.role_name != 'default'
 		GROUP BY r.role_id, r.role_name, r.role_color`
 
