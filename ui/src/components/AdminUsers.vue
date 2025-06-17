@@ -101,12 +101,25 @@ function loadRoles() {
 	)
 }
 
-function addUserRole() {
-
+function addUserRole(uid, rid) {
+	apiFetch(`/user/${uid}/role/${rid}`, 'POST').then((res) => {
+		if(res.ok) {
+			loadUsers()
+		} else {
+			console.error("Something went wrong");
+		}
+	})
 }
 
-function removeUserRole() {
-	
+function removeUserRole(uid, rid) {
+	apiFetch(`/user/${uid}/role/${rid}`, 'DELETE').then((res) => {
+
+		if(res.ok) {
+			loadUsers()
+		} else {
+			console.error("Something went wrong");
+		}
+	})
 }
 
 const isLoaded = ref(false);
@@ -175,9 +188,10 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 			v-for="(u, index) in users" :key="index">
 			<td class="text-gray-800 font-medium">{{ u.username }}</td>
 			<td>
-				<RoleMultiSelect :activeRoles="u.role" :allVals="roleList" @roleAdd="(role) => {console.log(role)}"></RoleMultiSelect>
+				<RoleMultiSelect :activeRoles="u.role" :allVals="roleList" @roleAdd="(role) => {addUserRole(u, role)}" @roleRemove="(role) => {removeUserRole(u, role)}"></RoleMultiSelect>
 			</td>
 			<td class="flex items-center">
+				
 				Hi
 				<!-- <button
 					class="bg-red-500 text-white py-2 px-4 rounded-md cursor-pointer hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-200"

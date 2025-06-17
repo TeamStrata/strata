@@ -38,22 +38,24 @@ const availableRoles = computed(() => {
 })
 
 const emits = defineEmits(['roleAdd', 'roleRemove']);
+
+const test = ref(['Apple', 'Banana'])
 </script>
 
 <template>
   <Combobox v-model="modelValue" v-model:open="open" :ignore-filter="true">
     <ComboboxAnchor as-child>
-      <TagsInput v-model="modelValue" class="px-2 gap-2 w-80">
+      <TagsInput v-model="modelValue" class="px-2 gap-2 w-100 border-none bg-transparent">
         <div class="flex gap-2 flex-wrap items-center">
-          <TagsInputItem v-for="item in activeRolesFull" :key="item.id" :value="item.name" :color="item.color">
-            <TagsInputItemText />
-            <TagsInputItemDelete/>
-          </TagsInputItem>
+            <TagsInputItem v-for="item in activeRolesFull" :key="item.id" :value="item.name" :color="item.color">
+              <TagsInputItemText />
+              <TagsInputItemDelete :onclick="() => {$emit('roleRemove', item.id)}" />
+            </TagsInputItem>
         </div>
 
         <ComboboxInput v-model="searchTerm" as-child>
           <TagsInputInput placeholder="Add Role..."
-            class="min-w-[200px] w-full p-0 border-none focus-visible:ring-0 h-auto" @keydown.enter.prevent />
+            class="w-full p-0 border-none focus-visible:ring-0 h-auto" @keydown.enter.prevent />
         </ComboboxInput>
       </TagsInput>
 
