@@ -47,7 +47,7 @@ type User struct {
 	Id       int    `json:"id,omitempty"`
 	Name     string `json:"username"`
 	Password string `json:"password,omitempty"`
-	Roles    []int  `json:"role,omitempty"`
+	Roles    []int  `json:"role"`
 }
 
 type Role struct {
@@ -108,9 +108,9 @@ func (d *DbManager) GetAllUsers() ([]User, error) {
 			users.user_name,
 			roles.role_id
 		FROM
-			userroles
-			JOIN users ON userroles.user_id = users.user_id
-			JOIN roles ON userroles.role_id = roles.role_id
+			users
+			LEFT JOIN userroles ON users.user_id = userroles.user_id
+			LEFT JOIN roles ON userroles.role_id = roles.role_id
 		ORDER BY
 			users.user_name;`
 
@@ -123,7 +123,7 @@ func (d *DbManager) GetAllUsers() ([]User, error) {
 	userMap := map[int]User{}
 	for rows.Next() {
 		user := User{}
-		var roleId int
+		var roleId *int
 
 		err = rows.Scan(&user.Id, &user.Name, &roleId)
 		if err != nil {
@@ -139,7 +139,11 @@ func (d *DbManager) GetAllUsers() ([]User, error) {
 		}
 
 		u := userMap[user.Id]
-		u.Roles = append(u.Roles, roleId)
+		if roleId != nil {
+			u.Roles = append(u.Roles, *roleId)
+		} else {
+			u.Roles = []int{}
+		}
 		userMap[user.Id] = u
 	}
 
