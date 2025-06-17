@@ -13,6 +13,30 @@ import (
 
 const nilId = -1
 
+// Parse the 'key'. If it parses to an integer, use the 'table'.'intColumn' to compare against 'key'. Otherwise use the 'table'.'stringColumn' to compare against 'key'
+func GetSearchSuffix(key string, table string, stringColumn string, intColumn string) string {
+	query := ""
+
+	// Attempt to parse the ID into a separate variable
+	_, err := strconv.Atoi(key)
+	if err != nil {
+		query = table + "." + stringColumn + "= $1;"
+	} else {
+		query = table + "." + intColumn + "=$1;"
+	}
+
+	// Return the query
+	return query
+}
+
+func GetUserSearchSuffix(user_name string) string {
+	return GetSearchSuffix(user_name, "users", "user_name", "user_id")
+}
+
+func GetQuerySearchSuffix(query_name string) string {
+	return GetSearchSuffix(query_name, "queries", "query_name", "query_id")
+}
+
 type DbManager struct {
 	conStr     string
 	Connection *pgxpool.Pool
@@ -127,23 +151,6 @@ func (d *DbManager) GetAllUsers() ([]User, error) {
 
 	return users, nil
 }
-
-
-func GetUserSearchSuffix(user_name string) string {
-	query := ""
-
-	// Attempt to parse the ID into a separate variable
-	_, err := strconv.Atoi(user_name)
-	if err != nil {
-		query = "user_name = $1;"
-	} else {
-		query = "user_id=$1;"
-	}
-
-	// Return the query
-	return query
-}
-
 
 // Return a user based on username. Return error if no user found.
 func (d *DbManager) GetSingleUser(name string) (User, error) {
@@ -410,21 +417,6 @@ func (d *DbManager) InsertCustomQuery(query_name string, query_string string) (i
 	err := d.Connection.QueryRow(d.context, query, query_name, query_string).Scan(&query_id)
 
 	return query_id, err
-}
-
-func GetQuerySearchSuffix(query_name string) string {
-	query := ""
-
-	// Attempt to parse the ID into a separate variable
-	_, err := strconv.Atoi(query_name)
-	if err != nil {
-		query = "query_name LIKE $1;"
-	} else {
-		query = "query_id=$1;"
-	}
-
-	// Return the query
-	return query
 }
 
 // Get the custom query string saved as some ID
