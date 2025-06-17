@@ -59,6 +59,7 @@ func main() {
 
 		// Users
 		protected.GET("/users", api.GetUsersHandler(db))
+    	protected.GET("/user/:uid", api.GetUserHandler(db))
 		protected.DELETE("/user/:uname", api.DeleteUserHandler(db, activeUsers))
 
 		// User roles

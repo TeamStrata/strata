@@ -50,10 +50,10 @@ func Test_GetUserByUsername(t *testing.T) {
 	expectedUser := database.User{
 		Name:     "admin",
 		Password: "$2a$10$GEqRMhGYBay/4uXY50eyP.heui16Vs9WC//cwxt9mHijfJ.4xvi9.",
-		Roles:    []string{"admin"},
+		Roles:    []int{0},
 	}
 
-	actualUser, err := db.GetUserByUserName(expectedUser.Name)
+	actualUser, err := db.GetSingleUser(expectedUser.Name)
 	if err != nil {
 		log.Printf("expected user:	%+v", expectedUser)
 		log.Printf("actual user:	%+v", actualUser)
@@ -74,7 +74,7 @@ func Test_GetAllUsers(t *testing.T) {
 
 	expectedUser := database.User{
 		Name:  "admin",
-		Roles: []string{"admin"},
+		Roles: []int{0},
 	}
 
 	users, err := db.GetAllUsers()

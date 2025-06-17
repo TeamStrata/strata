@@ -13,6 +13,30 @@ import (
 
 const nilId = -1
 
+// Parse the 'key'. If it parses to an integer, use the 'table'.'intColumn' to compare against 'key'. Otherwise use the 'table'.'stringColumn' to compare against 'key'
+func GetSearchSuffix(key string, table string, stringColumn string, intColumn string) string {
+	query := ""
+
+	// Attempt to parse the ID into a separate variable
+	_, err := strconv.Atoi(key)
+	if err != nil {
+		query = table + "." + stringColumn + "= $1;"
+	} else {
+		query = table + "." + intColumn + "=$1;"
+	}
+
+	// Return the query
+	return query
+}
+
+func GetUserSearchSuffix(user_name string) string {
+	return GetSearchSuffix(user_name, "users", "user_name", "user_id")
+}
+
+func GetQuerySearchSuffix(query_name string) string {
+	return GetSearchSuffix(query_name, "queries", "query_name", "query_id")
+}
+
 type DbManager struct {
 	conStr     string
 	Connection *pgxpool.Pool
@@ -20,9 +44,10 @@ type DbManager struct {
 }
 
 type User struct {
+	Id		 int      `json:"id,omitempty"`
 	Name     string   `json:"username"`
 	Password string   `json:"password,omitempty"`
-	Roles    []string `json:"role,omitempty"`
+	Roles    []int    `json:"role,omitempty"`
 }
 
 type Role struct {
@@ -77,13 +102,11 @@ func (d *DbManager) ConnectToDatabase() error {
 }
 
 func (d *DbManager) GetAllUsers() ([]User, error) {
-	var users []User
-
-	// FIND A WAY TO RETURN ALL ROLES ASSOCIATED WITH USER
 	query :=
 		`SELECT
+			users.user_id,
 			users.user_name,
-			roles.role_name
+			roles.role_id
 		FROM
 			userroles
 			JOIN users ON userroles.user_id = users.user_id
@@ -97,59 +120,69 @@ func (d *DbManager) GetAllUsers() ([]User, error) {
 	}
 	defer rows.Close()
 
-	userRoleData := map[string][]string{}
+	userMap := map[int]User{}
 	for rows.Next() {
-		var userName string
-		var roleName string
+		user := User{}
+		var roleId int
 
-		err = rows.Scan(&userName, &roleName)
+		err = rows.Scan(&user.Id, &user.Name, &roleId)
 		if err != nil {
 			return nil, err
 		}
 
-		userRoleData[userName] = append(userRoleData[userName], roleName)
+		if _, exists := userMap[user.Id]; !exists {
+			userMap[user.Id] = User{
+				Id:    user.Id,
+				Name:  user.Name,
+				Roles: []int{},
+			}
+		}
+
+		u := userMap[user.Id]
+		u.Roles = append(u.Roles, roleId)
+		userMap[user.Id] = u
 	}
 
-	for name, roles := range userRoleData {
-		slices.Sort(roles)
-		users = append(users, User{
-			Name:  name,
-			Roles: roles})
+	// Convert map to array
+	users := make([]User, 0, len(userMap))
+	for _, user := range userMap {
+		users = append(users, user)
 	}
 
 	return users, nil
 }
 
 // Return a user based on username. Return error if no user found.
-func (d *DbManager) GetUserByUserName(name string) (User, error) {
+func (d *DbManager) GetSingleUser(name string) (User, error) {
 	var err error
-	if err = d.Connection.Ping(context.Background()); err != nil {
-		return User{}, err
-	}
-
 	query :=
 		`SELECT
-			password_hash, role_name
+			users.user_id, users.password_hash, roles.role_id, users.user_name
 		FROM
 			userroles
 			RIGHT JOIN users ON userroles.user_id = users.user_id
 			RIGHT JOIN roles ON userroles.role_id = roles.role_id
-		WHERE user_name = $1`
-	rows, err := d.Connection.Query(d.context, query, name)
+		WHERE ` + GetUserSearchSuffix(name)
+	args := []interface{}{name}
+
+	rows, err := d.Connection.Query(d.context, query, args...)
 	if err != nil {
 		return User{}, err
 	}
+	defer rows.Close()
 
 	user := User{}
-	roles := []string{}
+	roles := []int{}
 	for rows.Next() {
-		var role string
+		var userName string
+		var role int
 
-		err = rows.Scan(&user.Password, &role)
+		err = rows.Scan(&user.Id, &user.Password, &role, &userName)
 		if err != nil {
 			return User{}, err
 		}
 
+		user.Name = userName
 		roles = append(roles, role)
 	}
 
@@ -241,7 +274,7 @@ func (d *DbManager) GetRoles() ([]Role, error) {
 	query :=
 		`SELECT r.role_id, r.role_name, r.role_color, COUNT(ur.role_id)
 		FROM roles r
-		LEFT JOIN userroles ur ON r.role_id = ur.role_id 
+		LEFT JOIN userroles ur ON r.role_id = ur.role_id
 		WHERE r.role_name != 'default'
 		GROUP BY r.role_id, r.role_name, r.role_color`
 
@@ -384,21 +417,6 @@ func (d *DbManager) InsertCustomQuery(query_name string, query_string string) (i
 	err := d.Connection.QueryRow(d.context, query, query_name, query_string).Scan(&query_id)
 
 	return query_id, err
-}
-
-func GetQuerySearchSuffix(query_name string) string {
-	query := ""
-
-	// Attempt to parse the ID into a separate variable
-	_, err := strconv.Atoi(query_name)
-	if err != nil {
-		query = "query_name LIKE $1;"
-	} else {
-		query = "query_id=$1;"
-	}
-
-	// Return the query
-	return query
 }
 
 // Get the custom query string saved as some ID
