@@ -4,6 +4,31 @@ import Toast, { ToastTypes } from "./Toast.vue";
 import { apiFetch } from "@/api/request";
 import Modal from "./Modal.vue";
 import RoleMultiSelect from "./RoleMultiSelect.vue";
+import { Button } from '@/components/ui/button';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuPortal,
+	DropdownMenuSeparator,
+	DropdownMenuShortcut,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogClose,
+} from '@/components/ui/dialog';
+
 
 // If we can't connect to the database, or while the fetch is in progress, this displays.
 var users = ref([]);
@@ -13,6 +38,11 @@ var newPassword = ref("");
 var addModal = ref(false);
 const toastRef = ref(null);
 const roleList = ref([])
+
+let tempRole = ref({});
+
+let showDelete = ref(false);
+let userToDelete = ref(null);
 
 function addUser() {
 	const body = {
@@ -103,7 +133,7 @@ function loadRoles() {
 
 function addUserRole(uid, rid) {
 	apiFetch(`/user/${uid}/role/${rid}`, 'POST').then((res) => {
-		if(res.ok) {
+		if (res.ok) {
 			loadUsers()
 		} else {
 			console.error("Something went wrong");
@@ -114,7 +144,7 @@ function addUserRole(uid, rid) {
 function removeUserRole(uid, rid) {
 	apiFetch(`/user/${uid}/role/${rid}`, 'DELETE').then((res) => {
 
-		if(res.ok) {
+		if (res.ok) {
 			loadUsers()
 		} else {
 			console.error("Something went wrong");
@@ -162,6 +192,25 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 		</div>
 	</Modal>
 
+    <Dialog :open="showDelete" @update:open="showDelete = $event">
+        <DialogContent class="sm:max-w-[425px]">
+            <DialogHeader>
+                <DialogTitle>Delete User?</DialogTitle>
+                <DialogDescription>
+                    This action cannot be undone. This will permanently
+                    delete the user.
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter class="flex justify-between space-x-4">
+                <DialogClose as-child>
+                    <Button type="button" variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button type="submit" @click="deleteUser(userToDelete)">Confirm</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
+
 	<Toast ref="toastRef" />
 
 	<p class="text-gray-700 mb-4">Manage your organizations members</p>
@@ -191,17 +240,27 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 				<RoleMultiSelect :activeRoles="u.role" :allVals="roleList" @roleAdd="(role) => {addUserRole(u.id, role)}" @roleRemove="(role) => {removeUserRole(u.id, role)}"></RoleMultiSelect>
 			</td>
 			<td class="flex items-center">
-				
-				Hi
-				<!-- <button
-					class="bg-red-500 text-white py-2 px-4 rounded-md cursor-pointer hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-200"
-					@click="deleteUser(u.username)" v-if="u.username != 'admin'">
-					<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 20 20"
-						class="text-gray-600">
-						<path fill="#fff"
-							d="M5 6a4 4 0 1 1 8 0a4 4 0 0 1-8 0m-3 7c0-1.113.903-2 2.009-2h6.248A5.48 5.48 0 0 0 9 14.5c0 1.303.453 2.5 1.21 3.443Q9.617 18 9 18c-1.855 0-3.583-.386-4.865-1.203C2.833 15.967 2 14.69 2 13m17 1.5a4.5 4.5 0 1 1-9 0a4.5 4.5 0 0 1 9 0m-2.646-1.146a.5.5 0 0 0-.708-.708L14.5 13.793l-1.146-1.147a.5.5 0 0 0-.708.708l1.147 1.146l-1.147 1.146a.5.5 0 0 0 .708.708l1.146-1.147l1.146 1.147a.5.5 0 0 0 .708-.708L15.207 14.5z" />
-					</svg>
-				</button> -->
+				<DropdownMenu>
+					<DropdownMenuTrigger as-child>
+						<Button variant="ghost">
+							<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+								<path fill="currentColor" fill-rule="evenodd"
+									d="M2.5 7.5a2.5 2.5 0 1 1 0 5a2.5 2.5 0 0 1 0-5m15 0a2.5 2.5 0 1 1 0 5a2.5 2.5 0 0 1 0-5m-7.274 0a2.5 2.5 0 1 1 0 5a2.5 2.5 0 0 1 0-5" />
+							</svg>
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent class="w-56">
+						<DropdownMenuGroup>
+							<DropdownMenuItem>
+								<span>Edit</span>
+							</DropdownMenuItem>
+							<DropdownMenuItem class="text-destructive focus:text-destructive"
+								:onclick="() => { userToDelete = u.username; showDelete = true; }">
+								<span>Delete</span>
+							</DropdownMenuItem>
+						</DropdownMenuGroup>
+					</DropdownMenuContent>
+				</DropdownMenu>
 			</td>
 		</tr>
 	</table>
