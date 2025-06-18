@@ -28,6 +28,8 @@ import {
 	DialogTitle,
 	DialogClose,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 
 // If we can't connect to the database, or while the fetch is in progress, this displays.
@@ -39,15 +41,15 @@ var addModal = ref(false);
 const toastRef = ref(null);
 const roleList = ref([])
 
-let tempRole = ref({});
+let tempUser = ref({});
 
 let showDelete = ref(false);
 let userToDelete = ref(null);
 
-function addUser() {
+function addUser(user) {
 	const body = {
-		username: newUsername.value,
-		password: newPassword.value,
+		username: user.username,
+		password: user.password,
 	}
 
 	// submit user and pass to form
@@ -152,6 +154,19 @@ function removeUserRole(uid, rid) {
 	})
 }
 
+function showCreate() {
+	tempUser.value = {};
+	addModal.value = true;
+}
+
+// function showEdit(id) {
+//     console.log(id)
+//     const userToEdit = users.value.find(item => { return user.id == id });
+//     tempUser.value = JSON.parse(JSON.stringify(userToEdit));
+//     originalRole = JSON.parse(JSON.stringify(userToEdit));
+//     editModal.value = true;
+// }
+
 const isLoaded = ref(false);
 
 // Load both users and roles, then set isLoaded to true
@@ -164,51 +179,51 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 
 <template>
 	<!-- add user modal -->
-	<Modal :show="addModal" @close="addModal = false">
-		<h1 class="text-2xl font-semibold text-gray-800 mb-6">Add User</h1>
-		<div>
-			<label for="newUser" class="text-gray-600">Username</label>
-			<input id="newUser" v-model="newUsername"
-				class="mt-1 border border-gray-300 rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-				placeholder="Enter username" />
-		</div>
-		<div class="mt-4">
-			<label for="newPass" class="text-gray-600">Password</label>
-			<input id="newPass" type="password" v-model="newPassword"
-				class="mt-1 border border-gray-300 rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-				placeholder="Enter password" />
-		</div>
-		<div class="flex flex-row justify-between mt-6">
-			<button
-				class="bg-neutral-200 px-4 py-2 rounded-md cursor-pointer hover:bg-neutral-300 focus:outline-none focus:ring-2 focus:ring-gray-300"
-				@click="addModal = false">
-				Cancel
-			</button>
-			<button
-				class="bg-blue-500 text-white py-2 px-4 rounded-md cursor-pointer hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200"
-				@click="addUser">
-				Add User
-			</button>
-		</div>
-	</Modal>
+	<Dialog :open="addModal" @update:open="addModal = $event">
+		<DialogContent class="sm:max-w-[425px]">
+			<DialogHeader>
+				<DialogTitle>Create New User</DialogTitle>
+				<DialogDescription>
+					Fill in the details for the new user.
+				</DialogDescription>
+			</DialogHeader>
+			<div class="grid gap-4 py-4">
+				<div class="grid grid-cols-4 items-center gap-4">
+					<Label for="create-username-input" class="text-right">Name</Label>
+					<Input id="create-username-input" type="text" v-model="tempUser.username" class="col-span-3" />
+				</div>
+				<div class="grid grid-cols-4 items-center gap-4">
+					<Label for="create-password-input" class="text-right">Password</Label>
+					<Input id="create-password-input" type="text" v-model="tempUser.password"
+						class="col-span-3 h-10 w-full" />
+				</div>
+			</div>
+			<DialogFooter>
+				<DialogClose as-child>
+					<Button type="button" variant="outline">Cancel</Button>
+				</DialogClose>
+				<Button type="submit" @click="addUser(tempUser)">Confirm</Button>
+			</DialogFooter>
+		</DialogContent>
+	</Dialog>
 
-    <Dialog :open="showDelete" @update:open="showDelete = $event">
-        <DialogContent class="sm:max-w-[425px]">
-            <DialogHeader>
-                <DialogTitle>Delete User?</DialogTitle>
-                <DialogDescription>
-                    This action cannot be undone. This will permanently
-                    delete the user.
-                </DialogDescription>
-            </DialogHeader>
-            <DialogFooter class="flex justify-between space-x-4">
-                <DialogClose as-child>
-                    <Button type="button" variant="outline">Cancel</Button>
-                </DialogClose>
-                <Button type="submit" @click="deleteUser(userToDelete)">Confirm</Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
+	<Dialog :open="showDelete" @update:open="showDelete = $event">
+		<DialogContent class="sm:max-w-[425px]">
+			<DialogHeader>
+				<DialogTitle>Delete User?</DialogTitle>
+				<DialogDescription>
+					This action cannot be undone. This will permanently
+					delete the user.
+				</DialogDescription>
+			</DialogHeader>
+			<DialogFooter class="flex justify-between space-x-4">
+				<DialogClose as-child>
+					<Button type="button" variant="outline">Cancel</Button>
+				</DialogClose>
+				<Button type="submit" @click="deleteUser(userToDelete)">Confirm</Button>
+			</DialogFooter>
+		</DialogContent>
+	</Dialog>
 
 
 	<Toast ref="toastRef" />
@@ -224,7 +239,7 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 			<input placeholder="Search"
 				class="p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
 				type="text" />
-			<button @click="addModal = true"
+			<button @click="showCreate"
 				class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200 cursor-pointer">
 				Add Member
 			</button>
@@ -237,7 +252,9 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 			v-for="(u, index) in users" :key="index">
 			<td class="text-gray-800 font-medium">{{ u.username }}</td>
 			<td>
-				<RoleMultiSelect :activeRoles="u.role" :allVals="roleList" @roleAdd="(role) => {addUserRole(u.id, role)}" @roleRemove="(role) => {removeUserRole(u.id, role)}"></RoleMultiSelect>
+				<RoleMultiSelect :activeRoles="u.role" :allVals="roleList"
+					@roleAdd="(role) => { addUserRole(u.id, role) }" @roleRemove="(role) => { removeUserRole(u.id, role) }">
+				</RoleMultiSelect>
 			</td>
 			<td class="flex items-center">
 				<DropdownMenu>
