@@ -11,7 +11,7 @@ function logout() {
     localStorage.removeItem('username');
     apiFetch("/logout", 'POST').then((res) => {
         if (res.ok) {
-            router.push("/login");
+            router.push("/");
         } else {
             console.error("Something went wrong while logging out")
         }
