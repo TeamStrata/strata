@@ -1,95 +1,248 @@
 <script setup>
 import { ref } from 'vue';
-import Badge from './Badge.vue';
-import Card from './Card.vue';
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardFooter, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import CardDotted from './CardDotted.vue';
-import Modal from './Modal.vue';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { apiFetch } from '@/api/request';
+import Toast, { ToastTypes } from './Toast.vue';
 
-const roles = [
-    { "ID": 1, "name": "Admin", "color": "#FF0000" },
-    { "ID": 2, "name": "Moderator", "color": "#00FF00" },
-    { "ID": 3, "name": "User", "color": "#0000FF" }
-]
+const roles = ref([]);
+let tempRole = ref({});
+let originalRole = null;
 
-const editModal = ref(false)
-const createModal = ref(false)
-const tempRole = ref(null)
+const toastRef = ref(null);
+const editModal = ref(false);
+const createModal = ref(false);
+const deleteModal = ref(false);
 
+// Show the edit role dialog
 function showEdit(id) {
-
-    tempRole.value = JSON.parse(JSON.stringify(roles.find(item => { return item.ID == id })))
+    console.log(id)
+    const roleToEdit = roles.value.find(item => { return item.id == id });
+    tempRole.value = JSON.parse(JSON.stringify(roleToEdit));
+    originalRole = JSON.parse(JSON.stringify(roleToEdit));
     editModal.value = true;
 }
 
+// Send PATCH request to backend API
 function submitEdit() {
-    // TODO: post to database in here
+    let body = {};
+
+    body.id = originalRole.id;
+
+    // Add role to JSON
+    if (originalRole.name != tempRole.value.name) {
+        body.name = tempRole.value.name;
+    }
+
+    // Add color to JSON
+    if (originalRole.color != tempRole.value.color) {
+        body.color = tempRole.value.color;
+    }
+
+    let route = "/role/" + body.id; 
+    apiFetch(route, "PATCH", JSON.stringify(body))
+        .then((response) => {
+            if (!response.ok) {
+                toastRef.value?.showToast(
+                    "There was an issue updating the role",
+                    ToastTypes.FAIL,
+                );
+                throw new Error("Unable to update role")
+            } else {
+                editModal.value = false;
+                toastRef.value?.showToast(
+                    "Role updated successfully",
+                    ToastTypes.SUCCESS,
+                );
+                loadRoles();
+            }
+        })
+        .catch((error) => {
+            console.error("Error:", error);
+        });
 }
 
 function showCreate() {
+    tempRole.value = {};
     createModal.value = true;
 }
 
+// Send POST role request to backend API
 function submitCreate() {
-    // TODO: post to database in here
+    let body = {};
+    if (tempRole.value.name != undefined) {
+        body.name = tempRole.value.name;
+    }
+
+    if (tempRole.value.color != undefined) {
+        body.color = tempRole.value.color;
+    }
+
+    apiFetch("/role", "POST", JSON.stringify(body))
+        .then((response) => {
+            if (!response.ok) {
+                toastRef.value?.showToast(
+                    "There was an issue creating the new role",
+                    ToastTypes.FAIL,
+                );
+                throw new Error("Failed to create role");
+            } else {
+                createModal.value = false;
+                toastRef.value?.showToast(
+                    "Role created  successfully",
+                    ToastTypes.SUCCESS,
+                )
+                loadRoles();
+            }
+        })
+        .catch((error) => {
+            console.error(error)
+        });
 }
+
+// Show delete role dialog
+function showDelete(id) {
+    const roleToEdit = roles.value.find(item => { return item.id == id });
+    tempRole.value = JSON.parse(JSON.stringify(roleToEdit));
+    deleteModal.value = true;
+}
+
+// Send DELETE role request to backend API
+function submitDelete() {
+    const route = "/role/" + tempRole.value.id;
+    apiFetch(route, "DELETE")
+        .then((response) => {
+            if (!response.ok) {
+                toastRef.value?.showToast(
+                    "There was an issue deleting the role",
+                    ToastTypes.FAIL,
+                );
+                throw new Error("Failed to delete role");
+            } else {
+                deleteModal.value = false;
+                toastRef.value?.showToast(
+                    "Role deleted successfully",
+                    ToastTypes.SUCCESS,
+                )
+                loadRoles();
+            }
+        })
+        .catch((error) => {
+            console.error(error)
+        });
+}
+
+// Fetch roles from backend API
+function loadRoles() {
+    apiFetch("/roles")
+        .then(async (response) => {
+            if (!response.ok) {
+                toastRef.value?.showToast(
+                    "There was an issue getting all roles",
+                    ToastTypes.FAIL,
+                );
+                throw new Error("Failed to fetch all roles");
+            }
+
+            roles.value = await response.json();
+        })
+        .catch((error) => {
+            console.error(error);
+        });
+}
+
+loadRoles();
 </script>
 
 <template>
+    <Toast ref="toastRef" />
 
-    <Modal :show="editModal" @close="editModal = false">
-        <div class="flex flex-col space-y-6">
-            <div class="flex flex-col justify-between">
-                <input class="text-2xl font-semibold bg-neutral-200/60 p-2 rounded-md text-neutral-800"
-                    :value="tempRole.name">
-                <p>Color select</p>
-            </div>
-            <div class="space-y-2">
-                <h2 class="text-lg font-medium text-neutral-700">Permissions</h2>
-                <div class="flex items-center justify-between py-2">
-                    <span class="text-sm text-neutral-700">whatever</span>
-                    <input type="checkbox" class="form-checkbox w-4 h-4" />
+    <Dialog :open="editModal" @update:open="editModal = $event">
+        <DialogContent class="sm:max-w-[425px]">
+            <DialogHeader>
+                <DialogTitle>Edit Role</DialogTitle>
+                <DialogDescription>
+                    Click 'Confirm' to save changes.
+                </DialogDescription>
+            </DialogHeader>
+            <div class="grid gap-4 py-4">
+                <div class="grid grid-cols-4 items-center gap-4">
+                    <Label for="name-input" class="text-right">Name</Label>
+                    <Input id="name-input" type="text" v-model="tempRole.name" class="col-span-3" />
+                </div>
+                <div class="grid grid-cols-4 items-center gap-4">
+                    <Label for="color-input" class="text-right">Color</Label>
+                    <Input id="color-input" type="text" v-model="tempRole.color" class="col-span-3 h-10 w-full" />
                 </div>
             </div>
-            <div class="flex justify-between space-x-4 pt-4 mt-4">
-                <button @click="editModal = false"
-                    class="cursor-pointer px-4 py-2 rounded border border-neutral-400 text-neutral-600 hover:bg-neutral-100 transition">
-                    Cancel
-                </button>
-                <button @click="submitEdit"
-                    class="cursor-pointer px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition">
-                    Confirm
-                </button>
+            <DialogFooter>
+                <DialogClose as-child>
+                    <Button type="button" variant="outline">
+                        Cancel
+                    </Button>
+                </DialogClose>
+                <Button type="submit" @click="submitEdit">Confirm</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 
-            </div>
-        </div>
-    </Modal>
-
-    <Modal :show="createModal" @close="createModal = false">
-        <div class="flex flex-col space-y-6">
-            <div class="flex flex-col justify-between">
-                <input class="text-2xl font-semibold bg-neutral-200/60 p-2 rounded-md text-neutral-800">
-                <p>Color select</p>
-            </div>
-            <div class="space-y-2">
-                <h2 class="text-lg font-medium text-neutral-700">Permissions</h2>
-                <div class="flex items-center justify-between py-2">
-                    <span class="text-sm text-neutral-700">whatever</span>
-                    <input type="checkbox" class="form-checkbox w-4 h-4" />
+    <Dialog :open="createModal" @update:open="createModal = $event">
+        <DialogContent class="sm:max-w-[425px]">
+            <DialogHeader>
+                <DialogTitle>Create New Role</DialogTitle>
+                <DialogDescription>
+                    Fill in the details for the new role.
+                </DialogDescription>
+            </DialogHeader>
+            <div class="grid gap-4 py-4">
+                <div class="grid grid-cols-4 items-center gap-4">
+                    <Label for="create-name-input" class="text-right">Name</Label>
+                    <Input id="create-name-input" type="text" v-model="tempRole.name" class="col-span-3" />
+                </div>
+                <div class="grid grid-cols-4 items-center gap-4">
+                    <Label for="create-color-input" class="text-right">Color</Label>
+                    <Input id="create-color-input" type="text" v-model="tempRole.color" class="col-span-3 h-10 w-full" />
                 </div>
             </div>
-            <div class="flex justify-between space-x-4 pt-4 mt-4">
-                <button @click="createModal = false"
-                    class="cursor-pointer px-4 py-2 rounded border border-neutral-400 text-neutral-600 hover:bg-neutral-100 transition">
-                    Cancel
-                </button>
-                <button @click="submitCreate"
-                    class="cursor-pointer px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition">
-                    Confirm
-                </button>
+            <DialogFooter>
+                <DialogClose as-child>
+                    <Button type="button" variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button type="submit" @click="submitCreate">Confirm</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 
-            </div>
-        </div>
-    </Modal>
+    <Dialog :open="deleteModal" @update:open="deleteModal = $event">
+        <DialogContent class="sm:max-w-[425px]">
+            <DialogHeader>
+                <DialogTitle>Delete Role?</DialogTitle>
+                <DialogDescription>
+                    This action cannot be undone. This will permanently
+                    delete the role.
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter class="flex justify-between space-x-4">
+                <DialogClose as-child>
+                    <Button type="button" variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button type="submit" @click="submitDelete">Confirm</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 
     <!-- list header -->
     <div class="flex flex-row justify-between items-center mb-6">
@@ -99,24 +252,21 @@ function submitCreate() {
             <input placeholder="Search"
                 class="p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
                 type="text">
-            <!-- <button @click="createModal = true"
-                class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200 cursor-pointer">
-                Add Role
-            </button> -->
         </div>
     </div>
 
     <ul class="grid grid-cols-1 lg:grid-cols-2 auto-rows-fr gap-4 items-start">
-        <li v-for="r in roles" class="h-full">
+        <li v-for="r in roles" :key="r.id" class="h-full">
             <Card class="h-full">
-                <div class="flex items-center justify-between">
-                    <h1 class="text-lg">{{ r.name }}</h1>
-                    <Badge :color="r.color">{{ r.color }}</Badge>
-                </div>
-                <div class="flex justify-end pt-5">
-                    <button class="outline-1 rounded-sm px-2 py-1 outline-purple-800 text-purple-800 cursor-pointer"
-                        @click="showEdit(r.ID)">Edit Role</button>
-                </div>
+                <CardHeader class="flex items-center justify-between">
+                    <CardTitle class="text-lg">{{ r.name }}</CardTitle>
+                    <Badge :style="{ backgroundColor: '#' + r.color }">{{ '#' + r.color }}</Badge>
+                    <!-- <Badge>{{ '#' + r.color }}</Badge> -->
+                </CardHeader>
+                <CardFooter class="flex justify-between gap-x-4">
+                    <Button class="flex-1" variant="outline" @click="showEdit(r.id)">Edit</Button>
+                    <Button class="flex-1" @click="showDelete(r.id)">Delete</Button>
+                </CardFooter>
             </Card>
         </li>
         <li class="h-full cursor-pointer" @click="showCreate">

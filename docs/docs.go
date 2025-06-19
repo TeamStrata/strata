@@ -330,9 +330,12 @@ const docTemplate = `{
                 }
             }
         },
-        "/role/{rname}": {
+        "/role": {
             "post": {
                 "description": "Creates a new role in the database.",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -342,9 +345,46 @@ const docTemplate = `{
                 "summary": "Add a new role",
                 "parameters": [
                     {
+                        "description": "Role to be added",
+                        "name": "role",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/database.Role"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/role/{rid}": {
+            "post": {
+                "description": "Creates a new role in the database.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Update a role",
+                "parameters": [
+                    {
                         "type": "string",
-                        "description": "Role name",
-                        "name": "rname",
+                        "description": "Role Id",
+                        "name": "rid",
                         "in": "path",
                         "required": true
                     }
@@ -352,6 +392,12 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "string"
                         }
@@ -376,50 +422,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Role name to delete",
-                        "name": "rname",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/role/{rname}/{newname}": {
-            "put": {
-                "description": "Renames an existing role in the database.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Roles"
-                ],
-                "summary": "Update an existing role name",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Current role name",
-                        "name": "rname",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "New role name",
-                        "name": "newname",
+                        "description": "Id of role to delete",
+                        "name": "rid",
                         "in": "path",
                         "required": true
                     }
@@ -515,7 +519,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/user/{name}": {
+        "/user/{uname}": {
             "delete": {
                 "description": "Deletes a user from the database and removes their session from active users.",
                 "produces": [
@@ -689,10 +693,13 @@ const docTemplate = `{
                 "color": {
                     "type": "string"
                 },
+                "id": {
+                    "type": "integer"
+                },
                 "name": {
                     "type": "string"
                 },
-                "userCount": {
+                "usercount": {
                     "type": "integer"
                 }
             }

@@ -18,7 +18,8 @@ BEGIN
 			'heatmap',
 			'pie',
 			'radar',
-			'polar'
+			'polar',
+			'scatter'
 		);
 	EXCEPTION
 		WHEN duplicate_object THEN null;

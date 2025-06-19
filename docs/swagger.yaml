@@ -12,9 +12,11 @@ definitions:
     properties:
       color:
         type: string
+      id:
+        type: integer
       name:
         type: string
-      userCount:
+      usercount:
         type: integer
     type: object
   database.User:
@@ -238,13 +240,39 @@ paths:
       summary: Execute Query
       tags:
       - Queries
-  /role/{rname}:
+  /role:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new role in the database.
+      parameters:
+      - description: Role to be added
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/database.Role'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Add a new role
+      tags:
+      - Roles
+  /role/{rid}:
     delete:
       description: Deletes a role from the database.
       parameters:
-      - description: Role name to delete
+      - description: Id of role to delete
         in: path
-        name: rname
+        name: rid
         required: true
         type: string
       produces:
@@ -264,9 +292,9 @@ paths:
     post:
       description: Creates a new role in the database.
       parameters:
-      - description: Role name
+      - description: Role Id
         in: path
-        name: rname
+        name: rid
         required: true
         type: string
       produces:
@@ -276,39 +304,15 @@ paths:
           description: OK
           schema:
             type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Add a new role
-      tags:
-      - Roles
-  /role/{rname}/{newname}:
-    put:
-      description: Renames an existing role in the database.
-      parameters:
-      - description: Current role name
-        in: path
-        name: rname
-        required: true
-        type: string
-      - description: New role name
-        in: path
-        name: newname
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
+        "400":
+          description: Bad Request
           schema:
             type: string
         "500":
           description: Internal Server Error
           schema:
             type: string
-      summary: Update an existing role name
+      summary: Update a role
       tags:
       - Roles
   /roles:
@@ -362,7 +366,7 @@ paths:
       summary: User signup
       tags:
       - Authentication
-  /user/{name}:
+  /user/{uname}:
     delete:
       description: Deletes a user from the database and removes their session from
         active users.
