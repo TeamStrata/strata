@@ -1,77 +1,7 @@
 <script setup>
-// import { ref, onMounted } from 'vue';
-// import axios from 'axios';
-// import { apiFetch } from '@/api/request';
-
-// // Chart types
-// const chartTypes = ['Line', 'Area', 'Column', 'Bar', 'Scatter'];
-// const selectedChart = ref(chartTypes[0]);
-
-// // Saved queries
-// const savedQueries = ref([]);
-
-// //columns
-// const Columns = ref([]);
-// const series = ref([
-//   {
-//     query: {},
-//     x_column: "",
-//     y_column: ""
-//   }
-// ]);
-// const seriesSections = reactive([
-//   {
-//     query: savedQueries[0],
-//     xColumn: columns[0],
-//     yColumn: columns[1],
-//   },
-// ])
-
-// const addSeriesSection = () => {
-//   seriesSections.push({
-//     query: savedQueries[0],
-//     xColumn: columns[0],
-//     yColumn: columns[1],
-//   })
-// }
-// apiFetch('/queries')
-//   .then(async (response) => {
-// 			// Handle error
-// 			if (!response.ok) {
-// 				toasRef.value?.showToast(
-// 					"There was an error when loading saved queries",
-// 					ToastTypes.FAIL,
-// 				);
-// 				throw new Error("Error loading saved queries");
-// 			}
-
-// 			savedQueries.value = await response.json();
-//       series.value[0].query = savedQueries.value[0];
-// 		})
-// 		.catch((error) => {
-// 			console.error(error);
-// });
-
-// apiFetch(`/query/${series.value[0].query.id}/execute`)
-//   .then(async (response) => {
-// 			// Handle error
-// 			if (!response.ok) {
-// 				toasRef.value?.showToast(
-// 					"There was an error when executing query",
-// 					ToastTypes.FAIL,
-// 				);
-// 				throw new Error("Error executing query");
-// 			}
-
-// 			Columns.value=Object.keys((await response.json())[0]);
-//       series.value[0].x_column=Columns.value[0];
-//       series.value[0].y_column= Columns.value[1];
-// 		})
-// 		.catch((error) => {
-// 			console.error(error);
-// });
-
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive } from 'vue'
+import { watch } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
 import { apiFetch } from '@/api/request'
 
 const chartTypes = ['Line', 'Area', 'Column', 'Bar', 'Scatter']
@@ -86,7 +16,6 @@ const savedChartTitles = ref([])
 const selectedChartTitle = ref('')
 
 const seriesSections = reactive([])
-const Columns = ref([])
 const series = ref([
   {
     query: {},
@@ -94,7 +23,17 @@ const series = ref([
     y_column: ''
   }
 ])
+const chartComponent = computed(() => {
+  const map = {
+    Line: defineAsyncComponent(() => import('./charts/LineChart.vue')),
+    Area: defineAsyncComponent(() => import('./charts/AreaChart.vue')),
+    Column: defineAsyncComponent(() => import('./charts/ColumnChart.vue')),
+    Bar: defineAsyncComponent(() => import('./charts/BarChart.vue')),
+    Scatter: defineAsyncComponent(() => import('./charts/ScatterChart.vue')),
+  }
 
+  return map[selectedChart.value] || null
+})
 // Fetch saved queries
 apiFetch('/queries')
   .then(async (response) => {
@@ -118,7 +57,7 @@ apiFetch('/queries')
       throw new Error('No queries found')
     }
   })
-  .then(async (response) => {
+ .then(async (response) => {
     if (!response.ok) {
       toasRef.value?.showToast(
         'There was an error when executing the query',
@@ -128,12 +67,11 @@ apiFetch('/queries')
     }
 
     const data = await response.json()
-    Columns.value = Object.keys(data[0] || {})
-    series.value[0].x_column = Columns.value[0]
-    series.value[0].y_column = Columns.value[1]
+    columns.value = Object.keys(data[0] || {})
+    series.value[0].x_column = columns.value[0]
+    series.value[0].y_column = columns.value[1]
 
-    // Optional: fetch saved chart titles here too
-    return apiFetch('/chart/titles')
+    return apiFetch('/charts/titles')
   })
   .then(async (response) => {
     if (!response.ok) throw new Error('Failed to fetch chart titles')
@@ -147,6 +85,7 @@ const addSeriesSection = () => {
     query: savedQueries.value[0] || {},
     xColumn: columns.value[0] || '',
     yColumn: columns.value[1] || '',
+     chartData: [],
   })
 }
 
@@ -154,29 +93,38 @@ const removeChartSection = (index) => {
   seriesSections.splice(index, 1)
 }
 
-const generateChart = (index) => {
+const chartData = ref([])
+
+const generateChart = async (index) => {
   const section = seriesSections[index]
-  console.log("Generating chart for:", {
-    chartType: selectedChart.value,
-    query: section.query,
-    x: section.xColumn,
-    y: section.yColumn,
-  })
+  if (!section.query?.id) return
+
+  try {
+    const response = await apiFetch(`/query/${section.query.id}/execute`)
+    if (!response.ok) throw new Error('Failed to execute query')
+
+    const data = await response.json()
+    seriesSections[index].chartData = data
+
+    console.log("Generating chart with:", {
+      chartType: selectedChart.value,
+      x: section.xColumn,
+      y: section.yColumn,
+      data
+    })
+  } catch (err) {
+    console.error('Error generating chart:', err)
+  }
 }
 
 const saveChart = async () => {
   const payload = {
-    title: chartTitle.value,
-    chartType: selectedChart.value,
-    series: seriesSections,
+    chart_title: chartTitle.value,
+    chart_type: selectedChart.value.toLowerCase()|| 'line',
   }
 
   try {
-    const response = await apiFetch('/charts', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
-
+    const response = await apiFetch('/chart', 'POST', JSON.stringify(payload), "application/sql")
     if (!response.ok) throw new Error('Failed to save chart')
 
     alert('Chart saved successfully')
@@ -202,9 +150,36 @@ const loadChartFromDB = async () => {
   }
 }
 
+watch(seriesSections, (sections) => {
+  sections.forEach((section, index) => {
+    watch(
+      () => section.query,
+      async (newQuery) => {
+        if (!newQuery || !newQuery.id) return
+
+        try {
+          const response = await apiFetch(`/query/${newQuery.id}/execute`)
+          if (!response.ok) throw new Error('Failed to execute query')
+
+          const data = await response.json()
+          const cols = Object.keys(data[0] || {})
+
+          columns.value = cols
+
+          if (!section.xColumn) section.xColumn = cols[0] || ''
+          if (!section.yColumn) section.yColumn = cols[1] || ''
+        } catch (err) {
+          console.error(`Error loading columns for query ${newQuery.id}:`, err)
+        }
+      },
+      { immediate: true }
+    )
+  })
+}, { deep: true })
+
 const fetchSavedChartTitles = async () => {
   try {
-    const response = await apiFetch('/chart/titles')
+    const response = await apiFetch('/charts/titles')
     if (!response.ok) throw new Error('Failed to fetch chart titles')
     savedChartTitles.value = await response.json()
   } catch (err) {
@@ -212,6 +187,8 @@ const fetchSavedChartTitles = async () => {
   }
 }
 </script>
+
+
 <template>
   <div class="max-w-full mx-auto mt-10 p-6 bg-white shadow-md rounded-lg">
     <h1 class="text-2xl font-bold mb-6 text-gray-800">Chart Viewer</h1>
@@ -340,6 +317,16 @@ const fetchSavedChartTitles = async () => {
           Save Chart
         </button>
       </div>
+      <!-- Render Chart -->
+      
+      <div class="mt-6" v-if="chartComponent && seriesSections.length">
+        <div v-for="(section, index) in seriesSections" :key="index">
+          <component
+          :is="chartComponent"
+          :series="seriesSections.filter(s => s.chartData?.length)"
+          />
+        </div>
+    </div>
     </div>
   </div>
 </template>

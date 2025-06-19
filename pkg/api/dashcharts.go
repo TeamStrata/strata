@@ -31,6 +31,27 @@ func GetChartListHandler(d *database.DbManager) gin.HandlerFunc {
 	}
 }
 
+func GetChartTitlesListHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		charts, err := d.ListAllChartTitles()
+		if err != nil {
+			c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
+			return
+		}
+
+		data, err := json.Marshal(charts)
+		if err != nil {
+			c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
+			return
+		}
+
+		c.Data(200, "application/json", data)
+		c.Done()
+	}
+}
+
 func GetChartHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		chart_id_str := c.Param("cid")

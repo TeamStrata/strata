@@ -68,6 +68,34 @@ func (d *DbManager) ListAllCharts() ([]Chart, error) {
 	return list, nil
 }
 
+func (d *DbManager) ListAllChartTitles() ([]Chart, error) {
+	var list []Chart
+	query := "SELECT chart_title FROM chart;"
+
+	// Query the databse for all queries
+	rows, err := d.Connection.Query(d.context, query)
+	if err != nil {
+		return nil, err
+	}
+	// Ensure the rows are closed properly
+	defer rows.Close()
+
+	// Iterate through rows
+	for rows.Next() {
+		var chart Chart
+
+		// Scan the row for the query ID and String Literal
+		err := rows.Scan(&chart.Title)
+		if err != nil {
+			return nil, err
+		}
+
+		list = append(list, chart)
+	}
+
+	return list, nil
+}
+
 func (d *DbManager) InsertChart(chart Chart) (int, error) {
 	chart_id := 0
 
