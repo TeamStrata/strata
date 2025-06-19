@@ -46,6 +46,8 @@ let tempUser = ref({});
 let showDelete = ref(false);
 let userToDelete = ref(null);
 
+const editModal = ref(false);
+
 function addUser(user) {
 	const body = {
 		username: user.username,
@@ -159,13 +161,18 @@ function showCreate() {
 	addModal.value = true;
 }
 
-// function showEdit(id) {
-//     console.log(id)
-//     const userToEdit = users.value.find(item => { return user.id == id });
-//     tempUser.value = JSON.parse(JSON.stringify(userToEdit));
-//     originalRole = JSON.parse(JSON.stringify(userToEdit));
-//     editModal.value = true;
-// }
+function submitEdit() {
+
+}
+
+function showEdit(user) {
+	console.log(user)
+	const userToEdit = users.value.find(item => { return item.id == user });;
+	tempUser.value = JSON.parse(JSON.stringify(userToEdit));
+	console.log(tempUser.value)
+	// originalRole = JSON.parse(JSON.stringify(userToEdit));
+	editModal.value = true;
+}
 
 const isLoaded = ref(false);
 
@@ -207,6 +214,37 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 		</DialogContent>
 	</Dialog>
 
+	<!-- edit user modal -->
+	<Dialog :open="editModal" @update:open="editModal = $event">
+		<DialogContent class="sm:max-w-[425px]">
+			<DialogHeader>
+				<DialogTitle>Edit User</DialogTitle>
+				<DialogDescription>
+					Click 'Confirm' to save changes.
+				</DialogDescription>
+			</DialogHeader>
+			<div class="grid gap-4 py-4">
+				<div class="grid grid-cols-4 items-center gap-4">
+					<Label for="edit-name-input" class="text-right">Name</Label>
+					<Input id="edit-name-input" type="text" v-model="tempUser.username" class="col-span-3" />
+				</div>
+				<div class="grid grid-cols-4 items-center gap-4">
+					<Label for="edi-password-input" class="text-right">Password</Label>
+					<Input id="edit-password-input" type="text" v-model="tempUser.password" class="col-span-3 h-10 w-full" />
+				</div>
+			</div>
+			<DialogFooter>
+				<DialogClose as-child>
+					<Button type="button" variant="outline">
+						Cancel
+					</Button>
+				</DialogClose>
+				<Button type="submit" @click="submitEdit">Confirm</Button>
+			</DialogFooter>
+		</DialogContent>
+	</Dialog>
+
+	<!-- delete user modal -->
 	<Dialog :open="showDelete" @update:open="showDelete = $event">
 		<DialogContent class="sm:max-w-[425px]">
 			<DialogHeader>
@@ -253,7 +291,8 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 			<td class="text-gray-800 font-medium">{{ u.username }}</td>
 			<td>
 				<RoleMultiSelect :activeRoles="u.role" :allVals="roleList"
-					@roleAdd="(role) => { addUserRole(u.id, role) }" @roleRemove="(role) => { removeUserRole(u.id, role) }">
+					@roleAdd="(role) => { addUserRole(u.id, role) }"
+					@roleRemove="(role) => { removeUserRole(u.id, role) }">
 				</RoleMultiSelect>
 			</td>
 			<td class="flex items-center">
@@ -268,7 +307,7 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 					</DropdownMenuTrigger>
 					<DropdownMenuContent class="w-56">
 						<DropdownMenuGroup>
-							<DropdownMenuItem>
+							<DropdownMenuItem :onclick="() => {showEdit(u.id)}">
 								<span>Edit</span>
 							</DropdownMenuItem>
 							<DropdownMenuItem class="text-destructive focus:text-destructive"
