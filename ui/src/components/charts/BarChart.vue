@@ -44,6 +44,7 @@ const chartData = computed(() => {
 })
 
 const chartOptions = {
+  indexAxis: 'y',
   responsive: true,
   plugins: {
     legend: {

@@ -1,26 +1,74 @@
 <template>
-  <apexchart
-    type="bar"
-    height="350"
-    :options="chartOptions"
-    :series="chartSeries"
-  />
+  <Bar :data="chartData" :options="chartOptions" />
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { Bar } from 'vue-chartjs'
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale
+} from 'chart.js'
+import { computed } from 'vue'
+
+ChartJS.register(
+  Title,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale
+)
 
 const props = defineProps({
-  queryData: Array,
-});
+  series: {
+    type: Array,
+    required: true,
+  }
+})
 
-const chartSeries = computed(() => [
-  { name: 'Value', data: props.queryData.map(item => item.value) },
-]);
+// Prepare chart data with multiple bar series
+const chartData = computed(() => {
+  const labels = props.series[0]?.chartData?.map(item => item?.[props.series[0].xColumn]) ?? []
 
-const chartOptions = computed(() => ({
-  chart: { id: 'column-chart' },
-  plotOptions: { bar: { columnWidth: '50%' } },
-  xaxis: { categories: props.queryData.map(item => item.name) },
-}));
+  return {
+    labels,
+    datasets: props.series.map((section, idx) => ({
+      label: section.yColumn || `Series ${idx + 1}`,
+      data: section.chartData.map(item => item?.[section.yColumn]),
+      backgroundColor: `hsl(${idx * 60}, 70%, 60%)`,
+    }))
+  }
+})
+
+const chartOptions = {
+  responsive: true,
+  plugins: {
+    legend: {
+      display: true,
+    },
+    title: {
+      display: false,
+    },
+  },
+  scales: {
+    x: {
+      title: {
+        display: true,
+        text: props.series[0]?.xColumn || 'X-Axis',
+      }
+    },
+    y: {
+      title: {
+        display: true,
+        text: 'Values',
+      },
+      beginAtZero: true
+    }
+  }
+}
 </script>

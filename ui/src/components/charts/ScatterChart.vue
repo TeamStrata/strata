@@ -1,45 +1,96 @@
 <template>
-  <apexchart
-    type="line"
-    height="350"
-    :options="chartOptions"
-    :series="chartSeries"
-  />
+  <Scatter :data="chartData" :options="chartOptions" />
 </template>
 
 <script setup>
+import { Scatter } from 'vue-chartjs'
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  PointElement,
+  LinearScale,
+  TimeScale,
+} from 'chart.js'
+import 'chartjs-adapter-date-fns' // date adapter for 'time' scale if needed
 import { computed } from 'vue'
-import ApexCharts from 'vue3-apexcharts'
 
-// Props: data array, x field name, y field name
+ChartJS.register(
+  Title,
+  Tooltip,
+  Legend,
+  PointElement,
+  LinearScale,
+  TimeScale,
+)
+
 const props = defineProps({
-  queryData: {
+  series: {
     type: Array,
     required: true,
-  },
-  x: {
-    type: String,
-    required: true,
-  },
-  y: {
-    type: String,
-    required: true,
+    // Each series: { chartData: Array, xColumn: String, yColumn: String }
   },
 })
 
-const chartSeries = computed(() => [
-  {
-    name: props.y,
-    data: props.queryData.map((item) => item[props.y]),
-  },
-])
+const chartData = computed(() => {
+  // Map each series in props to a Chart.js dataset
+  return {
+    datasets: props.series.map((section, idx) => ({
+      label: section.query?.name || `Series ${idx + 1}`,
+      data: (section.chartData || []).map(item => ({
+        x: item?.[section.xColumn],
+        y: item?.[section.yColumn],
+      })),
+      backgroundColor: `hsl(${(idx * 60) % 360}, 70%, 50%)`,
+      pointRadius: 5,
+    })),
+  }
+})
+
+// Determine if x-axis values are dates (simple heuristic)
+const xIsDate = computed(() => {
+  const firstSeries = props.series[0]
+  if (!firstSeries || !firstSeries.chartData || !firstSeries.chartData.length) return false
+  const sampleX = firstSeries.chartData[0]?.[firstSeries.xColumn]
+  // Simple date check: Date parse success + not NaN
+  return sampleX && !isNaN(Date.parse(sampleX))
+})
 
 const chartOptions = computed(() => ({
-  chart: {
-    id: 'line-chart',
+  responsive: true,
+  scales: {
+    x: {
+      type: xIsDate.value ? 'time' : 'linear',
+      title: {
+        display: true,
+        text: props.series[0]?.xColumn || 'X Axis',
+      },
+      time: xIsDate.value
+        ? {
+            tooltipFormat: 'PP',
+            unit: 'day', // adjust unit as needed
+          }
+        : undefined,
+    },
+    y: {
+      type: 'linear',
+      title: {
+        display: true,
+        text: props.series[0]?.yColumn || 'Y Axis',
+      },
+    },
   },
-  xaxis: {
-    categories: props.queryData.map((item) => item[props.x]),
+  plugins: {
+    legend: {
+      display: true,
+      position: 'top',
+    },
+    tooltip: {
+      enabled: true,
+      mode: 'nearest',
+      intersect: true,
+    },
   },
 }))
 </script>

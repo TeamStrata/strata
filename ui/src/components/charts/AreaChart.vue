@@ -1,27 +1,64 @@
 <template>
-  <apexchart
-    type="area"
-    height="350"
-    :options="chartOptions"
-    :series="chartSeries"
-  />
+  <Line :data="chartData" :options="chartOptions" />
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { Line } from 'vue-chartjs'
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  LineElement,
+  PointElement,
+  CategoryScale,
+  LinearScale,
+  Filler,
+} from 'chart.js'
+import { computed } from 'vue'
+
+ChartJS.register(
+  Title,
+  Tooltip,
+  Legend,
+  LineElement,
+  PointElement,
+  CategoryScale,
+  LinearScale,
+  Filler // Needed for area fill
+)
 
 const props = defineProps({
-  queryData: Array,
-});
+  series: {
+    type: Array,
+    required: true,
+  }
+})
 
-const chartSeries = computed(() => [
-  { name: 'Value', data: props.queryData.map(item => item.value) },
-]);
+// Build chart.js format data with multiple series
+const chartData = computed(() => {
+  return {
+    labels: props.series[0]?.chartData?.map(item => item?.[props.series[0].xColumn]) ?? [],
+    datasets: props.series.map((section, idx) => ({
+      label: section.yColumn || `Series ${idx + 1}`,
+      data: section.chartData.map(item => item?.[section.yColumn]),
+      fill: true,
+      borderColor: `hsl(${idx * 60}, 70%, 50%)`,
+      backgroundColor: `hsla(${idx * 60}, 70%, 70%, 0.3)`,
+      tension: 0.4,
+    })),
+  }
+})
 
-const chartOptions = computed(() => ({
-  chart: { id: 'area-chart' },
-  dataLabels: { enabled: false },
-  stroke: { curve: 'smooth' },
-  xaxis: { categories: props.queryData.map(item => item.name) },
-}));
+const chartOptions = {
+  responsive: true,
+  plugins: {
+    legend: {
+      display: true,
+    },
+    title: {
+      display: false,
+    },
+  },
+}
 </script>
