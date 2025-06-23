@@ -277,7 +277,7 @@ func (d *DbManager) UpdateUser(userid int, name string, password string) error {
 }
 
 // Add a role to a user
-func (d *DbManager) AddUserRole(userName string, roleName string) error {
+func (d *DbManager) AddUserRole(userID string, roleID string) error {
 	query :=
 		`INSERT INTO userroles (user_id, role_id)
 		SELECT users.user_id, roles.role_id
@@ -285,7 +285,7 @@ func (d *DbManager) AddUserRole(userName string, roleName string) error {
 		WHERE users.user_id = $1
 		AND roles.role_id = $2`
 
-	_, err := d.Connection.Exec(d.context, query, userName, roleName)
+	_, err := d.Connection.Exec(d.context, query, userID, roleID)
 	if err != nil {
 		errMsg := fmt.Sprintf("unable to add new role to: %s", err.Error())
 		return errors.New(errMsg)
@@ -295,16 +295,16 @@ func (d *DbManager) AddUserRole(userName string, roleName string) error {
 }
 
 // Delete a role from a user
-func (d *DbManager) DeleteUserRole(userName string, roleName string) error {
+func (d *DbManager) DeleteUserRole(userID string, roleID string) error {
 	query :=
 		`DELETE FROM userroles
 		WHERE user_id = $1
 		AND role_id = $2`
 
-	_, err := d.Connection.Exec(d.context, query, userName, roleName)
+	_, err := d.Connection.Exec(d.context, query, userID, roleID)
 	if err != nil {
 		errMsg := fmt.Sprintf("unable to delete '%s' role from '%s': %s",
-			roleName, userName, err.Error())
+			roleID, userID, err.Error())
 		return errors.New(errMsg)
 	}
 
