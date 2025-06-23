@@ -298,7 +298,6 @@ func UpdateUserHandler(d *database.DbManager) gin.HandlerFunc {
 			return
 		}
 
-		println("updating user")
 		err = d.UpdateUser(uid, newUserData.Name, password_hash)
 		if err != nil {
 			errMsg := fmt.Sprintf("unable to update user '%d': %s", uid, err.Error())
