@@ -3,6 +3,7 @@ import { useFilter } from 'reka-ui'
 import { computed, ref } from 'vue'
 import { Combobox, ComboboxAnchor, ComboboxEmpty, ComboboxGroup, ComboboxInput, ComboboxItem, ComboboxList } from '@/components/ui/combobox'
 import { TagsInput, TagsInputInput, TagsInputItem, TagsInputItemDelete, TagsInputItemText } from '@/components/ui/tags-input'
+import ComboboxTrigger from './ui/combobox/ComboboxTrigger.vue';
 
 export interface Role {
   id: number;
@@ -47,24 +48,29 @@ const test = ref(['Apple', 'Banana'])
     <ComboboxAnchor as-child>
       <TagsInput v-model="modelValue" class="px-2 gap-2 w-100 border-none bg-transparent">
         <div class="flex gap-2 flex-wrap items-center">
-            <TagsInputItem v-for="item in activeRolesFull" :key="item.id" :value="item.name" :color="item.color">
-              <TagsInputItemText />
-              <TagsInputItemDelete :onclick="() => {$emit('roleRemove', item.id)}" />
-            </TagsInputItem>
+          <TagsInputItem v-for="item in activeRolesFull" :key="item.id" :value="item.name" :color="item.color">
+            <TagsInputItemText />
+            <TagsInputItemDelete :onclick="() => { $emit('roleRemove', item.id) }" />
+          </TagsInputItem>
         </div>
 
-        <ComboboxInput v-model="searchTerm" as-child>
-          <TagsInputInput placeholder="Add Role..."
-            class="w-full p-0 border-none focus-visible:ring-0 h-auto" @keydown.enter.prevent />
-        </ComboboxInput>
+        <ComboboxTrigger>
+          <ComboboxInput v-model="searchTerm" as-child>
+            <TagsInputInput placeholder="Add Role..." class="w-full p-0 border-none focus-visible:ring-0 h-auto"
+              @keydown.enter.prevent onfocus="console.log('hi')" />
+          </ComboboxInput>
+        </ComboboxTrigger>
       </TagsInput>
 
-      <ComboboxList class="w-[--reka-popper-anchor-width]">
-        <ComboboxEmpty />
+      <ComboboxList class="w-2xs">
+        <ComboboxEmpty>
+          No Roles Found
+        </ComboboxEmpty>
         <ComboboxGroup>
-          <ComboboxItem v-for="val in availableRoles" :key="val.id" :value="val.name" :color="val.color" @select.prevent="() => {
-            $emit('roleAdd', val.id);
-          }">
+          <ComboboxItem v-for="val in availableRoles" :key="val.id" :value="val.name" :color="val.color"
+            @select.prevent="() => {
+              $emit('roleAdd', val.id);
+            }">
             {{ val.name }}
           </ComboboxItem>
         </ComboboxGroup>
