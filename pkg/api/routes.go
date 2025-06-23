@@ -225,7 +225,6 @@ func GetUserHandler(d *database.DbManager) gin.HandlerFunc {
 	}
 }
 
-
 // Delete a user that matches the name parameter
 //
 // @Summary Delete user by name
@@ -255,6 +254,56 @@ func DeleteUserHandler(d *database.DbManager, activeUsers map[string]string) gin
 		}
 
 		c.Status(http.StatusOK)
+	}
+}
+
+// Update an existing user using the 'uid' route parameter.
+//
+// @Summary Update a user
+// @Description Alters the user data in the database.
+// @Tags Users
+// @Produce json
+// @Param uid path string true "User Id"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /user/{uid} [patch]
+func UpdateUserHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		// handle route params
+		uid, err := strconv.Atoi(c.Param("uid"))
+
+		if err != nil {
+			c.String(http.StatusBadRequest, "uid not specified in request")
+		}
+
+		// handle body
+		var newUserData database.User
+
+		err = c.ShouldBindJSON(&newUserData)
+		if err != nil {
+			msg := fmt.Sprintf("Error reading body: %s", err.Error())
+			c.String(http.StatusBadRequest, msg)
+		}
+
+		password_hash := ""
+		if newUserData.Password != "" {
+			password_hash, err = auth.HashPassword(newUserData.Password)
+		}
+
+		if err != nil {
+			errMsg := fmt.Sprintf("unable to hash provided password: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+
+		println("updating user")
+		err = d.UpdateUser(uid, newUserData.Name, password_hash)
+		if err != nil {
+			errMsg := fmt.Sprintf("unable to update user '%d': %s", uid, err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+		}
 	}
 }
 

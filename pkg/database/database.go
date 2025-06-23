@@ -238,6 +238,44 @@ func (d *DbManager) DeleteUser(username string) error {
 	return err
 }
 
+// Update a user, expects pre-hashed password (do not give this plaintext pls)
+func (d *DbManager) UpdateUser(userid int, name string, password string) error {
+
+	if name == "" && password == "" {
+		return nil
+	}
+
+	query := "UPDATE users SET"
+	argCount := 1
+	var args []any
+
+	if name != "" {
+		query += " user_name = $" + strconv.Itoa(argCount)
+		args = append(args, name)
+		argCount++
+	}
+
+	if password != "" {
+		if argCount > 1 {
+			query += ","
+		}
+		query += " password_hash = $" + strconv.Itoa(argCount)
+		args = append(args, password)
+		argCount++
+	}
+
+	query += " WHERE user_id = $" + strconv.Itoa(argCount)
+	args = append(args, userid)
+
+	_, err := d.Connection.Exec(d.context, query, args...)
+	if err != nil {
+		errMsg := fmt.Sprintf("unable to update user '%d': %s", userid, err.Error())
+		return errors.New(errMsg)
+	}
+
+	return nil
+}
+
 // Add a role to a user
 func (d *DbManager) AddUserRole(userName string, roleName string) error {
 	query :=
