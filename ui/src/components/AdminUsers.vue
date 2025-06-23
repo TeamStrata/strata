@@ -161,8 +161,41 @@ function showCreate() {
 	addModal.value = true;
 }
 
+// Send PATCH request to backend API
 function submitEdit() {
+    let body = {};
 
+    body.id = tempUser.value.id;
+
+	if (tempUser.value.username != "") {
+		body.username = tempUser.value.username;
+	}
+
+	if (tempUser.value.password != "") {
+		body.password = tempUser.value.password
+	}
+
+    let route = "/user/" + body.id; 
+    apiFetch(route, "PATCH", JSON.stringify(body))
+        .then((response) => {
+            if (!response.ok) {
+                toastRef.value?.showToast(
+                    "There was an issue updating the role",
+                    ToastTypes.FAIL,
+                );
+                throw new Error("Unable to update role")
+            } else {
+                editModal.value = false;
+                toastRef.value?.showToast(
+                    "User updated successfully",
+                    ToastTypes.SUCCESS,
+                );
+                loadUsers();
+            }
+        })
+        .catch((error) => {
+            console.error("Error:", error);
+        });
 }
 
 function showEdit(user) {
