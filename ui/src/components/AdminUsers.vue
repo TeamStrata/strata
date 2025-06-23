@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { computed } from "vue";
 
 
 // If we can't connect to the database, or while the fetch is in progress, this displays.
@@ -163,9 +164,9 @@ function showCreate() {
 
 // Send PATCH request to backend API
 function submitEdit() {
-    let body = {};
+	let body = {};
 
-    body.id = tempUser.value.id;
+	body.id = tempUser.value.id;
 
 	if (tempUser.value.username != "") {
 		body.username = tempUser.value.username;
@@ -175,27 +176,27 @@ function submitEdit() {
 		body.password = tempUser.value.password
 	}
 
-    let route = "/user/" + body.id; 
-    apiFetch(route, "PATCH", JSON.stringify(body))
-        .then((response) => {
-            if (!response.ok) {
-                toastRef.value?.showToast(
-                    "There was an issue updating the role",
-                    ToastTypes.FAIL,
-                );
-                throw new Error("Unable to update role")
-            } else {
-                editModal.value = false;
-                toastRef.value?.showToast(
-                    "User updated successfully",
-                    ToastTypes.SUCCESS,
-                );
-                loadUsers();
-            }
-        })
-        .catch((error) => {
-            console.error("Error:", error);
-        });
+	let route = "/user/" + body.id;
+	apiFetch(route, "PATCH", JSON.stringify(body))
+		.then((response) => {
+			if (!response.ok) {
+				toastRef.value?.showToast(
+					"There was an issue updating the role",
+					ToastTypes.FAIL,
+				);
+				throw new Error("Unable to update role")
+			} else {
+				editModal.value = false;
+				toastRef.value?.showToast(
+					"User updated successfully",
+					ToastTypes.SUCCESS,
+				);
+				loadUsers();
+			}
+		})
+		.catch((error) => {
+			console.error("Error:", error);
+		});
 }
 
 function showEdit(user) {
@@ -206,6 +207,15 @@ function showEdit(user) {
 	// originalRole = JSON.parse(JSON.stringify(userToEdit));
 	editModal.value = true;
 }
+
+const nameFilter = ref("");
+
+const filteredUsers = computed(() => {
+	if (!nameFilter.value) return users.value;
+	return users.value.filter(u =>
+		u.username?.toLowerCase().includes(nameFilter.value.toLowerCase())
+	);
+});
 
 const isLoaded = ref(false);
 
@@ -263,7 +273,8 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 				</div>
 				<div class="grid grid-cols-4 items-center gap-4">
 					<Label for="edi-password-input" class="text-right">Password</Label>
-					<Input id="edit-password-input" type="text" v-model="tempUser.password" class="col-span-3 h-10 w-full" />
+					<Input id="edit-password-input" type="text" v-model="tempUser.password"
+						class="col-span-3 h-10 w-full" />
 				</div>
 			</div>
 			<DialogFooter>
@@ -305,22 +316,17 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 	<div class="flex flex-row justify-between items-center mb-6">
 		<h1 class="text-2xl font-semibold text-gray-800">Members</h1>
 
-		<div class="flex flex-row pb-2 items-center space-x-3">
-			<p class="text-gray-600">{{ users.length }} members</p>
-			<input placeholder="Search"
-				class="p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
-				type="text" />
-			<button @click="showCreate"
-				class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200 cursor-pointer">
-				Add Member
-			</button>
+		<div class="flex flex-row pb-2 items-center gap-3">
+			<p class="text-gray-600 text-nowrap">{{ users.length }} members</p>
+			<Input id="edit-name-input" type="text" v-model="nameFilter" placeholder="Search..."/>
+			<Button type="submit" @click="showCreate">Add Member</Button>
 		</div>
 	</div>
 
 	<!-- list body -->
 	<table class="w-full" v-if="isLoaded">
 		<tr class="border-t-2 border-neutral-200 py-4 flex flex-row justify-between items-center px-5 hover:bg-gray-50 transition-colors"
-			v-for="(u, index) in users" :key="index">
+			v-for="(u, index) in filteredUsers" :key="index">
 			<td class="text-gray-800 font-medium">{{ u.username }}</td>
 			<td>
 				<RoleMultiSelect :activeRoles="u.role" :allVals="roleList"
@@ -340,7 +346,7 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 					</DropdownMenuTrigger>
 					<DropdownMenuContent class="w-56">
 						<DropdownMenuGroup>
-							<DropdownMenuItem :onclick="() => {showEdit(u.id)}">
+							<DropdownMenuItem :onclick="() => { showEdit(u.id) }">
 								<span>Edit</span>
 							</DropdownMenuItem>
 							<DropdownMenuItem class="text-destructive focus:text-destructive"
