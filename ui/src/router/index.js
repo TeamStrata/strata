@@ -10,38 +10,37 @@ const router = createRouter({
       component: () => import('../views/Login.vue')
     },
     {
-      path: '/dashboard',
-      name: 'home',
-      component: HomeView,
-    },
-    {
-      path: '/admin',
-      name: 'admin',
-      component: () => import('../views/Admin.vue'),
-      children: [
-        {
-          path: "users",
-          component: () => import("../components/AdminUsers.vue")
-        },
-        {
-          path: "roles",
-          component: () => import("../components/AdminRoles.vue")
-        },
-      ]
-    },
-    {
-      path: '/query',
-      name: 'query',
+      path: '',
       component: HomeView,
       children: [
         {
-          path: "list",
-          component: () => import("../components/Queries.vue")
-        },
+          path: 'query',
+          name: 'query',
+          children: [
+            {
+              path: 'list',
+              component: () => import('../components/Queries.vue')
+            },
+            {
+              path: 'run/:id',
+              component: () => import('../components/QueryExecute.vue')
+            }
+          ]
+        },       
         {
-          path: "run/:id",
-          component: () => import("../components/QueryExecute.vue")
-        }
+          path: 'admin',
+          name: 'admin',
+          children: [
+            {
+              path: 'users',
+              component: () => import('../components/AdminUsers.vue')
+            },
+            {
+              path: 'roles',
+              component: () => import('../components/AdminRoles.vue')
+            }
+          ]
+        },
       ]
     }
   ],
