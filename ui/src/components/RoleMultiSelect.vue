@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import { Combobox, ComboboxAnchor, ComboboxEmpty, ComboboxGroup, ComboboxInput, ComboboxItem, ComboboxList } from '@/components/ui/combobox'
 import { TagsInput, TagsInputInput, TagsInputItem, TagsInputItemDelete, TagsInputItemText } from '@/components/ui/tags-input'
 import ComboboxTrigger from './ui/combobox/ComboboxTrigger.vue';
+import Card from './ui/card/Card.vue';
 
 export interface Role {
   id: number;
@@ -44,9 +45,9 @@ const test = ref(['Apple', 'Banana'])
 </script>
 
 <template>
-  <Combobox v-model="modelValue" v-model:open="open" :ignore-filter="true">
+  <Combobox v-model="modelValue" v-model:open="open" :ignore-filter="true" class="">
     <ComboboxAnchor as-child>
-      <TagsInput v-model="modelValue" class="px-2 gap-2 w-100 border-none bg-transparent">
+      <TagsInput v-model="modelValue" class="w-full border-none bg-transparent p-0">
         <div class="flex gap-2 flex-wrap items-center">
           <TagsInputItem v-for="item in activeRolesFull" :key="item.id" :value="item.name" :color="item.color">
             <TagsInputItemText />
@@ -67,7 +68,7 @@ const test = ref(['Apple', 'Banana'])
           No Roles Found
         </ComboboxEmpty>
         <ComboboxGroup>
-          <ComboboxItem v-for="val in availableRoles" :key="val.id" :value="val.name" :color="val.color"
+          <ComboboxItem v-for="val in availableRoles" class="my-1" :key="val.id" :value="val.name" :color="val.color"
             @select.prevent="() => {
               $emit('roleAdd', val.id);
             }">

@@ -31,6 +31,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { computed } from "vue";
+import Card from "./ui/card/Card.vue";
 
 
 // If we can't connect to the database, or while the fetch is in progress, this displays.
@@ -311,54 +312,72 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 	<Toast ref="toastRef" />
 
 	<p class="text-gray-700 mb-4">Manage your organizations members</p>
+	<Card class="p-5">
+		<!-- list header -->
+		<div class="flex flex-row justify-between items-center mb-2">
+			<h1 class="text-2xl font-semibold text-gray-800">All Members</h1>
 
-	<!-- list header -->
-	<div class="flex flex-row justify-between items-center mb-6">
-		<h1 class="text-2xl font-semibold text-gray-800">Members</h1>
-
-		<div class="flex flex-row pb-2 items-center gap-3">
-			<p class="text-gray-600 text-nowrap">{{ users.length }} members</p>
-			<Input id="edit-name-input" type="text" v-model="nameFilter" placeholder="Search..."/>
-			<Button type="submit" @click="showCreate">Add Member</Button>
+			<div class="flex flex-row items-center gap-3">
+				<p class="text-gray-600 text-nowrap">{{ users.length }} members</p>
+				<Input id="edit-name-input" type="text" v-model="nameFilter" placeholder="Search..." />
+				<Button type="submit" @click="showCreate"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+						viewBox="0 0 24 24">
+						<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+							stroke-width="2" d="M5 12h14m-7-7v14" />
+					</svg>Add Member</Button>
+			</div>
 		</div>
-	</div>
 
-	<!-- list body -->
-	<table class="w-full" v-if="isLoaded">
-		<tr class="border-t-2 border-neutral-200 py-4 flex flex-row justify-between items-center px-5 hover:bg-gray-50 transition-colors"
-			v-for="(u, index) in filteredUsers" :key="index">
-			<td class="text-gray-800 font-medium">{{ u.username }}</td>
-			<td>
-				<RoleMultiSelect :activeRoles="u.role" :allVals="roleList"
-					@roleAdd="(role) => { addUserRole(u.id, role) }"
-					@roleRemove="(role) => { removeUserRole(u.id, role) }">
-				</RoleMultiSelect>
-			</td>
-			<td class="flex items-center">
-				<DropdownMenu>
-					<DropdownMenuTrigger as-child>
-						<Button variant="ghost">
-							<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
-								<path fill="currentColor" fill-rule="evenodd"
-									d="M2.5 7.5a2.5 2.5 0 1 1 0 5a2.5 2.5 0 0 1 0-5m15 0a2.5 2.5 0 1 1 0 5a2.5 2.5 0 0 1 0-5m-7.274 0a2.5 2.5 0 1 1 0 5a2.5 2.5 0 0 1 0-5" />
-							</svg>
-						</Button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent class="w-56">
-						<DropdownMenuGroup>
-							<DropdownMenuItem :onclick="() => { showEdit(u.id) }">
-								<span>Edit</span>
-							</DropdownMenuItem>
-							<DropdownMenuItem class="text-destructive focus:text-destructive"
-								:onclick="() => { userToDelete = u.username; showDelete = true; }">
-								<span>Delete</span>
-							</DropdownMenuItem>
-						</DropdownMenuGroup>
-					</DropdownMenuContent>
-				</DropdownMenu>
-			</td>
-		</tr>
-	</table>
+		<!-- list body -->
+		<table class="w-full" v-if="isLoaded">
+			<colgroup>
+				<col span="1" style="width: 20%;">
+				<col span="1" style="width: 75%;">
+				<col span="1" style="width: 5%;">
+			</colgroup>
+			<tbody class="*:border-b-2 *:border-neutral-200 text-left">
+				<tr>
+					<th>Name</th>
+					<th>Roles</th>
+					<th>Actions</th>
+				</tr>
+				<tr class="transition-colors hover:bg-gray-50 align-cente" v-for="(u, index) in filteredUsers"
+					:key="index">
+					<td class="text-gray-800 font-medium py-3">{{ u.username }}</td>
+					<td>
+						<RoleMultiSelect :activeRoles="u.role" :allVals="roleList"
+							@roleAdd="(role) => { addUserRole(u.id, role) }"
+							@roleRemove="(role) => { removeUserRole(u.id, role) }">
+						</RoleMultiSelect>
+					</td>
+					<td class="text-right">
+						<DropdownMenu>
+							<DropdownMenuTrigger as-child>
+								<Button variant="ghost">
+									<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+										<path fill="currentColor" fill-rule="evenodd"
+											d="M2.5 7.5a2.5 2.5 0 1 1 0 5a2.5 2.5 0 0 1 0-5m15 0a2.5 2.5 0 1 1 0 5a2.5 2.5 0 0 1 0-5m-7.274 0a2.5 2.5 0 1 1 0 5a2.5 2.5 0 0 1 0-5" />
+									</svg>
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent class="w-44">
+								<DropdownMenuGroup>
+									<DropdownMenuItem :onclick="() => { showEdit(u.id) }">
+										<span>Edit</span>
+									</DropdownMenuItem>
+									<DropdownMenuItem class="text-destructive focus:text-destructive"
+										:onclick="() => { userToDelete = u.username; showDelete = true; }">
+										<span>Delete</span>
+									</DropdownMenuItem>
+								</DropdownMenuGroup>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</td>
+				</tr>
+			</tbody>
+
+		</table>
+	</Card>
 </template>
 
 <style scoped>
