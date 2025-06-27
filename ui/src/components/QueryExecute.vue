@@ -2,6 +2,7 @@
 import router from "@/router";
 import { ref, nextTick } from "vue";
 import Toast, { ToastTypes } from "./Toast.vue";
+import { apiFetch } from "@/api/request";
 
 var customQuery = ref({
 	id: 0,
@@ -26,11 +27,11 @@ const id = window.location.pathname.split("/").pop();
 
 function updateTable() {
 	// Execute the query and get the result
-	fetch(`http://localhost:8080/query/${id}/execute`)
+	apiFetch(`/query/${id}/execute`)
 		.then(async (response) => {
 			// Handle error
 			if (!response.ok) {
-				toasRef.value?.showToast(
+				toastRef.value?.showToast(
 					"There was an error when loading users",
 					ToastTypes.FAIL,
 				);
@@ -47,7 +48,7 @@ function updateTable() {
 
 function getQuery() {
 	// Execute the query and get the result
-	fetch(`http://localhost:8080/query/${id}`)
+	apiFetch(`/query/${id}`)
 		.then(async (response) => {
 			// Handle error
 			if (!response.ok) {
@@ -103,24 +104,28 @@ updateTable();
 
 	<!-- list body -->
 	<table class="w-full table-auto">
-		<tr class="border-b-2 border-gray-800">
-			<th
-				class="border border-neutral-300 py-3 px-5"
-				v-for="(column, colIndex) in table[0]"
-				:key="colIndex"
-			>
-				<pre>{{ colIndex }}</pre>
-			</th>
-		</tr>
-		<tr class="" v-for="(row, rowIndex) in table" :key="index">
-			<td
-				class="border border-neutral-300 py-3 px-5"
-				v-for="(column, colIndex) in row"
-				:key="colIndex"
-			>
-				<pre>{{ column }}</pre>
-			</td>
-		</tr>
+		<thead>
+			<tr class="border-b-2 border-gray-800">
+				<th
+					class="border border-neutral-300 py-3 px-5"
+					v-for="(column, colIndex) in table[0]"
+					:key="colIndex"
+				>
+					<pre>{{ colIndex }}</pre>
+				</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr class="" v-for="(row, rowIndex) in table" :key="index">
+				<td
+					class="border border-neutral-300 py-3 px-5"
+					v-for="(column, colIndex) in row"
+					:key="colIndex"
+				>
+					<pre>{{ column }}</pre>
+				</td>
+			</tr>
+		</tbody>
 	</table>
 </template>
 

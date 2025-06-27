@@ -58,7 +58,7 @@ import { RouterLink } from 'vue-router';
       </div>
       <div class="flex flex-col">
         Spaces
-        <RouterLink to="/">Link</RouterLink>
+        <RouterLink to="/dashboard">Link</RouterLink>
       </div>
       <!-- header bar -->
       <div class="mt-auto">
