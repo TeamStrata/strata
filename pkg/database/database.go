@@ -44,10 +44,10 @@ type DbManager struct {
 }
 
 type User struct {
-	Id		 int      `json:"id,omitempty"`
-	Name     string   `json:"username"`
-	Password string   `json:"password,omitempty"`
-	Roles    []int    `json:"role,omitempty"`
+	Id       int    `json:"id,omitempty"`
+	Name     string `json:"username"`
+	Password string `json:"password,omitempty"`
+	Roles    []int  `json:"role"`
 }
 
 type Role struct {
@@ -108,9 +108,9 @@ func (d *DbManager) GetAllUsers() ([]User, error) {
 			users.user_name,
 			roles.role_id
 		FROM
-			userroles
-			JOIN users ON userroles.user_id = users.user_id
-			JOIN roles ON userroles.role_id = roles.role_id
+			users
+			LEFT JOIN userroles ON users.user_id = userroles.user_id
+			LEFT JOIN roles ON userroles.role_id = roles.role_id
 		ORDER BY
 			users.user_name;`
 
@@ -123,7 +123,7 @@ func (d *DbManager) GetAllUsers() ([]User, error) {
 	userMap := map[int]User{}
 	for rows.Next() {
 		user := User{}
-		var roleId int
+		var roleId *int
 
 		err = rows.Scan(&user.Id, &user.Name, &roleId)
 		if err != nil {
@@ -139,7 +139,11 @@ func (d *DbManager) GetAllUsers() ([]User, error) {
 		}
 
 		u := userMap[user.Id]
-		u.Roles = append(u.Roles, roleId)
+		if roleId != nil {
+			u.Roles = append(u.Roles, *roleId)
+		} else {
+			u.Roles = []int{}
+		}
 		userMap[user.Id] = u
 	}
 
@@ -234,16 +238,54 @@ func (d *DbManager) DeleteUser(username string) error {
 	return err
 }
 
+// Update a user, expects pre-hashed password (do not give this plaintext pls)
+func (d *DbManager) UpdateUser(userid int, name string, password string) error {
+
+	if name == "" && password == "" {
+		return nil
+	}
+
+	query := "UPDATE users SET"
+	argCount := 1
+	var args []any
+
+	if name != "" {
+		query += " user_name = $" + strconv.Itoa(argCount)
+		args = append(args, name)
+		argCount++
+	}
+
+	if password != "" {
+		if argCount > 1 {
+			query += ","
+		}
+		query += " password_hash = $" + strconv.Itoa(argCount)
+		args = append(args, password)
+		argCount++
+	}
+
+	query += " WHERE user_id = $" + strconv.Itoa(argCount)
+	args = append(args, userid)
+
+	_, err := d.Connection.Exec(d.context, query, args...)
+	if err != nil {
+		errMsg := fmt.Sprintf("unable to update user '%d': %s", userid, err.Error())
+		return errors.New(errMsg)
+	}
+
+	return nil
+}
+
 // Add a role to a user
-func (d *DbManager) AddUserRole(userName string, roleName string) error {
+func (d *DbManager) AddUserRole(userID string, roleID string) error {
 	query :=
 		`INSERT INTO userroles (user_id, role_id)
 		SELECT users.user_id, roles.role_id
 		FROM users, roles
-		WHERE users.user_name = $1
-		AND roles.role_name = $2`
+		WHERE users.user_id = $1
+		AND roles.role_id = $2`
 
-	_, err := d.Connection.Exec(d.context, query, userName, roleName)
+	_, err := d.Connection.Exec(d.context, query, userID, roleID)
 	if err != nil {
 		errMsg := fmt.Sprintf("unable to add new role to: %s", err.Error())
 		return errors.New(errMsg)
@@ -253,16 +295,16 @@ func (d *DbManager) AddUserRole(userName string, roleName string) error {
 }
 
 // Delete a role from a user
-func (d *DbManager) DeleteUserRole(userName string, roleName string) error {
+func (d *DbManager) DeleteUserRole(userID string, roleID string) error {
 	query :=
 		`DELETE FROM userroles
-		WHERE user_id = (SELECT user_id FROM users WHERE user_name = $1)
-		AND role_id = (SELECT role_id FROM roles WHERE role_name = $2)`
+		WHERE user_id = $1
+		AND role_id = $2`
 
-	_, err := d.Connection.Exec(d.context, query, userName, roleName)
+	_, err := d.Connection.Exec(d.context, query, userID, roleID)
 	if err != nil {
 		errMsg := fmt.Sprintf("unable to delete '%s' role from '%s': %s",
-			roleName, userName, err.Error())
+			roleID, userID, err.Error())
 		return errors.New(errMsg)
 	}
 
