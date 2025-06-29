@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"slices"
+	"strconv"
 	"testing"
 
 	"github.com/TeamStrata/strata/pkg/auth"
@@ -137,7 +138,7 @@ func Test_AddUserRole(t *testing.T) {
 		t.Fatalf("error inserting test user into database: %s", err.Error())
 	}
 
-	err = db.AddUserRole(testUser.Name, "admin")
+	err = db.AddUserRole(strconv.Itoa(testUser.Id), "0") //0 should always be "admin" role
 	if err != nil {
 		t.Fatalf("error adding admin role to user: %s", err.Error())
 	}
@@ -168,13 +169,13 @@ func Test_DeleteUserRole(t *testing.T) {
 		t.Fatalf("error inserting test user into database: %s", err.Error())
 	}
 
-	role := "delete"
-	err = db.AddUserRole(testUser.Name, role)
+	role := "0"
+	err = db.AddUserRole(strconv.Itoa(testUser.Id), role)
 	if err != nil {
 		t.Fatalf("error adding admin role to user: %s", err.Error())
 	}
 
-	err = db.DeleteUserRole(testUser.Name, role)
+	err = db.DeleteUserRole(strconv.Itoa(testUser.Id), role)
 	if err != nil {
 		t.Fatalf("error deleting user role: %s", err.Error())
 	}
