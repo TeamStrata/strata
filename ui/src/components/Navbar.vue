@@ -10,9 +10,16 @@ import SidebarHeader from './ui/sidebar/SidebarHeader.vue';
 import SidebarMenu from './ui/sidebar/SidebarMenu.vue';
 import SidebarMenuButton from './ui/sidebar/SidebarMenuButton.vue';
 import SidebarMenuItem from './ui/sidebar/SidebarMenuItem.vue';
+import DropdownMenu from './ui/dropdown-menu/DropdownMenu.vue';
+import DropdownMenuContent from './ui/dropdown-menu/DropdownMenuContent.vue';
+import DropdownMenuItem from './ui/dropdown-menu/DropdownMenuItem.vue';
+import DropdownMenuTrigger from './ui/dropdown-menu/DropdownMenuTrigger.vue';
+import DropdownMenuLabel from './ui/dropdown-menu/DropdownMenuLabel.vue';
+import ProfileArea from './ProfileArea.vue';
 
+import { useUserStore } from '@/stores/user';
 
-
+const user = useUserStore()
 </script>
 
 <template>
@@ -109,7 +116,10 @@ import SidebarMenuItem from './ui/sidebar/SidebarMenuItem.vue';
             <SidebarGroup>
                 <SidebarGroupLabel>Projects</SidebarGroupLabel>
                 <SidebarGroupAction title="Add Project">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7-7v14"/></svg> <span class="sr-only">Add Project</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                            stroke-width="2" d="M5 12h14m-7-7v14" />
+                    </svg> <span class="sr-only">Add Project</span>
                 </SidebarGroupAction>
                 <SidebarContent>
                     TODO: dashboards go here
@@ -119,8 +129,24 @@ import SidebarMenuItem from './ui/sidebar/SidebarMenuItem.vue';
         <SidebarFooter>
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <!-- TODO: need to add the dropdown menu once the other branch gets merged -->
-                    
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <SidebarMenuButton class="h-fit hover:cursor-pointer">
+                                <span
+                                    class="flex items-center justify-center bg-neutral-200 text-black rounded-full w-8 h-8 p-2 text-lg">
+                                    {{ user.username[0].toUpperCase() }}
+                                </span> <span>{{ user.username }}</span>
+                                <svg class="ml-auto rotate-90" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                    viewBox="0 0 24 24">
+                                    <path fill="none" stroke="currentColor" stroke-linecap="round"
+                                        stroke-linejoin="round" stroke-width="2" d="m16 18l6-6l-6-6M8 6l-6 6l6 6" />
+                                </svg>
+                            </SidebarMenuButton>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="top" class="w-60">
+                            <ProfileArea></ProfileArea>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </SidebarMenuItem>
             </SidebarMenu>
         </SidebarFooter>
