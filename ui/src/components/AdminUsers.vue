@@ -310,8 +310,6 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 
 
 	<Toast ref="toastRef" />
-
-	<p class="text-gray-700 mb-4">Manage your organizations members</p>
 	<Card class="p-5">
 		<!-- list header -->
 		<div class="flex flex-row justify-between items-center mb-2">
