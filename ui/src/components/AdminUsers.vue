@@ -358,7 +358,7 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 									</svg>
 								</Button>
 							</DropdownMenuTrigger>
-							<DropdownMenuContent class="w-44">
+							<DropdownMenuContent class="w-44 mr-8">
 								<DropdownMenuGroup>
 									<DropdownMenuItem :onclick="() => { showEdit(u.id) }">
 										<span>Edit</span>
