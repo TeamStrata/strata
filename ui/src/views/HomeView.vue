@@ -4,6 +4,7 @@ import ProfileArea from '@/components/ProfileArea.vue';
 import Separator from '@/components/ui/separator/Separator.vue';
 import SidebarInset from '@/components/ui/sidebar/SidebarInset.vue';
 import SidebarProvider from '@/components/ui/sidebar/SidebarProvider.vue';
+import SidebarTrigger from '@/components/ui/sidebar/SidebarTrigger.vue';
 import { watch, ref, computed } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 
@@ -22,8 +23,9 @@ const pageInfo = computed(() => { return route.meta })
       <Navbar></Navbar>
       <SidebarInset>
         <!-- page header -->
-        <div class="flex justify-between items-center px-5 py-2">
+        <div class="flex justify-between items-center px-3 py-2">
           <div class="flex items-end gap-5">
+            <SidebarTrigger class="md:hidden"></SidebarTrigger>
             <h1 class="scroll-m-20 text-2xl font-semibold tracking-tight">{{ pageInfo.title }}</h1>
             <p class="leading-7">{{ pageInfo.description }}</p>
           </div>
