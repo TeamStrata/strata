@@ -16,7 +16,7 @@ import SidebarMenuItem from './ui/sidebar/SidebarMenuItem.vue';
 </script>
 
 <template>
-    <Sidebar>
+    <Sidebar variant="inset">
         <SidebarHeader>
             <img src="@/assets/StrataFullx256.png" alt="STRATA" class="mx-auto w-5/6 pt-2"></img>
         </SidebarHeader>
@@ -120,6 +120,7 @@ import SidebarMenuItem from './ui/sidebar/SidebarMenuItem.vue';
             <SidebarMenu>
                 <SidebarMenuItem>
                     <!-- TODO: need to add the dropdown menu once the other branch gets merged -->
+                    
                 </SidebarMenuItem>
             </SidebarMenu>
         </SidebarFooter>
