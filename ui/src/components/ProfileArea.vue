@@ -42,7 +42,7 @@ function logout() {
         </div>
     </DropdownMenuLabel>
     <DropdownMenuSeparator></DropdownMenuSeparator>
-    <DropdownMenuItem :onclick="logout" class="flex justify-between">
+    <DropdownMenuItem :onclick="logout" class="flex justify-between hover:cursor-pointer">
         <span>Sign out</span>
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
             <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
