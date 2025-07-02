@@ -310,8 +310,6 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 
 
 	<Toast ref="toastRef" />
-
-	<p class="text-gray-700 mb-4">Manage your organizations members</p>
 	<Card class="p-5">
 		<!-- list header -->
 		<div class="flex flex-row justify-between items-center mb-2">
@@ -360,7 +358,7 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 									</svg>
 								</Button>
 							</DropdownMenuTrigger>
-							<DropdownMenuContent class="w-44">
+							<DropdownMenuContent class="w-44 mr-8">
 								<DropdownMenuGroup>
 									<DropdownMenuItem :onclick="() => { showEdit(u.id) }">
 										<span>Edit</span>
