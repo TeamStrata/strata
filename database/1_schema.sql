@@ -55,10 +55,14 @@ BEGIN
         role_color TEXT
 	);
 
+	-- Scope for permissions
+	CREATE TYPE scope AS ENUM ('global', 'dashboard'); 
+
 	-- Table for storing Permissions
 	CREATE TABLE IF NOT EXISTS permissions (
 		permission_id SERIAL PRIMARY KEY,
-		permission_name TEXT UNIQUE NOT NULL
+		permission_name TEXT UNIQUE NOT NULL,
+		permission_scope scope NOT NULL
 	);
 
 	-- Table for storing custom, or any other queries. 
@@ -105,6 +109,14 @@ BEGIN
 	CREATE TABLE IF NOT EXISTS rolePermissions (
 		role_id INTEGER NOT NULL references roles(role_id) ON DELETE CASCADE,
 		permission_id INTEGER NOT NULL references permissions(permission_id) ON DELETE CASCADE
+	);
+
+	CREATE TABLE IF NOT EXISTS dashboardRolePermissions (
+		   dash_id INTEGER NOT NULL references dashboard(dash_id) ON DELETE CASCADE,
+		   role_id INTEGER NOT NULL references roles(role_id) ON DELETE CASCADE,
+		   permission_id INTEGER NOT NULL references permissions(permission_id) ON DELETE CASCADE,
+		   PRIMARY KEY (role_id, dash_id, permission_id),
+		   FOREIGN KEY (role_id, permission_id) REFERENCES rolePermissions(role_id, permission_id)
 	);
 
 	-- Table to store relations between users and roles

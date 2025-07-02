@@ -13,30 +13,6 @@ import (
 
 const nilId = -1
 
-// Parse the 'key'. If it parses to an integer, use the 'table'.'intColumn' to compare against 'key'. Otherwise use the 'table'.'stringColumn' to compare against 'key'
-func GetSearchSuffix(key string, table string, stringColumn string, intColumn string) string {
-	query := ""
-
-	// Attempt to parse the ID into a separate variable
-	_, err := strconv.Atoi(key)
-	if err != nil {
-		query = table + "." + stringColumn + "= $1;"
-	} else {
-		query = table + "." + intColumn + "=$1;"
-	}
-
-	// Return the query
-	return query
-}
-
-func GetUserSearchSuffix(user_name string) string {
-	return GetSearchSuffix(user_name, "users", "user_name", "user_id")
-}
-
-func GetQuerySearchSuffix(query_name string) string {
-	return GetSearchSuffix(query_name, "queries", "query_name", "query_id")
-}
-
 type DbManager struct {
 	conStr     string
 	Connection *pgxpool.Pool
@@ -61,6 +37,30 @@ type Query struct {
 	Id      int    `json:"id"`
 	Name    string `json:"name"`
 	Literal string `json:"literal"`
+}
+
+// Parse the 'key'. If it parses to an integer, use the 'table'.'intColumn' to compare against 'key'. Otherwise use the 'table'.'stringColumn' to compare against 'key'
+func GetSearchSuffix(key string, table string, stringColumn string, intColumn string) string {
+	query := ""
+
+	// Attempt to parse the ID into a separate variable
+	_, err := strconv.Atoi(key)
+	if err != nil {
+		query = table + "." + stringColumn + "= $1;"
+	} else {
+		query = table + "." + intColumn + "=$1;"
+	}
+
+	// Return the query
+	return query
+}
+
+func GetUserSearchSuffix(user_name string) string {
+	return GetSearchSuffix(user_name, "users", "user_name", "user_id")
+}
+
+func GetQuerySearchSuffix(query_name string) string {
+	return GetSearchSuffix(query_name, "queries", "query_name", "query_id")
 }
 
 func NewDbManager(connectionString string, ctx context.Context) (*DbManager, error) {
