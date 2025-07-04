@@ -118,5 +118,11 @@ BEGIN
 		query_id INTEGER NOT NULL references queries(query_id) ON DELETE CASCADE,
 		role_id INTEGER NOT NULL references roles(role_id) ON DELETE CASCADE
 	);
+
+	-- Table to store settings such as the client database connection string
+	CREATE TABLE IF NOT EXISTS settings (
+		setting_key TEXT UNIQUE NOT NULL,
+		setting_value TEXT NOT NULL
+	);
 END
 $do$

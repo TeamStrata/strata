@@ -39,6 +39,13 @@ func main() {
 		log.Fatalf("error initializing DB manager: %s", err.Error())
 	}
 
+	// Create the client database which will be used for custom queries
+	cdb_str, cerr := db.GetSetting("cdb")
+	cdb, cerr := database.NewDbManager(cdb_str, context.Background())
+	if cerr != nil {
+		log.Printf("error initializing client DB manager: %s", cerr.Error())
+	}
+
 	// Initialize map for active users and uuids
 	activeUsers := make(map[string]string)
 
@@ -99,7 +106,7 @@ func main() {
 		// Query Endpoints
 		protected.GET("/queries", api.GetQueryList(db))
 		protected.GET("/query/:qid", api.ReadQueryLiteralHandler(db))     // Return the query SQL string
-		protected.GET("/query/:qid/execute", api.ExecuteQueryHandler(db)) // Execute a saved query (custom or standard saved queries)
+		protected.GET("/query/:qid/execute", api.ExecuteQueryHandler(db, cdb)) // Execute a saved query (custom or standard saved queries)
 		protected.POST("/query/:qid", api.SaveQueryHandler(db))
 		protected.DELETE("/query/:qid", api.DeleteQueryHandler(db))
 
@@ -108,6 +115,8 @@ func main() {
 
 		// Misc Endpoints
 		protected.GET("/ping", api.PingHandler)
+		protected.GET("/settings/:key", api.GetSettingHandler(db))
+		protected.POST("/settings/:key", api.UpdateSettingHandler(db))
 	}
 
 	err = server.Run(":8080")

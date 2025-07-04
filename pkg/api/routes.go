@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -504,4 +505,41 @@ func addNewUUID(username string, users map[string]string) string {
 
 	users[newId] = username
 	return newId
+}
+
+func GetSettingHandler(d* database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		key := c.Param("qid")
+
+		settings, err := d.GetSetting(key)
+		if err != nil {
+			errMsg := fmt.Sprintf("unable to get settings: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+
+		c.JSON(http.StatusOK, settings)
+	}
+}
+
+func UpdateSettingHandler(d* database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		key := c.Param("qid")
+
+		bodyBytes, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			errMsg := fmt.Sprintf("unable to read request body: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+
+		err = d.SetSetting(key, string(bodyBytes))
+		if err != nil {
+			errMsg := fmt.Sprintf("unable to update settings: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+
+		c.Status(http.StatusOK)
+	}
 }

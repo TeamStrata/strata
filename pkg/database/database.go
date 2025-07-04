@@ -63,6 +63,11 @@ type Query struct {
 	Literal string `json:"literal"`
 }
 
+type Settings struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
 func NewDbManager(connectionString string, ctx context.Context) (*DbManager, error) {
 	if len(connectionString) == 0 {
 		msg := "error creating new DbManager: empty connection string"
@@ -558,4 +563,29 @@ func (d *DbManager) ExecuteCustomQuery(query string) ([]map[string]string, error
 
 	// Success
 	return retRows, nil
+}
+
+// Get key-value pair from settings table in database
+func (d *DbManager) GetSetting(key string) (string, error) {
+	query := "SELECT value FROM settings WHERE key = $1;"
+	var value string
+
+	err := d.Connection.QueryRow(d.context, query, key).Scan(&value)
+	if err != nil {
+		return "", fmt.Errorf("error getting setting '%s': %w", key, err)
+	}
+
+	return value, nil
+}
+
+// Set or update a key-value pair in the settings table in the database
+func (d *DbManager) SetSetting(key string, value string) error {
+	query := "INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2;"
+
+	_, err := d.Connection.Exec(d.context, query, key, value)
+	if err != nil {
+		return fmt.Errorf("error setting key '%s' to value '%s': %w", key, value, err)
+	}
+
+	return nil
 }
