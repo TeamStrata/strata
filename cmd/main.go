@@ -71,7 +71,6 @@ func main() {
 	// Dashboard Components
 	/// Charts
 	server.GET("/charts", api.GetChartListHandler(db))
-	server.GET("/charts/titles", api.GetChartTitlesListHandler(db))
 	server.GET("/chart/:cid", api.GetChartHandler(db))
 	server.POST("/chart", api.CreateChartHandler(db))
 	server.DELETE("/chart/:cid", api.DeleteChartHandler(db))

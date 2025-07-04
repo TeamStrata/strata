@@ -14,6 +14,7 @@ const columns = ref([])
 const chartTitle = ref('')
 const savedChartTitles = ref([])
 const selectedChartTitle = ref('')
+const isChartLoaded = ref(false)
 
 const seriesSections = reactive([])
 const series = ref([
@@ -47,11 +48,9 @@ apiFetch('/queries')
 
     savedQueries.value = await response.json()
 
-    // Only continue if queries exist
     if (savedQueries.value.length > 0) {
       series.value[0].query = savedQueries.value[0]
 
-      // Now fetch columns for selected query
       return apiFetch(`/query/${series.value[0].query.id}/execute`)
     } else {
       throw new Error('No queries found')
@@ -71,23 +70,49 @@ apiFetch('/queries')
     series.value[0].x_column = columns.value[0]
     series.value[0].y_column = columns.value[1]
 
-    return apiFetch('/charts/titles')
+    return apiFetch('/charts')
   })
   .then(async (response) => {
     if (!response.ok) throw new Error('Failed to fetch chart titles')
-    savedChartTitles.value = await response.json()
+    savedChartTitles.value = await response.json() 
   })
   .catch((error) => {
     console.error('Initialization error:', error)
   })
-const addSeriesSection = () => {
-  seriesSections.push({
+
+  const addSeriesSection = () => {
+  const section = reactive({
     query: savedQueries.value[0] || {},
-    xColumn: columns.value[0] || '',
-    yColumn: columns.value[1] || '',
-     chartData: [],
+    xColumn: '',
+    yColumn: '',
+    chartData: [],
+    columns: [],
   })
+  watch(
+    () => section.query,
+    async (newQuery) => {
+      if (!newQuery || !newQuery.id) return
+
+      try {
+        const response = await apiFetch(`/query/${newQuery.id}/execute`)
+        if (!response.ok) throw new Error('Failed to execute query')
+
+        const data = await response.json()
+        const cols = Object.keys(data[0] || {})
+
+        section.columns = cols
+        if (!section.xColumn) section.xColumn = cols[0] || ''
+        if (!section.yColumn) section.yColumn = cols[1] || ''
+      } catch (err) {
+        console.error(`Error loading columns for query ${newQuery.id}:`, err)
+      }
+    },
+    { immediate: true }
+  )
+
+  seriesSections.push(section)
 }
+
 
 const removeChartSection = (index) => {
   seriesSections.splice(index, 1)
@@ -119,69 +144,92 @@ const generateChart = async (index) => {
 
 const saveChart = async () => {
   const payload = {
-    chart_title: chartTitle.value,
-    chart_type: selectedChart.value.toLowerCase()|| 'line',
+    title: chartTitle.value,
+    type: selectedChart.value.toLowerCase(),
   }
 
   try {
-    const response = await apiFetch('/chart', 'POST', JSON.stringify(payload), "application/sql")
+    const response = await apiFetch('/chart', 'POST', JSON.stringify(payload), 'application/sql')
     if (!response.ok) throw new Error('Failed to save chart')
 
-    alert('Chart saved successfully')
+    const data = await response.json()
+    const chartId = data
+
+    if (!chartId) {
+      throw new Error('No chart ID returned from server')
+    }
+
+    const seriesPayload = seriesSections.map(section => ({
+      chart_id: chartId,
+      query_id: section.query?.id,
+      x_col_name: section.xColumn,
+      y_col_name: section.yColumn,
+    }))
+
+    const seriesResponse = await apiFetch(`/chart/${chartId}/series`, 'POST', JSON.stringify(seriesPayload), 'application/json')
+    if (!seriesResponse.ok) throw new Error('Failed to save series')
+
+    alert('Chart and series saved successfully')
     fetchSavedChartTitles()
   } catch (err) {
-    console.error('Error saving chart:', err)
+    console.error('Error saving chart and series:', err)
   }
 }
-
+function capitalizeFirstLetter(str) {
+  if (!str) return ''
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+}
 const loadChartFromDB = async () => {
-  if (!selectedChartTitle.value) return
+  if (!selectedChartTitle.value || !selectedChartTitle.value.id) return;
 
   try {
-    const response = await apiFetch(`/chart/${selectedChartTitle.value}`)
-    if (!response.ok) throw new Error('Failed to load chart')
-    const data = await response.json()
+    // Fetch the chart info
+    const chartRes = await apiFetch(`/chart/${selectedChartTitle.value.id}`);
+    if (!chartRes.ok) throw new Error('Failed to load chart');
+    const chartData = await chartRes.json();
 
-    chartTitle.value = data.title
-    selectedChart.value = data.chartType
-    seriesSections.splice(0, seriesSections.length, ...data.series)
+    chartTitle.value = chartData.title;
+    selectedChart.value = capitalizeFirstLetter(chartData.type);
+
+    // Fetch the series separately (assuming /chart/:id/series endpoint)
+    const seriesRes = await apiFetch(`/chart/${selectedChartTitle.value.id}/series`);
+    if (!seriesRes.ok) throw new Error('Failed to load chart series');
+    const seriesList = await seriesRes.json();
+
+    // Load seriesSections with loaded series + queries + chartData
+    const loadedSeries = await Promise.all(
+      seriesList.map(async (seriesItem) => {
+        const query = savedQueries.value.find(q => q.id === seriesItem.query_id);
+        if (!query) return null;
+
+        // Execute query to get chart data for this series
+        const result = await apiFetch(`/query/${query.id}/execute`);
+        const chartData = await result.json();
+
+        return {
+          query,
+          xColumn: seriesItem.x_col_name,
+          yColumn: seriesItem.y_col_name,
+          chartData,
+          columns: Object.keys(chartData[0] || {}), // dynamically get columns for selects
+        };
+      })
+    );
+    isChartLoaded.value = true
+    isCreatingNewChart.value = false
+    seriesSections.splice(0, seriesSections.length, ...loadedSeries.filter(Boolean));
+    isCreatingNewChart.value = false;
+
   } catch (err) {
-    console.error('Error loading chart:', err)
+    console.error('Error loading chart:', err);
   }
-}
-
-watch(seriesSections, (sections) => {
-  sections.forEach((section, index) => {
-    watch(
-      () => section.query,
-      async (newQuery) => {
-        if (!newQuery || !newQuery.id) return
-
-        try {
-          const response = await apiFetch(`/query/${newQuery.id}/execute`)
-          if (!response.ok) throw new Error('Failed to execute query')
-
-          const data = await response.json()
-          const cols = Object.keys(data[0] || {})
-
-          columns.value = cols
-
-          if (!section.xColumn) section.xColumn = cols[0] || ''
-          if (!section.yColumn) section.yColumn = cols[1] || ''
-        } catch (err) {
-          console.error(`Error loading columns for query ${newQuery.id}:`, err)
-        }
-      },
-      { immediate: true }
-    )
-  })
-}, { deep: true })
+};
 
 const fetchSavedChartTitles = async () => {
   try {
-    const response = await apiFetch('/charts/titles')
+    const response = await apiFetch('/charts')
     if (!response.ok) throw new Error('Failed to fetch chart titles')
-    savedChartTitles.value = await response.json()
+    savedChartTitles.value = await response.json() 
   } catch (err) {
     console.error('Error fetching titles:', err)
   }
@@ -214,8 +262,8 @@ const fetchSavedChartTitles = async () => {
           class="p-2 border border-gray-300 rounded"
         >
           <option value="">Select a chart</option>
-          <option v-for="title in savedChartTitles" :key="title" :value="title">
-            {{ title }}
+          <option v-for="chart in savedChartTitles" :key="chart.id" :value="chart">
+            {{ chart.title }}
           </option>
         </select>
       </div>
@@ -227,9 +275,7 @@ const fetchSavedChartTitles = async () => {
       </button>
     </div>
 
-    <!-- Only show this if user is creating a new chart -->
-    <div v-if="isCreatingNewChart">
-      <!-- Chart Title Input -->
+    <div v-if="isCreatingNewChart || isChartLoaded">
       <div class="mb-4">
         <label class="text-gray-600 font-medium">Chart Title:</label>
         <input
@@ -276,7 +322,7 @@ const fetchSavedChartTitles = async () => {
               v-model="section.xColumn"
               class="w-full p-1 border border-gray-300 rounded text-sm"
             >
-              <option v-for="col in columns" :key="col">{{ col }}</option>
+              <option v-for="col in section.columns" :key="col">{{ col }}</option>
             </select>
           </div>
 
@@ -287,7 +333,7 @@ const fetchSavedChartTitles = async () => {
               v-model="section.yColumn"
               class="w-full p-1 border border-gray-300 rounded text-sm"
             >
-              <option v-for="col in columns" :key="col">{{ col }}</option>
+              <option v-for="col in section.columns" :key="col">{{ col }}</option>
             </select>
           </div>
 
@@ -320,10 +366,10 @@ const fetchSavedChartTitles = async () => {
       <!-- Render Chart -->
       
       <div class="mt-6" v-if="chartComponent && seriesSections.length">
-        <div v-for="(section, index) in seriesSections" :key="index">
+        <div class="mt-6" v-if="chartComponent && seriesSections.some(s => s.chartData?.length)">
           <component
-          :is="chartComponent"
-          :series="seriesSections.filter(s => s.chartData?.length)"
+            :is="chartComponent"
+            :series="seriesSections.filter(s => s.chartData?.length)"
           />
         </div>
     </div>

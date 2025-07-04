@@ -48,13 +48,11 @@ const chartData = computed(() => {
   }
 })
 
-// Determine if x-axis values are dates (simple heuristic)
 const xIsDate = computed(() => {
   const firstSeries = props.series[0]
-  if (!firstSeries || !firstSeries.chartData || !firstSeries.chartData.length) return false
+  if (!firstSeries || !firstSeries.chartData?.length) return false
   const sampleX = firstSeries.chartData[0]?.[firstSeries.xColumn]
-  // Simple date check: Date parse success + not NaN
-  return sampleX && !isNaN(Date.parse(sampleX))
+  return typeof sampleX === 'string' && /\d{4}-\d{2}-\d{2}/.test(sampleX)
 })
 
 const chartOptions = computed(() => ({
@@ -69,7 +67,7 @@ const chartOptions = computed(() => ({
       time: xIsDate.value
         ? {
             tooltipFormat: 'PP',
-            unit: 'day', // adjust unit as needed
+            unit: 'day',
           }
         : undefined,
     },

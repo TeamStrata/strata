@@ -68,48 +68,68 @@ func (d *DbManager) ListAllCharts() ([]Chart, error) {
 	return list, nil
 }
 
-func (d *DbManager) ListAllChartTitles() ([]Chart, error) {
-	var list []Chart
-	query := "SELECT chart_title FROM chart;"
+func (d *DbManager) InsertChart(chart Chart) (int, error) {
+	var chartID int
 
-	// Query the databse for all queries
-	rows, err := d.Connection.Query(d.context, query)
+	//Check if the chart already exists
+	queryCheck := "SELECT chart_id FROM chart WHERE chart_title = $1;"
+	err := d.Connection.QueryRow(d.context, queryCheck, chart.Title).Scan(&chartID)
+
+	if err == nil {
+		queryUpdate := "UPDATE chart SET chart_type = $1 WHERE chart_id = $2;"
+		_, updateErr := d.Connection.Exec(d.context, queryUpdate, chart.Type, chartID)
+		return chartID, updateErr
+	}
+
+	//If no chart found (no rows), insert a new one
+	if err.Error() == "no rows in result set" {
+		queryInsert := "INSERT INTO chart (chart_title, chart_type) VALUES ($1, $2) RETURNING chart_id;"
+		insertErr := d.Connection.QueryRow(d.context, queryInsert, chart.Title, chart.Type).Scan(&chartID)
+		return chartID, insertErr
+	}
+	return 0, err
+}
+
+func (d *DbManager) InsertChartSeries(series ChartSeries) (int, error) {
+	seriesID := 0
+
+	query := `
+		INSERT INTO chartseries (chart_id, query_id, x_column, y_column)
+		VALUES ($1, $2, $3, $4)
+		RETURNING series_id;
+	`
+
+	err := d.Connection.QueryRow(d.context, query, series.ChartID, series.QueryID, series.XCol, series.YCol).Scan(&seriesID)
+
+	return seriesID, err
+}
+
+func (d *DbManager) GetChartSeries(chartID int) ([]ChartSeries, error) {
+	query := `SELECT series_id, chart_id, query_id, x_column, y_column FROM chartseries WHERE chart_id = $1`
+	rows, err := d.Connection.Query(d.context, query, chartID)
 	if err != nil {
 		return nil, err
 	}
-	// Ensure the rows are closed properly
 	defer rows.Close()
 
-	// Iterate through rows
+	var seriesList []ChartSeries
 	for rows.Next() {
-		var chart Chart
-
-		// Scan the row for the query ID and String Literal
-		err := rows.Scan(&chart.Title)
+		var s ChartSeries
+		err := rows.Scan(&s.Id, &s.ChartID, &s.QueryID, &s.XCol, &s.YCol)
 		if err != nil {
 			return nil, err
 		}
-
-		list = append(list, chart)
+		seriesList = append(seriesList, s)
 	}
 
-	return list, nil
-}
-
-func (d *DbManager) InsertChart(chart Chart) (int, error) {
-	chart_id := 0
-
-	query := "INSERT INTO chart (chart_title, chart_type) VALUES ($1, $2) RETURNING chart_id;"
-	err := d.Connection.QueryRow(d.context, query, chart.Title, chart.Type).Scan(&chart_id)
-
-	return chart_id, err
+	return seriesList, nil
 }
 
 func (d *DbManager) GetChart(chart_id int) (Chart, error) {
 	var chart Chart
 
-	query := "SELECT * FROM chart WHERE chart_id = $1;"
-	err := d.Connection.QueryRow(d.context, query, chart_id).Scan(&chart)
+	query := "SELECT chart_id, chart_title, chart_type FROM chart WHERE chart_id = $1;"
+	err := d.Connection.QueryRow(d.context, query, chart_id).Scan(&chart.Id, &chart.Title, &chart.Type)
 	if err != nil {
 		return Chart{}, err
 	}
