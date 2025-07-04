@@ -9,9 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Doing this to simplify API,
-// much easier to return slice of ints
-// than Permissions from front end.
+// RoleUpdateRequest represents the request body for updating a role
+// @Description Request body for updating role information
 type RoleUpdateRequest struct {
 	Id          int    `json:"id,omitempty"`
 	Name        string `json:"name,omitempty"`
@@ -31,7 +30,7 @@ func (rUpdate *RoleUpdateRequest) ToRole() database.Role {
 }
 
 // @Summary Get roles
-// @Description Retrieves a list of roles and the count of users assigned to each role.
+// @Description Retrieves a list of roles with their permissions and user counts.
 // @Tags Roles
 // @Produce json
 // @Success 200 {object} []database.Role "Successfully retrieved roles with user counts"
@@ -53,12 +52,13 @@ func GetRolesHandler(d *database.DbManager) gin.HandlerFunc {
 // Add a new role to the database using the 'rname' route parameter.
 //
 // @Summary Add a new role
-// @Description Creates a new role in the database.
+// @Description Creates a new role in the database with optional permissions.
 // @Tags Roles
 // @Accept json
 // @Produce json
-// @Param role body database.Role true "Role to be added"
-// @Success 200 {string} string "OK"
+// @Param role body database.Role true "Role to be created"
+// @Success 200 {string} string "Role created successfully"
+// @Failure 400 {string} string "Bad Request - Invalid JSON format"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /role [post]
 func AddRoleHandler(d *database.DbManager) gin.HandlerFunc {
@@ -85,14 +85,16 @@ func AddRoleHandler(d *database.DbManager) gin.HandlerFunc {
 // Update an existing role using the 'rid' route parameter.
 //
 // @Summary Update a role
-// @Description Creates a new role in the database.
+// @Description Updates an existing role's name, color, and/or permissions. Only provided fields will be updated.
 // @Tags Roles
+// @Accept json
 // @Produce json
-// @Param rid path string true "Role Id"
-// @Success 200 {string} string "OK"
-// @Failure 400 {string} string "Bad Request"
+// @Param rid path int true "Role ID"
+// @Param role body RoleUpdateRequest true "Role update data"
+// @Success 200 {string} string "Role updated successfully"
+// @Failure 400 {string} string "Bad Request - Invalid role ID or JSON format"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /role/{rid} [post]
+// @Router /role/{rid} [patch]
 func UpdateRoleHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		roleIdStr := c.Param("rid")
@@ -126,11 +128,12 @@ func UpdateRoleHandler(d *database.DbManager) gin.HandlerFunc {
 // Delete a role, using `rid` route parameter.
 //
 // @Summary Delete a role
-// @Description Deletes a role from the database.
+// @Description Deletes a role from the database and removes all associated permissions.
 // @Tags Roles
 // @Produce json
-// @Param rid path string true "Id of role to delete"
-// @Success 200 {string} string "OK"
+// @Param rid path int true "Role ID"
+// @Success 200 {string} string "Role deleted successfully"
+// @Failure 400 {string} string "Bad Request - Invalid role ID"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /role/{rid} [delete]
 func DeleteRoleHandler(d *database.DbManager) gin.HandlerFunc {

@@ -19,8 +19,8 @@ import (
 // @Accept json
 // @Produce json
 // @Param user body database.User true "New user details"
-// @Success 200 {string} string "OK"
-// @Failure 400 {string} string "Bad Request"
+// @Success 200 {string} string "User created successfully"
+// @Failure 400 {string} string "Bad Request - Invalid JSON format"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /signup [post]
 func SignUpHandler(d *database.DbManager, activeUsers map[string]string) gin.HandlerFunc {
@@ -67,8 +67,8 @@ func SignUpHandler(d *database.DbManager, activeUsers map[string]string) gin.Han
 // @Tags Users
 // @Produce json
 // @Success 200 {array} database.User "Successfully retrieved users"
+// @Failure 204 {string} string "No Content - No users found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Failure 204 {string} string "No Content"
 // @Router /users [get]
 func GetUsersHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -90,14 +90,14 @@ func GetUsersHandler(d *database.DbManager) gin.HandlerFunc {
 
 // Respond with JSON representation of all users
 //
-// @Summary Get all users
-// @Description Retrieves a list of all users from the database.
+// @Summary Get user by ID
+// @Description Retrieves a single user from the database by their ID.
 // @Tags Users
 // @Produce json
-// @Success 200 {array} database.User "Successfully retrieved users"
+// @Param uid path string true "User ID"
+// @Success 200 {object} database.User "Successfully retrieved user"
 // @Failure 500 {string} string "Internal Server Error"
-// @Failure 204 {string} string "No Content"
-// @Router /users [get]
+// @Router /user/{uid} [get]
 func GetUserHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user_id_str := c.Param("uid")
@@ -119,8 +119,8 @@ func GetUserHandler(d *database.DbManager) gin.HandlerFunc {
 // @Description Deletes a user from the database and removes their session from active users.
 // @Tags Users
 // @Produce json
-// @Param name path string true "User name"
-// @Success 200 {string} string "OK"
+// @Param uname path string true "User name"
+// @Success 200 {string} string "User deleted successfully"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /user/{uname} [delete]
 func DeleteUserHandler(d *database.DbManager, activeUsers map[string]string) gin.HandlerFunc {
@@ -148,12 +148,14 @@ func DeleteUserHandler(d *database.DbManager, activeUsers map[string]string) gin
 // Update an existing user using the 'uid' route parameter.
 //
 // @Summary Update a user
-// @Description Alters the user data in the database.
+// @Description Updates user data in the database. Password will be hashed if provided.
 // @Tags Users
+// @Accept json
 // @Produce json
-// @Param uid path string true "User Id"
-// @Success 200 {string} string "OK"
-// @Failure 400 {string} string "Bad Request"
+// @Param uid path int true "User ID"
+// @Param user body database.User true "Updated user data"
+// @Success 200 {string} string "User updated successfully"
+// @Failure 400 {string} string "Bad Request - Invalid user ID or JSON format"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /user/{uid} [patch]
 func UpdateUserHandler(d *database.DbManager) gin.HandlerFunc {
@@ -202,7 +204,7 @@ func UpdateUserHandler(d *database.DbManager) gin.HandlerFunc {
 // @Produce json
 // @Param uname path string true "User name"
 // @Param rname path string true "Role name"
-// @Success 200 {string} string "OK"
+// @Success 200 {string} string "Role assigned successfully"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /user/{uname}/role/{rname} [post]
 func AddUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
@@ -225,13 +227,13 @@ func AddUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
 
 // Delete a role from a user
 //
-// @Summary Delete user role
+// @Summary Remove user role
 // @Description Removes a specific role from a user.
 // @Tags User Roles
 // @Produce json
 // @Param uname path string true "User name"
 // @Param rname path string true "Role name"
-// @Success 200 {string} string "OK"
+// @Success 200 {string} string "Role removed successfully"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /user/{uname}/role/{rname} [delete]
 func DeleteUserRoleHandler(d *database.DbManager) gin.HandlerFunc {

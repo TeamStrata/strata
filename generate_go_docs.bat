@@ -1,0 +1,1 @@
+swag init -d .\cmd\,.\pkg\api\,.\pkg\database\
