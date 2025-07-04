@@ -2,6 +2,11 @@
 import { ref, nextTick } from "vue";
 import Toast, { ToastTypes } from "./Toast.vue";
 import { apiFetch } from "@/api/request";
+import {
+	ResizableHandle,
+	ResizablePanel,
+	ResizablePanelGroup,
+} from '@/components/ui/resizable'
 
 // If we can't connect to the database, or while the fetch is in progress, this displays.
 var queries = ref([
@@ -137,10 +142,10 @@ loadQueries();
 
 	<Toast ref="toastRef" />
 
-	<p class="text-gray-700 mb-4">Manage your organizations queries</p>
+	<!-- <p class="text-gray-700 mb-4">Manage your organizations queries</p> -->
 
 	<!-- list header -->
-	<div class="flex flex-row justify-between items-center mb-6">
+	<!-- <div class="flex flex-row justify-between items-center mb-6">
 		<h1 class="text-2xl font-semibold text-gray-800">Queries</h1>
 
 		<div class="flex flex-row pb-2 items-center space-x-3">
@@ -153,10 +158,42 @@ loadQueries();
 				Add Query
 			</button>
 		</div>
-	</div>
+	</div> -->
+
+	<ResizablePanelGroup id="demo-group-1" direction="horizontal" class="rounded-lg border h-full">
+		<ResizablePanel id="demo-panel-1" :default-size="50">
+			<div class="flex h-[200px] items-center justify-center p-6">
+				<span class="font-semibold">Chat Goes Here</span>
+			</div>
+		</ResizablePanel>
+		<ResizableHandle id="demo-handle-1" />
+		<ResizablePanel id="demo-panel-2" :default-size="50">
+			<ResizablePanelGroup id="demo-group-2" direction="vertical">
+				<ResizablePanel id="demo-panel-3" :default-size="25">
+					<div class="flex h-full items-center justify-center p-6">
+						<span class="font-semibold">Two</span>
+					</div>
+				</ResizablePanel>
+				<ResizableHandle id="demo-handle-2" />
+				<ResizablePanel id="demo-panel-4" :default-size="75">
+					<div class="flex h-full items-center justify-center p-6">
+						<span class="font-semibold">Three</span>
+					</div>
+				</ResizablePanel>
+			</ResizablePanelGroup>
+		</ResizablePanel>
+		<ResizableHandle id="demo-handle-5" />
+
+		<ResizablePanel id="demo-panel-5" :default-size="50">
+			<div class="flex h-[200px] items-center justify-center p-6">
+				<span class="font-semibold">Saved goes here</span>
+			</div>
+		</ResizablePanel>
+
+	</ResizablePanelGroup>
 
 	<!-- list body -->
-	<ul>
+	<ul class="hidden">
 		<li class="border-t-2 border-neutral-200 py-4 flex flex-row justify-between items-center px-5 hover:bg-gray-50 transition-colors"
 			v-for="(q, index) in queries" :key="index">
 			<span class="text-gray-800 font-medium">{{ q.name }}</span>

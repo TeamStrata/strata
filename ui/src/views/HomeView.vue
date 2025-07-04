@@ -40,7 +40,7 @@ const pageInfo = computed(() => { return route.meta })
         </div>
         <Separator></Separator>
         <!-- main content area -->
-        <div class="p-5">
+        <div class="p-5 h-full">
           <RouterView></RouterView>
         </div>
 
