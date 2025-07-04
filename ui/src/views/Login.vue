@@ -18,7 +18,7 @@ async function login() {
     await apiFetch('/login', 'POST', JSON.stringify(body), false).then(res => {
         if (res.status == 200) {
             store.username = user.value;
-            router.push("/dashboard");
+            router.push("/");
         } else {
             error = true;
         }

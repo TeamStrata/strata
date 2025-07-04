@@ -59,12 +59,13 @@ func main() {
 
 		// Users
 		protected.GET("/users", api.GetUsersHandler(db))
-    	protected.GET("/user/:uid", api.GetUserHandler(db))
+		protected.GET("/user/:uid", api.GetUserHandler(db))
 		protected.DELETE("/user/:uname", api.DeleteUserHandler(db, activeUsers))
+		protected.PATCH("/user/:uid", api.UpdateUserHandler(db))
 
 		// User roles
 		protected.DELETE("/user/:uname/role/:rname", api.DeleteUserRoleHandler(db))
-		protected.PATCH("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
+		protected.POST("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
 
 		// Roles
 		protected.GET("/roles", api.GetRolesHandler(db))
