@@ -79,11 +79,13 @@ func main() {
 		protected.GET("/chart/:cid", api.GetChartHandler(db))
 		protected.POST("/chart", api.CreateChartHandler(db))
 		protected.DELETE("/chart/:cid", api.DeleteChartHandler(db))
+		protected.PATCH("/chart/:cid", api.UpdateChartHandler(db))
 		/// Chart Series
 		protected.GET("/chart/:cid/series", api.GetChartSeriesListHandler(db))
 		protected.GET("/chart/:cid/series/:sid", api.GetChartSingleSeriesHandler(db))
 		protected.POST("/chart/:cid/series", api.AddChartSeriesHandler(db))
 		protected.DELETE("/chart/:cid/series/:sid", api.DeleteChartSingleSeriesHandler(db))
+		protected.PATCH("/chart/:cid/series/:sid", api.UpdateChartSeriesHandler(db))
 		protected.DELETE("/chart/:cid/series", api.DeleteAllChartSeriesHandler(db))
 		/// Dashboard itself
 		protected.GET("/dashboards", api.GetDashboardListHandler(db))
