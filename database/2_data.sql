@@ -52,6 +52,10 @@ BEGIN
 			('edit_dashboard', 'dashboard'),
 			('view_dashboard', 'dashboard')
 		ON CONFLICT DO NOTHING;
+
+		-- Assign the 'admin' role the 'admin_privileges` permission.
+		INSERT INTO rolePermissions (role_id, permission_id)
+		VALUES (2, 1);
 	END IF;
 END
 $do$
