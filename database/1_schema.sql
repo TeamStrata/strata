@@ -85,15 +85,15 @@ BEGIN
 	);
 
 	-- Dashboard 
-	CREATE TABLE IF NOT EXISTS dashboard (
-		dash_id SERIAL PRIMARY KEY,
-		dash_title TEXT,
-		dash_content TEXT
+	CREATE TABLE IF NOT EXISTS dashboards (
+		dashboard_id SERIAL PRIMARY KEY,
+		dashboard_title TEXT,
+		dashboard_content TEXT
 	);
 
 	-- Dashboard Graphs
 	CREATE TABLE IF NOT EXISTS dashbordGraphs (
-		dash_id INTEGER NOT NULL references dashboard(dash_id),
+		dashboard_id INTEGER NOT NULL references dashboards(dashboard_id),
 		chart_id INTEGER NOT NULL references chart(chart_id),
 		size_x INTEGER NOT NULL,
 		size_y INTEGER NOT NULL,
