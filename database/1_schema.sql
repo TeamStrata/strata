@@ -7,6 +7,29 @@
 DO
 $do$
 BEGIN
+	-- Users table
+	IF EXISTS (
+		SELECT 1
+		FROM information_schema.tables
+		WHERE table_schema = 'public'
+		AND table_name = 'users'
+	) THEN
+		DROP TABLE IF EXISTS public.dashboardRolePermissions CASCADE;
+		DROP TABLE IF EXISTS public.rolePermissions CASCADE;
+		DROP TABLE IF EXISTS public.userRoles CASCADE;
+		DROP TABLE IF EXISTS public.queryPermissions CASCADE;
+		DROP TABLE IF EXISTS public.dashboardGraphs CASCADE;
+		DROP TABLE IF EXISTS public.chartSeries CASCADE;
+		DROP TABLE IF EXISTS public.chart CASCADE;
+		DROP TABLE IF EXISTS public.dashboard CASCADE;
+		DROP TABLE IF EXISTS public.queries CASCADE;
+		DROP TABLE IF EXISTS public.permissions CASCADE;
+		DROP TABLE IF EXISTS public.roles CASCADE;
+		DROP TABLE IF EXISTS public.users CASCADE;
+		DROP TYPE IF EXISTS scope CASCADE;
+		DROP TYPE IF EXISTS CHART_TYPE CASCADE;
+	END IF;
+
 	DO $$ BEGIN
 		-- Enums
 		CREATE TYPE CHART_TYPE AS ENUM (
@@ -25,22 +48,6 @@ BEGIN
 		WHEN duplicate_object THEN null;
 	END $$;
 
-	-- Users table
-	IF EXISTS (
-		SELECT 1
-		FROM information_schema.tables
-		WHERE table_schema = 'public'
-		AND table_name = 'users'
-	) THEN
-		DROP TABLE public.users CASCADE;
-        DROP TABLE IF EXISTS public.roles CASCADE;
-        DROP TABLE IF EXISTS public.permissions CASCADE;
-        DROP TABLE IF EXISTS public.queries CASCADE;
-        DROP TABLE IF EXISTS public.userRoles CASCADE;
-        DROP TABLE IF EXISTS public.rolePermissions CASCADE;
-        DROP TABLE IF EXISTS public.queryPermissions CASCADE;
-	END IF;
-
 	-- Table for storing users
 	CREATE TABLE users (
 		user_id SERIAL PRIMARY KEY,
@@ -52,7 +59,7 @@ BEGIN
 	CREATE TABLE IF NOT EXISTS roles (
 		role_id SERIAL PRIMARY KEY,
 		role_name TEXT UNIQUE NOT NULL,
-        role_color TEXT
+		role_color TEXT
 	);
 
 	-- Scope for permissions
@@ -96,7 +103,7 @@ BEGIN
 	);
 
 	-- Dashboard Graphs
-	CREATE TABLE IF NOT EXISTS dashbordGraphs (
+	CREATE TABLE IF NOT EXISTS dashboardGraphs (
 		dash_id INTEGER NOT NULL references dashboard(dash_id),
 		chart_id INTEGER NOT NULL references chart(chart_id),
 		size_x INTEGER NOT NULL,
@@ -108,15 +115,16 @@ BEGIN
 	-- Table to store relations between roles and permissions
 	CREATE TABLE IF NOT EXISTS rolePermissions (
 		role_id INTEGER NOT NULL references roles(role_id) ON DELETE CASCADE,
-		permission_id INTEGER NOT NULL references permissions(permission_id) ON DELETE CASCADE
+		permission_id INTEGER NOT NULL references permissions(permission_id) ON DELETE CASCADE,
+		PRIMARY KEY (role_id, permission_id)
 	);
 
 	CREATE TABLE IF NOT EXISTS dashboardRolePermissions (
-		   dash_id INTEGER NOT NULL references dashboard(dash_id) ON DELETE CASCADE,
-		   role_id INTEGER NOT NULL references roles(role_id) ON DELETE CASCADE,
-		   permission_id INTEGER NOT NULL references permissions(permission_id) ON DELETE CASCADE,
-		   PRIMARY KEY (role_id, dash_id, permission_id),
-		   FOREIGN KEY (role_id, permission_id) REFERENCES rolePermissions(role_id, permission_id)
+		dash_id INTEGER NOT NULL references dashboard(dash_id) ON DELETE CASCADE,
+		role_id INTEGER NOT NULL references roles(role_id) ON DELETE CASCADE,
+		permission_id INTEGER NOT NULL references permissions(permission_id) ON DELETE CASCADE,
+		PRIMARY KEY (role_id, dash_id, permission_id),
+		FOREIGN KEY (role_id, permission_id) REFERENCES rolePermissions(role_id, permission_id)
 	);
 
 	-- Table to store relations between users and roles
