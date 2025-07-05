@@ -188,7 +188,7 @@ loadDashboards();
                             stroke-width="2" d="M5 12h14m-7-7v14" />
                     </svg> <span class="sr-only">Add Dashboards</span>
                 </SidebarGroupAction>
-                <SidebarContent v-for="d in dashboards">
+                <SidebarContent v-for="d in dashboards" :key="d.id">
                     <SidebarMenuItem>
                         <SidebarMenuButton>
                             <RouterLink :to="`/dashboard/${d.id}`">
