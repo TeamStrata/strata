@@ -1,28 +1,94 @@
 <script setup>
+import { ref } from 'vue';
+
+import { useUserStore } from '@/stores/user';
+import { apiFetch } from '@/api/request';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+import ProfileArea from './ProfileArea.vue';
+import Toast, { ToastTypes } from './Toast.vue';
+import DropdownMenu from './ui/dropdown-menu/DropdownMenu.vue';
+import DropdownMenuContent from './ui/dropdown-menu/DropdownMenuContent.vue';
+import DropdownMenuTrigger from './ui/dropdown-menu/DropdownMenuTrigger.vue';
 import Sidebar from './ui/sidebar/Sidebar.vue';
 import SidebarContent from './ui/sidebar/SidebarContent.vue';
 import SidebarFooter from './ui/sidebar/SidebarFooter.vue';
 import SidebarGroup from './ui/sidebar/SidebarGroup.vue';
+import SidebarGroupAction from './ui/sidebar/SidebarGroupAction.vue';
 import SidebarGroupContent from './ui/sidebar/SidebarGroupContent.vue';
 import SidebarGroupLabel from './ui/sidebar/SidebarGroupLabel.vue';
-import SidebarGroupAction from './ui/sidebar/SidebarGroupAction.vue';
 import SidebarHeader from './ui/sidebar/SidebarHeader.vue';
 import SidebarMenu from './ui/sidebar/SidebarMenu.vue';
 import SidebarMenuButton from './ui/sidebar/SidebarMenuButton.vue';
 import SidebarMenuItem from './ui/sidebar/SidebarMenuItem.vue';
-import DropdownMenu from './ui/dropdown-menu/DropdownMenu.vue';
-import DropdownMenuContent from './ui/dropdown-menu/DropdownMenuContent.vue';
-import DropdownMenuItem from './ui/dropdown-menu/DropdownMenuItem.vue';
-import DropdownMenuTrigger from './ui/dropdown-menu/DropdownMenuTrigger.vue';
-import DropdownMenuLabel from './ui/dropdown-menu/DropdownMenuLabel.vue';
-import ProfileArea from './ProfileArea.vue';
-
-import { useUserStore } from '@/stores/user';
 
 const user = useUserStore()
+const toastRef = ref(null);
+const dashboards = ref([]);
+const createDashboardDialog = ref(false);
+const newDashboard = ref({});
+
+function addDashboard() {
+    const route = '/dashboard';
+    newDashboard.value.content = 'placeholder content';
+    apiFetch(route, 'POST', JSON.stringify(newDashboard.value))
+    .then(async (response) => {
+        if (!response.ok) {
+            toastRef.value?.showToast(
+                "There was an issue creating the dashboard",
+                ToastTypes.FAIL,
+            );
+            throw new Error("Unable to create dashboard")
+        } else {
+            createDashboardDialog.value = false;
+            toastRef.value?.showToast(
+                "Dashboard created successfully",
+                ToastTypes.SUCCESS,
+            )
+            loadDashboards();
+        }
+    })
+    .catch((error) => {
+        console.log(error);
+    })
+}
+
+function showCreateDashboardDialog() {
+    createDashboardDialog.value = true;
+}
+
+function loadDashboards() {
+    const route = '/dashboards'
+    apiFetch(route)
+    .then(async (response) => {
+            if (!response.ok) {
+                throw new Error('unable to fetch dashboards');
+            } else {
+                dashboards.value = await response.json();
+            }
+        }
+    )
+    .catch((error) => {
+        console.error(error);
+    });
+}
+loadDashboards();
 </script>
 
 <template>
+    <Toast ref="toastRef" />
+    
     <Sidebar variant="inset">
         <SidebarHeader>
             <img src="@/assets/StrataFullx256.png" alt="STRATA" class="mx-auto w-5/6 pt-2"></img>
@@ -115,14 +181,20 @@ const user = useUserStore()
             </SidebarGroup>
             <SidebarGroup>
                 <SidebarGroupLabel>Dashboards</SidebarGroupLabel>
-                <SidebarGroupAction title="Add Dashboards">
+                <SidebarGroupAction @click="showCreateDashboardDialog" title="Add Dashboards">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
                         <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
                             stroke-width="2" d="M5 12h14m-7-7v14" />
                     </svg> <span class="sr-only">Add Dashboards</span>
                 </SidebarGroupAction>
-                <SidebarContent>
-                    TODO: dashboards go here
+                <SidebarContent v-for="d in dashboards" :key="d.id">
+                    <SidebarMenuItem>
+                        <SidebarMenuButton>
+                            <RouterLink :to="`/dashboard/${d.id}`">
+                                {{ d.title }}
+                            </RouterLink>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
                 </SidebarContent>
             </SidebarGroup>
         </SidebarContent>
@@ -151,4 +223,25 @@ const user = useUserStore()
             </SidebarMenu>
         </SidebarFooter>
     </Sidebar>
+
+    <Dialog :open="createDashboardDialog" @update:open="createDashboardDialog = $event">
+        <DialogContent class="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Create New Dashboard</DialogTitle>
+                    <DialogDescription>
+                        Fill in the details for the new dashboard.
+                    </DialogDescription>
+                </DialogHeader>
+                <div class="grid grid-cols-4 items-center gap-4">
+                    <Label for="name-input" class="text-right">Name</Label>
+                    <Input id="name-input" type="text" v-model="newDashboard.title" class="col-span-3" />
+                </div>
+                <DialogFooter>
+                    <DialogClose as-child>
+                        <Button type="button" variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button type="submit" @click="addDashboard">Confirm</Button>
+                </DialogFooter>
+        </DialogContent>
+    </Dialog> 
 </template>

@@ -96,15 +96,15 @@ BEGIN
 	);
 
 	-- Dashboard 
-	CREATE TABLE IF NOT EXISTS dashboard (
-		dash_id SERIAL PRIMARY KEY,
-		dash_title TEXT,
-		dash_content TEXT
+	CREATE TABLE IF NOT EXISTS dashboards (
+		dashboard_id SERIAL PRIMARY KEY,
+		dashboard_title TEXT,
+		dashboard_content TEXT
 	);
 
 	-- Dashboard Graphs
-	CREATE TABLE IF NOT EXISTS dashboardGraphs (
-		dash_id INTEGER NOT NULL references dashboard(dash_id),
+	CREATE TABLE IF NOT EXISTS dashbordGraphs (
+		dashboard_id INTEGER NOT NULL references dashboards(dashboard_id),
 		chart_id INTEGER NOT NULL references chart(chart_id),
 		size_x INTEGER NOT NULL,
 		size_y INTEGER NOT NULL,
@@ -120,7 +120,7 @@ BEGIN
 	);
 
 	CREATE TABLE IF NOT EXISTS dashboardRolePermissions (
-		dash_id INTEGER NOT NULL references dashboard(dash_id) ON DELETE CASCADE,
+		dash_id INTEGER NOT NULL references dashboards(dashboard_id) ON DELETE CASCADE,
 		role_id INTEGER NOT NULL references roles(role_id) ON DELETE CASCADE,
 		permission_id INTEGER NOT NULL references permissions(permission_id) ON DELETE CASCADE,
 		PRIMARY KEY (role_id, dash_id, permission_id),

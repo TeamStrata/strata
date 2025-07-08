@@ -43,6 +43,12 @@ BEGIN
 		VALUES (admin_user_id, admin_role_id)
 		ON CONFLICT DO NOTHING;
 
+		-- Dashboards
+		INSERT INTO dashboards (dashboard_title, dashboard_content)
+		VALUES
+			('Main Dashboard', 'This is the main dashboard.'),
+			('Test Dashboard', 'This is the test dashboard.');
+
 		-- Insert permissions
 		INSERT INTO permissions (permission_name, permission_scope)
 		VALUES
