@@ -120,7 +120,7 @@ BEGIN
 	);
 
 	CREATE TABLE IF NOT EXISTS dashboardRolePermissions (
-		dash_id INTEGER NOT NULL references dashboard(dash_id) ON DELETE CASCADE,
+		dash_id INTEGER NOT NULL references dashboards(dashboard_id) ON DELETE CASCADE,
 		role_id INTEGER NOT NULL references roles(role_id) ON DELETE CASCADE,
 		permission_id INTEGER NOT NULL references permissions(permission_id) ON DELETE CASCADE,
 		PRIMARY KEY (role_id, dash_id, permission_id),
