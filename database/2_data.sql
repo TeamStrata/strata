@@ -42,6 +42,10 @@ BEGIN
 		INSERT INTO userroles (user_id, role_id)
 		VALUES (admin_user_id, admin_role_id)
 		ON CONFLICT DO NOTHING;
+
+		INSERT INTO settings (skey, svalue)
+		VALUES ('cdb', 'postgresql://strata:atarts@strata_psql:5432/strata')
+		ON CONFLICT DO NOTHING;
 	END IF;
 END
 $do$

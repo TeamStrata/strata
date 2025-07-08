@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/gin-gonic/gin"
+	"encoding/json"
 )
 
 const uuidTag = "uuid"
@@ -507,6 +508,28 @@ func addNewUUID(username string, users map[string]string) string {
 
 	users[newId] = username
 	return newId
+}
+
+func GetAllSettingsHandler(d* database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		settings, err := d.ExecuteCustomQuery("SELECT skey, svalue FROM settings;")
+		if err != nil {
+			errMsg := fmt.Sprintf("Unable to get all settings: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+
+		// Convert the resulting object to JSON
+		data, jerr := json.Marshal(settings)
+		if jerr != nil {
+			c.Data(500, "text/plain", []byte(jerr.Error()))
+			c.Done()
+			return
+		}
+
+		c.Data(200, "application/json", data)
+		c.Done()
+	}
 }
 
 func GetSettingHandler(d* database.DbManager) gin.HandlerFunc {

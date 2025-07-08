@@ -584,7 +584,7 @@ func (d *DbManager) GetSetting(key string) (string, error) {
 
 // Set or update a key-value pair in the settings table in the database
 func (d *DbManager) SetSetting(key string, value string) error {
-	query := "INSERT INTO settings (skey, svalue) VALUES ($1, $2) ON CONFLICT (skey) DO UPDATE SET svalue = $2;"
+	query := "UPDATE settings SET svalue = $2 WHERE skey = $1;"
 
 	_, err := d.Connection.Exec(d.context, query, key, value)
 	if err != nil {

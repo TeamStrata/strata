@@ -115,8 +115,9 @@ func main() {
 
 		// Misc Endpoints
 		protected.GET("/ping", api.PingHandler)
+		protected.GET("/settings", api.GetAllSettingsHandler(db))
 		protected.GET("/settings/:key", api.GetSettingHandler(db))
-		protected.POST("/settings/:key", api.UpdateSettingHandler(db, &cdb))
+		protected.PATCH("/settings/:key", api.UpdateSettingHandler(db, &cdb))
 	}
 
 	err = server.Run(":8080")
