@@ -1,17 +1,34 @@
 <script setup>
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
+
 import Navbar from '@/components/Navbar.vue';
-import ProfileArea from '@/components/ProfileArea.vue';
 import Separator from '@/components/ui/separator/Separator.vue';
 import SidebarInset from '@/components/ui/sidebar/SidebarInset.vue';
 import SidebarProvider from '@/components/ui/sidebar/SidebarProvider.vue';
 import SidebarTrigger from '@/components/ui/sidebar/SidebarTrigger.vue';
-import { watch, ref, computed } from 'vue';
-import { RouterLink, useRoute } from 'vue-router';
+import { useCounterStore } from '@/stores/pageInfo';
+
 
 const route = useRoute()
 
-//expand this in future to make it handle dynamic pages like
-const pageInfo = computed(() => { return route.meta })
+const pageInfoStore = useCounterStore();
+const pageInfo = computed(() => {
+  // return route.meta
+  if (route.meta && route.meta.title) {
+    return {
+      title: route.meta.title,
+      description: route.meta.description,
+      configurable: route.meta.configurable,
+    };
+  } else {
+    return {
+      title: pageInfoStore.pageInfo.title.value,
+      description: pageInfoStore.pageInfo.description.value,
+      configurable: pageInfoStore.pageInfo.configurable.value,
+    };
+  }
+})
 
 </script>
 

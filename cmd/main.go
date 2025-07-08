@@ -46,7 +46,9 @@ func main() {
 		log.Printf("error initializing client DB manager: %s", cerr.Error())
 	}
 
-	// Initialize map for active users and uuids
+	// Map for active users and uuids
+	// key: uuid
+	// value: username
 	activeUsers := make(map[string]string)
 
 	// Frontend
@@ -79,6 +81,10 @@ func main() {
 		protected.POST("/role", api.AddRoleHandler(db))
 		protected.PATCH("/role/:rid", api.UpdateRoleHandler(db))
 		protected.DELETE("/role/:rid", api.DeleteRoleHandler(db))
+
+		// Permissions
+		protected.GET("/permissions", api.GetPermissionsHandler(db))
+		protected.GET("/permissions/:scope", api.GetScopedPermissionsHandler(db))
 
 		// Dashboard Components
 		/// Charts

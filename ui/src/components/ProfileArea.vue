@@ -3,10 +3,7 @@ import { apiFetch } from '@/api/request';
 import router from '@/router';
 import { useUserStore } from '@/stores/user';
 
-import DropdownMenu from './ui/dropdown-menu/DropdownMenu.vue';
-import DropdownMenuContent from './ui/dropdown-menu/DropdownMenuContent.vue';
 import DropdownMenuItem from './ui/dropdown-menu/DropdownMenuItem.vue';
-import DropdownMenuTrigger from './ui/dropdown-menu/DropdownMenuTrigger.vue';
 import DropdownMenuLabel from './ui/dropdown-menu/DropdownMenuLabel.vue';
 import DropdownMenuSeparator from './ui/dropdown-menu/DropdownMenuSeparator.vue';
 

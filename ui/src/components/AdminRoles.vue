@@ -1,31 +1,40 @@
 <script setup>
 import { ref } from 'vue';
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardFooter, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import CardDotted from './CardDotted.vue';
+import { apiFetch } from '@/api/request';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogClose,
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { apiFetch } from '@/api/request';
+
+import CardDotted from './CardDotted.vue';
+import { Checkbox } from './ui/checkbox';
 import Toast, { ToastTypes } from './Toast.vue';
 
-const roles = ref([]);
-let tempRole = ref({});
-let originalRole = null;
-
+// Component refs
 const toastRef = ref(null);
 const editModal = ref(false);
 const createModal = ref(false);
 const deleteModal = ref(false);
+
+// Roles refs
+const roles = ref([]);
+let tempRole = ref({});
+let originalRole = null;
+
+// Permissions refs
+const permissions = ref([]);
+const selectedPermissions = ref([]);
 
 // Show the edit role dialog
 function showEdit(id) {
@@ -33,23 +42,28 @@ function showEdit(id) {
     const roleToEdit = roles.value.find(item => { return item.id == id });
     tempRole.value = JSON.parse(JSON.stringify(roleToEdit));
     originalRole = JSON.parse(JSON.stringify(roleToEdit));
+    selectedPermissions.value = roleToEdit.permissions ? 
+        roleToEdit.permissions.map(p => p.id) : [];
     editModal.value = true;
 }
 
 // Send PATCH request to backend API
 function submitEdit() {
     let body = {};
-
     body.id = originalRole.id;
 
-    // Add role to JSON
     if (originalRole.name != tempRole.value.name) {
         body.name = tempRole.value.name;
     }
 
-    // Add color to JSON
     if (originalRole.color != tempRole.value.color) {
         body.color = tempRole.value.color;
+    }
+
+    const originalPermissionIds = (originalRole.permissions || []).map(p => p.id).sort();
+    const currentPermissionIds = selectedPermissions.value.sort();
+    if (JSON.stringify(originalPermissionIds) !== JSON.stringify(currentPermissionIds)) {
+        body.permissions = selectedPermissions.value;
     }
 
     let route = "/role/" + body.id; 
@@ -75,12 +89,14 @@ function submitEdit() {
         });
 }
 
+// Reset component values
 function showCreate() {
     tempRole.value = {};
+    selectedPermissions.value = [];
     createModal.value = true;
 }
 
-// Send POST role request to backend API
+// Post new role to backend
 function submitCreate() {
     let body = {};
     if (tempRole.value.name != undefined) {
@@ -89,6 +105,14 @@ function submitCreate() {
 
     if (tempRole.value.color != undefined) {
         body.color = tempRole.value.color;
+    }
+
+    if (tempRole.value.permissions != undefined) {
+        body.permissions = tempRole.value.permissions;
+    }
+
+    if (selectedPermissions.value.length > 0) {
+        body.permissions = selectedPermissions.value;
     }
 
     apiFetch("/role", "POST", JSON.stringify(body))
@@ -145,6 +169,57 @@ function submitDelete() {
         });
 }
 
+// Get all global permissions
+function loadPermissions() {
+    const route = "/permissions/global";
+    apiFetch(route)
+    .then(async (response) => {
+        if (!response.ok) {
+            toastRef.value?.showToast(
+                "There was an issue fetching permissions",
+                ToastTypes.FAIL,
+            )
+            throw new Error("Failed to fetch permissions");
+        } else {
+            permissions.value = formatPermissions(await response.json());
+        }
+    })
+    .catch((error) => {
+        console.error(error);
+    });
+}
+
+// Format permissions names
+// (e.g. 'test_permission' -> 'Test Permission')
+function formatPermissions(p) {
+    let formatted = [];
+    for (let i = 0; i < p.length; i++) {
+        let oldName = p[i].name;
+        let newName = oldName[0].toUpperCase() + oldName.slice(1, oldName.search('_')) + " " + oldName[oldName.search('_') + 1].toUpperCase() + oldName.slice(oldName.search('_') + 2, oldName.length);
+        let tempPermission = {id: p[i].id, label: newName};
+        formatted.push(tempPermission);
+    }
+    return formatted;
+}
+
+// Check if a permission is selected
+function isPermissionSelected(permissionId) {
+    return selectedPermissions.value.includes(permissionId);
+}
+
+// Toggle permission selection
+function togglePermission(permissionId, checked) {
+    if (checked) {
+        if (!selectedPermissions.value.includes(permissionId)) {
+            selectedPermissions.value.push(permissionId);
+        }
+    } else {
+        selectedPermissions.value = selectedPermissions.value.filter(
+            id => id !== permissionId
+        );
+    }
+}
+
 // Fetch roles from backend API
 function loadRoles() {
     apiFetch("/roles")
@@ -156,14 +231,20 @@ function loadRoles() {
                 );
                 throw new Error("Failed to fetch all roles");
             }
-
             roles.value = await response.json();
+            // Format permissions
+            for (let i = 0; i < roles.value.length; i++) {
+                if (roles.value[i].permissions != undefined) {
+                    roles.value[i].permissions = formatPermissions(roles.value[i].permissions);
+                }
+            }
         })
         .catch((error) => {
             console.error(error);
         });
 }
 
+loadPermissions();
 loadRoles();
 </script>
 
@@ -186,6 +267,28 @@ loadRoles();
                 <div class="grid grid-cols-4 items-center gap-4">
                     <Label for="color-input" class="text-right">Color</Label>
                     <Input id="color-input" type="text" v-model="tempRole.color" class="col-span-3 h-10 w-full" />
+                </div>
+                <div class="space-y-2">
+                    <Label class="text-right pt-1">Permissions</Label>
+                    <div class="space-y-2 max-h-40">
+                        <div 
+                            v-for="permission in permissions" 
+                            :key="permission.id"
+                            class="flex items-center justify-between space-x-2 py-1 pl-2"
+                        >
+                            <Label 
+                                :for="`permission-${permission.id}`" 
+                                class="text-sm font-normal cursor-pointer"
+                            >
+                                {{ permission.label }}
+                            </Label>
+                            <Checkbox 
+                                :id="`permission-${permission.id}`"
+                                :model-value="isPermissionSelected(permission.id)"
+                                @update:model-value="togglePermission(permission.id, $event)"
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
             <DialogFooter>
