@@ -42,6 +42,20 @@ BEGIN
 		INSERT INTO userroles (user_id, role_id)
 		VALUES (admin_user_id, admin_role_id)
 		ON CONFLICT DO NOTHING;
+
+		-- Insert permissions
+		INSERT INTO permissions (permission_name, permission_scope)
+		VALUES
+			('admin_privileges', 'global'),
+			('create_dashboard', 'global'),
+			('delete_dashboard', 'global'),
+			('edit_dashboard', 'dashboard'),
+			('view_dashboard', 'dashboard')
+		ON CONFLICT DO NOTHING;
+
+		-- Assign the 'admin' role the 'admin_privileges` permission.
+		INSERT INTO rolePermissions (role_id, permission_id)
+		VALUES (2, 1);
 	END IF;
 END
 $do$
