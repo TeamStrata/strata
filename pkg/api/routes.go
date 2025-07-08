@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"context"
+	"log"
 
 	"github.com/TeamStrata/strata/pkg/auth"
 	"github.com/TeamStrata/strata/pkg/database"
@@ -509,7 +511,7 @@ func addNewUUID(username string, users map[string]string) string {
 
 func GetSettingHandler(d* database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		key := c.Param("qid")
+		key := c.Param("key")
 
 		settings, err := d.GetSetting(key)
 		if err != nil {
@@ -522,9 +524,9 @@ func GetSettingHandler(d* database.DbManager) gin.HandlerFunc {
 	}
 }
 
-func UpdateSettingHandler(d* database.DbManager) gin.HandlerFunc {
+func UpdateSettingHandler(d* database.DbManager, cdb** database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		key := c.Param("qid")
+		key := c.Param("key")
 
 		bodyBytes, err := io.ReadAll(c.Request.Body)
 		if err != nil {
@@ -539,6 +541,23 @@ func UpdateSettingHandler(d* database.DbManager) gin.HandlerFunc {
 			c.String(http.StatusInternalServerError, errMsg)
 			return
 		}
+
+		log.Printf("Before: '%p'\n", *cdb)
+
+		// Disconnect from the client database, then reconnect to this new database
+		if *cdb != nil {
+			(*cdb).Connection.Close()
+			*cdb = nil
+		}
+
+		// Attempt to connect to new database so you don't have to restart the server
+		*cdb, err = database.NewDbManager(string(bodyBytes), context.Background())
+		if err != nil {
+			errMsg := fmt.Sprintf("Unable to connect to new database: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+		log.Printf("After: '%p'\n", *cdb)
 
 		c.Status(http.StatusOK)
 	}

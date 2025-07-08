@@ -106,7 +106,7 @@ func main() {
 		// Query Endpoints
 		protected.GET("/queries", api.GetQueryList(db))
 		protected.GET("/query/:qid", api.ReadQueryLiteralHandler(db))     // Return the query SQL string
-		protected.GET("/query/:qid/execute", api.ExecuteQueryHandler(db, cdb)) // Execute a saved query (custom or standard saved queries)
+		protected.GET("/query/:qid/execute", api.ExecuteQueryHandler(db, &cdb)) // Execute a saved query (custom or standard saved queries)
 		protected.POST("/query/:qid", api.SaveQueryHandler(db))
 		protected.DELETE("/query/:qid", api.DeleteQueryHandler(db))
 
@@ -116,7 +116,7 @@ func main() {
 		// Misc Endpoints
 		protected.GET("/ping", api.PingHandler)
 		protected.GET("/settings/:key", api.GetSettingHandler(db))
-		protected.POST("/settings/:key", api.UpdateSettingHandler(db))
+		protected.POST("/settings/:key", api.UpdateSettingHandler(db, &cdb))
 	}
 
 	err = server.Run(":8080")

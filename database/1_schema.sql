@@ -121,8 +121,8 @@ BEGIN
 
 	-- Table to store settings such as the client database connection string
 	CREATE TABLE IF NOT EXISTS settings (
-		setting_key TEXT UNIQUE NOT NULL,
-		setting_value TEXT NOT NULL
+		skey TEXT UNIQUE NOT NULL,
+		svalue TEXT NOT NULL
 	);
 END
 $do$

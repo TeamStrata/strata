@@ -517,6 +517,10 @@ func (d *DbManager) ListCustomQueries() ([]Query, error) {
 }
 
 func (d *DbManager) ExecuteCustomQuery(query string) ([]map[string]string, error) {
+	if d == nil {
+		return nil, errors.New("This service has not been connected to a data-only database.\nUse POST /settings/cdb to set the postgres connection string.")
+	}
+
 	var retRows []map[string]string
 
 	// Get Rows
@@ -567,7 +571,7 @@ func (d *DbManager) ExecuteCustomQuery(query string) ([]map[string]string, error
 
 // Get key-value pair from settings table in database
 func (d *DbManager) GetSetting(key string) (string, error) {
-	query := "SELECT value FROM settings WHERE key = $1;"
+	query := "SELECT svalue FROM settings WHERE skey = $1;"
 	var value string
 
 	err := d.Connection.QueryRow(d.context, query, key).Scan(&value)
@@ -580,7 +584,7 @@ func (d *DbManager) GetSetting(key string) (string, error) {
 
 // Set or update a key-value pair in the settings table in the database
 func (d *DbManager) SetSetting(key string, value string) error {
-	query := "INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2;"
+	query := "INSERT INTO settings (skey, svalue) VALUES ($1, $2) ON CONFLICT (skey) DO UPDATE SET svalue = $2;"
 
 	_, err := d.Connection.Exec(d.context, query, key, value)
 	if err != nil {
