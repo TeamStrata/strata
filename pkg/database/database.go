@@ -40,6 +40,11 @@ type Query struct {
 	Literal string `json:"literal"`
 }
 
+type Settings struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
 // Parse the 'key'. If it parses to an integer, use the 'table'.'intColumn' to compare against 'key'. Otherwise use the 'table'.'stringColumn' to compare against 'key'
 func GetSearchSuffix(key string, table string, stringColumn string, intColumn string) string {
 	query := ""
@@ -593,6 +598,10 @@ func (d *DbManager) ListCustomQueries() ([]Query, error) {
 }
 
 func (d *DbManager) ExecuteCustomQuery(query string) ([]map[string]string, error) {
+	if d == nil {
+		return nil, errors.New("This service has not been connected to a data-only database.\nUse POST /settings/cdb to set the postgres connection string.")
+	}
+
 	var retRows []map[string]string
 
 	// Get Rows
@@ -639,4 +648,29 @@ func (d *DbManager) ExecuteCustomQuery(query string) ([]map[string]string, error
 
 	// Success
 	return retRows, nil
+}
+
+// Get key-value pair from settings table in database
+func (d *DbManager) GetSetting(key string) (string, error) {
+	query := "SELECT svalue FROM settings WHERE skey = $1;"
+	var value string
+
+	err := d.Connection.QueryRow(d.context, query, key).Scan(&value)
+	if err != nil {
+		return "", fmt.Errorf("error getting setting '%s': %w", key, err)
+	}
+
+	return value, nil
+}
+
+// Set or update a key-value pair in the settings table in the database
+func (d *DbManager) SetSetting(key string, value string) error {
+	query := "UPDATE settings SET svalue = $2 WHERE skey = $1;"
+
+	_, err := d.Connection.Exec(d.context, query, key, value)
+	if err != nil {
+		return fmt.Errorf("error setting key '%s' to value '%s': %w", key, value, err)
+	}
+
+	return nil
 }

@@ -2,14 +2,18 @@ package api
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"time"
+	"context"
+	"log"
 
 	"github.com/TeamStrata/strata/pkg/auth"
 	"github.com/TeamStrata/strata/pkg/database"
 	"github.com/google/uuid"
 
 	"github.com/gin-gonic/gin"
+	"encoding/json"
 )
 
 const uuidTag = "uuid"
@@ -145,4 +149,80 @@ func addNewUUID(username string, users map[string]string) string {
 
 	users[newId] = username
 	return newId
+}
+
+func GetAllSettingsHandler(d* database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		settings, err := d.ExecuteCustomQuery("SELECT skey, svalue FROM settings;")
+		if err != nil {
+			errMsg := fmt.Sprintf("Unable to get all settings: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+
+		// Convert the resulting object to JSON
+		data, jerr := json.Marshal(settings)
+		if jerr != nil {
+			c.Data(500, "text/plain", []byte(jerr.Error()))
+			c.Done()
+			return
+		}
+
+		c.Data(200, "application/json", data)
+		c.Done()
+	}
+}
+
+func GetSettingHandler(d* database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		key := c.Param("key")
+
+		settings, err := d.GetSetting(key)
+		if err != nil {
+			errMsg := fmt.Sprintf("unable to get settings: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+
+		c.JSON(http.StatusOK, settings)
+	}
+}
+
+func UpdateSettingHandler(d* database.DbManager, cdb** database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		key := c.Param("key")
+
+		bodyBytes, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			errMsg := fmt.Sprintf("unable to read request body: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+
+		err = d.SetSetting(key, string(bodyBytes))
+		if err != nil {
+			errMsg := fmt.Sprintf("unable to update settings: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+
+		log.Printf("Before: '%p'\n", *cdb)
+
+		// Disconnect from the client database, then reconnect to this new database
+		if *cdb != nil {
+			(*cdb).Connection.Close()
+			*cdb = nil
+		}
+
+		// Attempt to connect to new database so you don't have to restart the server
+		*cdb, err = database.NewDbManager(string(bodyBytes), context.Background())
+		if err != nil {
+			errMsg := fmt.Sprintf("Unable to connect to new database: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+		log.Printf("After: '%p'\n", *cdb)
+
+		c.Status(http.StatusOK)
+	}
 }

@@ -39,6 +39,13 @@ func main() {
 		log.Fatalf("error initializing DB manager: %s", err.Error())
 	}
 
+	// Create the client database which will be used for custom queries
+	cdb_str, cerr := db.GetSetting("cdb")
+	cdb, cerr := database.NewDbManager(cdb_str, context.Background())
+	if cerr != nil {
+		log.Printf("error initializing client DB manager: %s", cerr.Error())
+	}
+
 	// Map for active users and uuids
 	// key: uuid
 	// value: username
@@ -85,11 +92,13 @@ func main() {
 		protected.GET("/chart/:cid", api.GetChartHandler(db))
 		protected.POST("/chart", api.CreateChartHandler(db))
 		protected.DELETE("/chart/:cid", api.DeleteChartHandler(db))
+		protected.PATCH("/chart/:cid", api.UpdateChartHandler(db))
 		/// Chart Series
 		protected.GET("/chart/:cid/series", api.GetChartSeriesListHandler(db))
 		protected.GET("/chart/:cid/series/:sid", api.GetChartSingleSeriesHandler(db))
 		protected.POST("/chart/:cid/series", api.AddChartSeriesHandler(db))
 		protected.DELETE("/chart/:cid/series/:sid", api.DeleteChartSingleSeriesHandler(db))
+		protected.PATCH("/chart/:cid/series/:sid", api.UpdateChartSeriesHandler(db))
 		protected.DELETE("/chart/:cid/series", api.DeleteAllChartSeriesHandler(db))
 		/// Dashboard itself
 		protected.GET("/dashboards", api.GetDashboardListHandler(db))
@@ -103,7 +112,7 @@ func main() {
 		// Query Endpoints
 		protected.GET("/queries", api.GetQueryList(db))
 		protected.GET("/query/:qid", api.ReadQueryLiteralHandler(db))     // Return the query SQL string
-		protected.GET("/query/:qid/execute", api.ExecuteQueryHandler(db)) // Execute a saved query (custom or standard saved queries)
+		protected.GET("/query/:qid/execute", api.ExecuteQueryHandler(db, &cdb)) // Execute a saved query (custom or standard saved queries)
 		protected.POST("/query/:qid", api.SaveQueryHandler(db))
 		protected.DELETE("/query/:qid", api.DeleteQueryHandler(db))
 
@@ -112,6 +121,9 @@ func main() {
 
 		// Misc Endpoints
 		protected.GET("/ping", api.PingHandler)
+		protected.GET("/settings", api.GetAllSettingsHandler(db))
+		protected.GET("/settings/:key", api.GetSettingHandler(db))
+		protected.PATCH("/settings/:key", api.UpdateSettingHandler(db, &cdb))
 	}
 
 	err = server.Run(":8080")

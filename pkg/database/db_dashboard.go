@@ -96,6 +96,12 @@ func (d *DbManager) DeleteChart(chart_id int) error {
 	return err
 }
 
+func (d *DbManager) UpdateChart(chart Chart) error {
+    query := "UPDATE chart SET chart_title = $1, chart_type = $2 WHERE chart_id = $3;"
+    _, err := d.Connection.Exec(d.context, query, chart.Title, chart.Type, chart.Id)
+    return err
+}
+
 func (d *DbManager) ListChartSeries(chart_id int) ([]ChartSeries, error) {
 	var list []ChartSeries
 	query := "SELECT series_id, chart_id, query_id, x_column, y_column FROM chartSeries WHERE chart_id = $1;"
@@ -140,6 +146,12 @@ func (d *DbManager) DeleteAllChartSeries(chart_id int) error {
 	query := "DELETE FROM chartSeries WHERE chart_id = $1;"
 	_, err := d.Connection.Exec(d.context, query, chart_id)
 	return err
+}
+
+func (d* DbManager) UpdateChartSeries(series ChartSeries) error {
+    query := "UPDATE chartSeries SET chart_id = $1, query_id = $2, x_column = $3, y_column = $4 WHERE series_id = $5;"
+    _, err := d.Connection.Exec(d.context, query, series.ChartID, series.QueryID, series.XCol, series.YCol, series.Id)
+    return err
 }
 
 // List all dashboards

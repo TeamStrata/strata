@@ -43,6 +43,11 @@ BEGIN
 		VALUES (admin_user_id, admin_role_id)
 		ON CONFLICT DO NOTHING;
 
+
+		INSERT INTO settings (skey, svalue)
+		VALUES ('cdb', 'postgresql://strata:atarts@strata_psql:5432/strata')
+		ON CONFLICT DO NOTHING;
+
 		-- Dashboards
 		INSERT INTO dashboards (dashboard_title, dashboard_content)
 		VALUES
