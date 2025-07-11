@@ -1,6 +1,14 @@
+<script lang="ts">
+export enum ToastTypes {
+    SUCCESS,
+    FAIL,
+    WARNING,
+    INFO
+}
+</script>
+
 <script lang="ts" setup>
 import { ref } from 'vue';
-
 
 const show = ref(false)
 const message = ref('Incorrect Toast Call')
@@ -20,14 +28,7 @@ function showToast(msg = 'Incorrect Toast Call', type = ToastTypes.WARNING, dura
 defineExpose({ showToast });
 </script>
 
-<script lang="ts">
-export enum ToastTypes {
-    SUCCESS,
-    FAIL,
-    WARNING,
-    INFO
-}
-</script>
+
 
 <template>
     <div v-if="show"
