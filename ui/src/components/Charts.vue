@@ -39,7 +39,7 @@ const chartComponent = computed(() => {
 apiFetch('/queries')
   .then(async (response) => {
     if (!response.ok) {
-      toasRef.value?.showToast(
+      toastRef.value?.showToast(
         'There was an error when loading saved queries',
         ToastTypes.FAIL
       )
@@ -58,7 +58,7 @@ apiFetch('/queries')
   })
  .then(async (response) => {
     if (!response.ok) {
-      toasRef.value?.showToast(
+      toastRef.value?.showToast(
         'There was an error when executing the query',
         ToastTypes.FAIL
       )
