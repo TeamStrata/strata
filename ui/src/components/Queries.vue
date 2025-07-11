@@ -80,7 +80,7 @@ function loadQueries() {
 		.then(async (response) => {
 			// Handle error
 			if (!response.ok) {
-				toasRef.value?.showToast(
+				toastRef.value?.showToast(
 					"There was an error when loading users",
 					ToastTypes.FAIL,
 				);
