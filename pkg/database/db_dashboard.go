@@ -70,19 +70,32 @@ func (d *DbManager) ListAllCharts() ([]Chart, error) {
 }
 
 func (d *DbManager) InsertChart(chart Chart) (int, error) {
-	chart_id := 0
+	var chartID int
 
-	query := "INSERT INTO chart (chart_title, chart_type) VALUES ($1, $2) RETURNING chart_id;"
-	err := d.Connection.QueryRow(d.context, query, chart.Title, chart.Type).Scan(&chart_id)
+	//Check if the chart already exists
+	queryCheck := "SELECT chart_id FROM chart WHERE chart_title = $1;"
+	err := d.Connection.QueryRow(d.context, queryCheck, chart.Title).Scan(&chartID)
 
-	return chart_id, err
+	if err == nil {
+		queryUpdate := "UPDATE chart SET chart_type = $1 WHERE chart_id = $2;"
+		_, updateErr := d.Connection.Exec(d.context, queryUpdate, chart.Type, chartID)
+		return chartID, updateErr
+	}
+
+	//If no chart found (no rows), insert a new one
+	if err.Error() == "no rows in result set" {
+		queryInsert := "INSERT INTO chart (chart_title, chart_type) VALUES ($1, $2) RETURNING chart_id;"
+		insertErr := d.Connection.QueryRow(d.context, queryInsert, chart.Title, chart.Type).Scan(&chartID)
+		return chartID, insertErr
+	}
+	return 0, err
 }
 
 func (d *DbManager) GetChart(chart_id int) (Chart, error) {
 	var chart Chart
 
-	query := "SELECT * FROM chart WHERE chart_id = $1;"
-	err := d.Connection.QueryRow(d.context, query, chart_id).Scan(&chart)
+	query := "SELECT chart_id, chart_title, chart_type FROM chart WHERE chart_id = $1;"
+	err := d.Connection.QueryRow(d.context, query, chart_id).Scan(&chart.Id, &chart.Title, &chart.Type)
 	if err != nil {
 		return Chart{}, err
 	}

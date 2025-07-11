@@ -39,3 +39,5 @@ ollama/*
 
 # Local .env
 .env.local
+
+node_modules

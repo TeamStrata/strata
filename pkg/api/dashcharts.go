@@ -35,7 +35,7 @@ func GetChartHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		chart_id_str := c.Param("cid")
 		chart_id, err := strconv.Atoi(chart_id_str)
-		if err == nil {
+		if err != nil {
 			c.Data(400, "text/plain", []byte("The chart ID must be an integer!"))
 			c.Done()
 			return
@@ -139,27 +139,19 @@ func GetChartSeriesListHandler(d *database.DbManager) gin.HandlerFunc {
 		chart_id_str := c.Param("cid")
 		chart_id, err := strconv.Atoi(chart_id_str)
 		if err != nil {
-			c.Data(400, "text/plain", []byte("The chart ID must be an integer!"))
+      		c.Data(500, "text/plain", []byte(err.Error()))
 			c.Done()
 			return
 		}
 
 		series, err := d.ListChartSeries(chart_id)
 		if err != nil {
-			c.Data(500, "text/plain", []byte(err.Error()))
+      		c.Data(500, "text/plain", []byte(err.Error()))
 			c.Done()
 			return
 		}
-
-		data, err := json.Marshal(series)
-		if err != nil {
-			c.Data(500, "text/plain", []byte(err.Error()))
-			c.Done()
-			return
-		}
-
-		c.Data(200, "application/json", data)
-		c.Done()
+    
+    	c.JSON(200, series)
 	}
 }
 
@@ -204,7 +196,7 @@ func AddChartSeriesHandler(d *database.DbManager) gin.HandlerFunc {
 
 		var series database.ChartSeries
 		if err := c.ShouldBindJSON(&series); err != nil {
-			c.Status(http.StatusBadRequest)
+			c.Data(http.StatusBadRequest, "text/plain", []byte("ShouldBindJSON Error"))
 			return
 		}
 		series.ChartID = chart_id

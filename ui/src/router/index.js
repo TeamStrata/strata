@@ -84,6 +84,21 @@ const router = createRouter({
           },
           component: () => import('../components/Dashboard.vue')
         },
+        {
+          path: '/charts',
+          name: 'charts',
+          children: [
+            {
+              path: "list",
+              meta: {
+                title: 'Charts',
+                description: 'Manage your organization\'s charts.',
+                configurable: false,
+              },
+              component: () => import("../components/Charts.vue")
+            }
+          ]
+        }
       ]
     }
   ],

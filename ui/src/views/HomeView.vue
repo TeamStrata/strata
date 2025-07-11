@@ -60,7 +60,6 @@ const pageInfo = computed(() => {
         <div class="p-5">
           <RouterView></RouterView>
         </div>
-
       </SidebarInset>
     </SidebarProvider>
   </div>

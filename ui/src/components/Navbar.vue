@@ -164,7 +164,7 @@ loadDashboards();
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild>
-                                <RouterLink to="/">
+                                <RouterLink to="/charts/list">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
                                         <g fill="none" stroke="currentColor" stroke-linecap="round"
                                             stroke-linejoin="round" stroke-width="2">
@@ -172,7 +172,7 @@ loadDashboards();
                                             <path d="m19 9l-5 5l-4-4l-3 3" />
                                         </g>
                                     </svg>
-                                    Graphs
+                                    Charts
                                 </RouterLink>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
