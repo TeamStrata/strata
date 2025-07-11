@@ -144,7 +144,7 @@ func (d *DbManager) GetChartSeries(series_id int) (ChartSeries, error) {
 
 func (d *DbManager) InsertChartSeries(series ChartSeries) (int, error) {
 	var id int
-	query := "IF NOT EXISTS (SELECT * FROM chartSeries WHERE series_id = $5) BEGIN INSERT INTO chartSeries (chart_id, query_id, x_column, y_column) VALUES ($1, $2, $3, $4) RETURNING series_id; END"
+	query := "INSERT INTO chartSeries (chart_id, query_id, x_column, y_column) SELECT $1, $2, $3, $4 WHERE NOT EXISTS (SELECT 1 FROM chartSeries WHERE series_id = $5) RETURNING series_id;"
 	err := d.Connection.QueryRow(d.context, query, series.ChartID, series.QueryID, series.XCol, series.YCol, series.Id).Scan(&id)
 	return id, err
 }
