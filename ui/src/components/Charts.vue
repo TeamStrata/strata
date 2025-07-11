@@ -161,6 +161,7 @@ const saveChart = async () => {
     }
 
     const seriesPayload = seriesSections.map(section => ({
+      id:section.id,
       chart_id: chartId,
       query_id: section.query?.id,
       x_col_name: section.xColumn,
@@ -215,6 +216,7 @@ const loadChartFromDB = async () => {
         const chartData = await result.json();
 
         return {
+          id:seriesItem.id,
           query,
           xColumn: seriesItem.x_col_name,
           yColumn: seriesItem.y_col_name,
