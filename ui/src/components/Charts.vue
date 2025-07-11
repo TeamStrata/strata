@@ -4,6 +4,7 @@ import { watch } from 'vue'
 import { computed, defineAsyncComponent } from 'vue'
 import { apiFetch } from '@/api/request'
 
+const toastRef = ref(null);
 const chartTypes = ['Line', 'Area', 'Column', 'Bar', 'Scatter']
 const selectedChart = ref(chartTypes[0])
 const isCreatingNewChart = ref(false)
@@ -245,6 +246,8 @@ const fetchSavedChartTitles = async () => {
 
 
 <template>
+  <Toast ref="toastRef" />
+
   <div class="max-w-full mx-auto mt-10 p-6 bg-white shadow-md rounded-lg">
     <h1 class="text-2xl font-bold mb-6 text-gray-800">Chart Viewer</h1>
 
