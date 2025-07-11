@@ -166,10 +166,17 @@ const saveChart = async () => {
       y_col_name: section.yColumn,
     }))
 
-    const seriesResponse = await apiFetch(`/chart/${chartId}/series`, 'POST', JSON.stringify(seriesPayload), 'application/json')
-    if (!seriesResponse.ok) throw new Error('Failed to save series')
+    console.log("Posting chartSeries links:");
+    seriesPayload.forEach(async c =>{
+      console.log(c);
+      const seriesResponse = await apiFetch(`/chart/${c.chart_id}/series`, 'POST', JSON.stringify(c), 'application/json')
+      if (!seriesResponse.ok) throw new Error('Failed to save series')
+      else
+        alert('Chart and series saved successfully')
+    })
 
-    alert('Chart and series saved successfully')
+    
+    
     fetchSavedChartTitles()
   } catch (err) {
     console.error('Error saving chart and series:', err)

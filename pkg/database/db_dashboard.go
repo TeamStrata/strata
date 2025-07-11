@@ -91,41 +91,6 @@ func (d *DbManager) InsertChart(chart Chart) (int, error) {
 	return 0, err
 }
 
-func (d *DbManager) InsertChartSeries(series ChartSeries) (int, error) {
-	seriesID := 0
-
-	query := `
-		INSERT INTO chartseries (chart_id, query_id, x_column, y_column)
-		VALUES ($1, $2, $3, $4)
-		RETURNING series_id;
-	`
-
-	err := d.Connection.QueryRow(d.context, query, series.ChartID, series.QueryID, series.XCol, series.YCol).Scan(&seriesID)
-
-	return seriesID, err
-}
-
-func (d *DbManager) GetChartSeries(chartID int) ([]ChartSeries, error) {
-	query := `SELECT series_id, chart_id, query_id, x_column, y_column FROM chartseries WHERE chart_id = $1`
-	rows, err := d.Connection.Query(d.context, query, chartID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var seriesList []ChartSeries
-	for rows.Next() {
-		var s ChartSeries
-		err := rows.Scan(&s.Id, &s.ChartID, &s.QueryID, &s.XCol, &s.YCol)
-		if err != nil {
-			return nil, err
-		}
-		seriesList = append(seriesList, s)
-	}
-
-	return seriesList, nil
-}
-
 func (d *DbManager) GetChart(chart_id int) (Chart, error) {
 	var chart Chart
 
