@@ -11,29 +11,6 @@ var error = ref(false);
 const store = useUserStore()
 
 async function login() {
-    // submit user and pass to form
-    // fetch('http://localhost:8080/login', {
-    //     method: 'POST',
-    //     headers: {
-    //         'Content-Type': 'application/json',
-    //     },
-    //     credentials: 'include',
-    //     body: JSON.stringify({
-    //         username: user.value,
-    //         password: pass.value
-    //     }),
-    // })
-    //     .then(response => {
-    //         if (!response.ok) {
-    //             error = true;
-    //             throw new Error('Something went wrong');
-    //         }
-    //         store.username = user.value
-    //         router.push("/")
-    //     })
-    //     .catch(error => {
-    //         console.error('Error:', error);
-    //     });
     const body = {
         username: user.value,
         password: pass.value

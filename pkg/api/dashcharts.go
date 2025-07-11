@@ -84,103 +84,368 @@ func CreateChartHandler(d *database.DbManager) gin.HandlerFunc {
 
 func DeleteChartHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		chart_id_str := c.Param("cid")
+		chart_id, err := strconv.Atoi(chart_id_str)
+		if err != nil {
+			c.Data(400, "text/plain", []byte("The chart ID must be an integer!"))
+			c.Done()
+			return
+		}
 
+		err = d.DeleteChart(chart_id)
+		if err != nil {
+			c.Data(500, "text/plain", []byte("Could not delete this chart!"))
+			c.Done()
+			return
+		}
+
+		c.Status(200)
+		c.Done()
+	}
+}
+
+func UpdateChartHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		chart_id_str := c.Param("cid")
+		chart_id, err := strconv.Atoi(chart_id_str)
+		if err != nil {
+			c.Data(400, "text/plain", []byte("The chart ID must be an integer!"))
+			c.Done()
+			return
+		}
+
+		var chart database.Chart
+		if err := c.ShouldBindJSON(&chart); err != nil {
+			c.Status(http.StatusBadRequest)
+			return
+		}
+		chart.Id = chart_id
+
+		err = d.UpdateChart(chart)
+		if err != nil {
+			c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
+			return
+		}
+
+		c.Status(200)
+		c.Done()
 	}
 }
 
 // / Chart Series
 func GetChartSeriesListHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		chartIDStr := c.Param("cid")
-		chartID, err := strconv.Atoi(chartIDStr)
+		chart_id_str := c.Param("cid")
+		chart_id, err := strconv.Atoi(chart_id_str)
 		if err != nil {
-			c.JSON(400, gin.H{"error": "Chart ID must be an integer"})
+      c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
 			return
 		}
 
-		series, err := d.GetChartSeries(chartID)
+		series, err := d.ListChartSeries(chart_id)
 		if err != nil {
-			c.JSON(500, gin.H{"error": err.Error()})
+      c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
 			return
 		}
-
-		c.JSON(200, series)
+    
+    c.JSON(200, series)
 	}
 }
 
 func GetChartSingleSeriesHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		series_id_str := c.Param("sid")
+		series_id, err := strconv.Atoi(series_id_str)
+		if err != nil {
+			c.Data(400, "text/plain", []byte("The series ID must be an integer!"))
+			c.Done()
+			return
+		}
+
+		series, err := d.GetChartSeries(series_id)
+		if err != nil {
+			c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
+			return
+		}
+
+		data, err := json.Marshal(series)
+		if err != nil {
+			c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
+			return
+		}
+
+		c.Data(200, "application/json", data)
+		c.Done()
 	}
 }
 
 func AddChartSeriesHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var seriesList []database.ChartSeries
-
-		if err := c.ShouldBindJSON(&seriesList); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		chart_id_str := c.Param("cid")
+		chart_id, err := strconv.Atoi(chart_id_str)
+		if err != nil {
+			c.Data(400, "text/plain", []byte("The chart ID must be an integer!"))
+			c.Done()
 			return
 		}
 
-		if len(seriesList) == 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Series list is empty"})
+		var series database.ChartSeries
+		if err := c.ShouldBindJSON(&series); err != nil {
+			c.Status(http.StatusBadRequest)
+			return
+		}
+		series.ChartID = chart_id
+
+		id, err := d.InsertChartSeries(series)
+		if err != nil {
+			c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
 			return
 		}
 
-		for _, series := range seriesList {
-			if _, err := d.InsertChartSeries(series); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-				return
-			}
-		}
-
-		c.JSON(http.StatusCreated, gin.H{"message": "Series added successfully"})
+		c.Data(200, "text/plain", []byte(strconv.Itoa(id)))
+		c.Done()
 	}
 }
 
 func DeleteChartSingleSeriesHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		series_id_str := c.Param("sid")
+		series_id, err := strconv.Atoi(series_id_str)
+		if err != nil {
+			c.Data(400, "text/plain", []byte("The series ID must be an integer!"))
+			c.Done()
+			return
+		}
+
+		err = d.DeleteChartSeries(series_id)
+		if err != nil {
+			c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
+			return
+		}
+
+		c.Status(200)
+		c.Done()
+	}
+}
+
+func UpdateChartSeriesHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		series_id_str := c.Param("sid")
+		series_id, err := strconv.Atoi(series_id_str)
+		if err != nil {
+			c.Data(400, "text/plain", []byte("The series ID must be an integer!"))
+			c.Done()
+			return
+		}
+
+		var series database.ChartSeries
+		if err := c.ShouldBindJSON(&series); err != nil {
+			c.Status(http.StatusBadRequest)
+			return
+		}
+		series.Id = series_id
+
+		err = d.UpdateChartSeries(series)
+		if err != nil {
+			c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
+			return
+		}
+
+		c.Status(200)
+		c.Done()
 	}
 }
 
 func DeleteAllChartSeriesHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		chart_id_str := c.Param("cid")
+		chart_id, err := strconv.Atoi(chart_id_str)
+		if err != nil {
+			c.Data(400, "text/plain", []byte("The chart ID must be an integer!"))
+			c.Done()
+			return
+		}
+
+		err = d.DeleteAllChartSeries(chart_id)
+		if err != nil {
+			c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
+			return
+		}
+
+		c.Status(200)
+		c.Done()
 	}
 }
 
 // / Dashboard itself
 func GetDashboardListHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		dashboards, err := d.ListAllDashboards()
+		if err != nil {
+			c.Data(500, "text/plain", []byte("Internal server error"))
+			c.Done()
+			return
+		}
+		data, err := json.Marshal(dashboards)
+		if err != nil {
+			c.Data(500, "text/plain", []byte("Internal server error"))
+			c.Done()
+			return
+		}
+		c.Data(200, "application/json", data)
+		c.Done()
 	}
 }
 
 func GetDashboardHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		dash_id_str := c.Param("did")
+		dash_id, err := strconv.Atoi(dash_id_str)
+		if err != nil {
+			c.Data(400, "text/plain", []byte("The dashboard ID must be an integer!"))
+			c.Done()
+			return
+		}
+		dash, err := d.GetDashboard(dash_id)
+		if err != nil {
+			c.Data(404, "text/plain", []byte("Dashboard not found"))
+			c.Done()
+			return
+		}
+		data, err := json.Marshal(dash)
+		if err != nil {
+			c.Data(500, "text/plain", []byte("Internal server error"))
+			c.Done()
+			return
+		}
+		c.Data(200, "application/json", data)
+		c.Done()
 	}
 }
 
 func CreateDashboardPageHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		var dash database.Dashboard
+		if err := c.ShouldBindJSON(&dash); err != nil {
+			c.Data(400, "text/plain", []byte("Invalid dashboard data"))
+			return
+		}
+		id, err := d.InsertDashboard(dash)
+		if err != nil {
+			c.Data(500, "text/plain", []byte("Internal server error"))
+			c.Done()
+			return
+		}
+		c.Data(200, "text/plain", []byte(strconv.Itoa(id)))
+		c.Done()
 	}
 }
 
 func DeleteDashboardHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		dash_id_str := c.Param("did")
+		dash_id, err := strconv.Atoi(dash_id_str)
+		if err != nil {
+			c.Data(400, "text/plain", []byte("The dashboard ID must be an integer!"))
+			c.Done()
+			return
+		}
+		err = d.DeleteDashboard(dash_id)
+		if err != nil {
+			c.Data(500, "text/plain", []byte("Internal server error"))
+			c.Done()
+			return
+		}
+		c.Status(200)
+		c.Done()
 	}
 }
 
 func ListDashboardChartsHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-
+		dash_id_str := c.Param("did")
+		dash_id, err := strconv.Atoi(dash_id_str)
+		if err != nil {
+			c.Data(400, "text/plain", []byte("The dashboard ID must be an integer!"))
+			c.Done()
+			return
+		}
+		graphs, err := d.ListDashboardCharts(dash_id)
+		if err != nil {
+			c.Data(500, "text/plain", []byte("Internal server error"))
+			c.Done()
+			return
+		}
+		data, err := json.Marshal(graphs)
+		if err != nil {
+			c.Data(500, "text/plain", []byte("Internal server error"))
+			c.Done()
+			return
+		}
+		c.Data(200, "application/json", data)
+		c.Done()
 	}
 }
 
 func AppendChartToDashboardHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		dash_id_str := c.Param("did")
+		dash_id, err := strconv.Atoi(dash_id_str)
+		if err != nil {
+			c.Data(400, "text/plain", []byte("The dashboard ID must be an integer!"))
+			c.Done()
+			return
+		}
+		chart_id_str := c.Param("cid")
+		chart_id, err := strconv.Atoi(chart_id_str)
+		if err != nil {
+			c.Data(400, "text/plain", []byte("The chart ID must be an integer!"))
+			c.Done()
+			return
+		}
+		err = d.AppendChartToDashboard(dash_id, chart_id)
+		if err != nil {
+			c.Data(500, "text/plain", []byte("Internal server error"))
+			c.Done()
+			return
+		}
+		c.Status(200)
+		c.Done()
 	}
 }
 
 func RemoveChartFromDashboardHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		dash_id_str := c.Param("did")
+		dash_id, err := strconv.Atoi(dash_id_str)
+		if err != nil {
+			c.Data(400, "text/plain", []byte("The dashboard ID must be an integer!"))
+			c.Done()
+			return
+		}
+		chart_id_str := c.Param("cid")
+		chart_id, err := strconv.Atoi(chart_id_str)
+		if err != nil {
+			c.Data(400, "text/plain", []byte("The chart ID must be an integer!"))
+			c.Done()
+			return
+		}
+		err = d.RemoveChartFromDashboard(dash_id, chart_id)
+		if err != nil {
+			c.Data(500, "text/plain", []byte("Internal server error"))
+			c.Done()
+			return
+		}
+		c.Status(200)
+		c.Done()
 	}
 }

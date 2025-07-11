@@ -11,6 +11,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+const nilId = -1
+
 type DbManager struct {
 	conStr     string
 	Connection *pgxpool.Pool
@@ -18,21 +20,53 @@ type DbManager struct {
 }
 
 type User struct {
-	Name     string   `json:"username"`
-	Password string   `json:"password,omitempty"`
-	Roles    []string `json:"role,omitempty"`
+	Id       int    `json:"id,omitempty"`
+	Name     string `json:"username"`
+	Password string `json:"password,omitempty"`
+	Roles    []int  `json:"role"`
 }
 
 type Role struct {
-	Name string `json:"name"`
-	Color string `json:"color"`
-	UserCount int `json:""`
+	Id          int          `json:"id,omitempty"`
+	Name        string       `json:"name"`
+	Color       string       `json:"color"`
+	Permissions []Permission `json:"permissions,omitempty"`
+	UserCount   int          `json:"usercount,omitempty"`
 }
 
 type Query struct {
 	Id      int    `json:"id"`
 	Name    string `json:"name"`
 	Literal string `json:"literal"`
+}
+
+type Settings struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+// Parse the 'key'. If it parses to an integer, use the 'table'.'intColumn' to compare against 'key'. Otherwise use the 'table'.'stringColumn' to compare against 'key'
+func GetSearchSuffix(key string, table string, stringColumn string, intColumn string) string {
+	query := ""
+
+	// Attempt to parse the ID into a separate variable
+	_, err := strconv.Atoi(key)
+	if err != nil {
+		query = table + "." + stringColumn + "= $1;"
+	} else {
+		query = table + "." + intColumn + "=$1;"
+	}
+
+	// Return the query
+	return query
+}
+
+func GetUserSearchSuffix(user_name string) string {
+	return GetSearchSuffix(user_name, "users", "user_name", "user_id")
+}
+
+func GetQuerySearchSuffix(query_name string) string {
+	return GetSearchSuffix(query_name, "queries", "query_name", "query_id")
 }
 
 func NewDbManager(connectionString string, ctx context.Context) (*DbManager, error) {
@@ -74,17 +108,15 @@ func (d *DbManager) ConnectToDatabase() error {
 }
 
 func (d *DbManager) GetAllUsers() ([]User, error) {
-	var users []User
-
-	// FIND A WAY TO RETURN ALL ROLES ASSOCIATED WITH USER
 	query :=
 		`SELECT
+			users.user_id,
 			users.user_name,
-			roles.role_name
+			roles.role_id
 		FROM
-			userroles
-			JOIN users ON userroles.user_id = users.user_id
-			JOIN roles ON userroles.role_id = roles.role_id
+			users
+			LEFT JOIN userroles ON users.user_id = userroles.user_id
+			LEFT JOIN roles ON userroles.role_id = roles.role_id
 		ORDER BY
 			users.user_name;`
 
@@ -94,59 +126,73 @@ func (d *DbManager) GetAllUsers() ([]User, error) {
 	}
 	defer rows.Close()
 
-	userRoleData := map[string][]string{}
+	userMap := map[int]User{}
 	for rows.Next() {
-		var userName string
-		var roleName string
+		user := User{}
+		var roleId *int
 
-		err = rows.Scan(&userName, &roleName)
+		err = rows.Scan(&user.Id, &user.Name, &roleId)
 		if err != nil {
 			return nil, err
 		}
 
-		userRoleData[userName] = append(userRoleData[userName], roleName)
+		if _, exists := userMap[user.Id]; !exists {
+			userMap[user.Id] = User{
+				Id:    user.Id,
+				Name:  user.Name,
+				Roles: []int{},
+			}
+		}
+
+		u := userMap[user.Id]
+		if roleId != nil {
+			u.Roles = append(u.Roles, *roleId)
+		} else {
+			u.Roles = []int{}
+		}
+		userMap[user.Id] = u
 	}
 
-	for name, roles := range userRoleData {
-		slices.Sort(roles)
-		users = append(users, User{
-			Name:  name,
-			Roles: roles})
+	// Convert map to array
+	users := make([]User, 0, len(userMap))
+	for _, user := range userMap {
+		users = append(users, user)
 	}
 
 	return users, nil
 }
 
 // Return a user based on username. Return error if no user found.
-func (d *DbManager) GetUserByUserName(name string) (User, error) {
+func (d *DbManager) GetSingleUser(name string) (User, error) {
 	var err error
-	if err = d.Connection.Ping(context.Background()); err != nil {
-		return User{}, err
-	}
-
 	query :=
 		`SELECT
-			password_hash, role_name
+			users.user_id, users.password_hash, roles.role_id, users.user_name
 		FROM
 			userroles
 			RIGHT JOIN users ON userroles.user_id = users.user_id
 			RIGHT JOIN roles ON userroles.role_id = roles.role_id
-		WHERE user_name = $1`
-	rows, err := d.Connection.Query(d.context, query, name)
+		WHERE ` + GetUserSearchSuffix(name)
+	args := []interface{}{name}
+
+	rows, err := d.Connection.Query(d.context, query, args...)
 	if err != nil {
 		return User{}, err
 	}
+	defer rows.Close()
 
 	user := User{}
-	roles := []string{}
+	roles := []int{}
 	for rows.Next() {
-		var role string
+		var userName string
+		var role int
 
-		err = rows.Scan(&user.Password, &role)
+		err = rows.Scan(&user.Id, &user.Password, &role, &userName)
 		if err != nil {
 			return User{}, err
 		}
 
+		user.Name = userName
 		roles = append(roles, role)
 	}
 
@@ -198,16 +244,54 @@ func (d *DbManager) DeleteUser(username string) error {
 	return err
 }
 
+// Update a user, expects pre-hashed password (do not give this plaintext pls)
+func (d *DbManager) UpdateUser(userid int, name string, password string) error {
+
+	if name == "" && password == "" {
+		return nil
+	}
+
+	query := "UPDATE users SET"
+	argCount := 1
+	var args []any
+
+	if name != "" {
+		query += " user_name = $" + strconv.Itoa(argCount)
+		args = append(args, name)
+		argCount++
+	}
+
+	if password != "" {
+		if argCount > 1 {
+			query += ","
+		}
+		query += " password_hash = $" + strconv.Itoa(argCount)
+		args = append(args, password)
+		argCount++
+	}
+
+	query += " WHERE user_id = $" + strconv.Itoa(argCount)
+	args = append(args, userid)
+
+	_, err := d.Connection.Exec(d.context, query, args...)
+	if err != nil {
+		errMsg := fmt.Sprintf("unable to update user '%d': %s", userid, err.Error())
+		return errors.New(errMsg)
+	}
+
+	return nil
+}
+
 // Add a role to a user
-func (d *DbManager) AddUserRole(userName string, roleName string) error {
+func (d *DbManager) AddUserRole(userID string, roleID string) error {
 	query :=
 		`INSERT INTO userroles (user_id, role_id)
 		SELECT users.user_id, roles.role_id
 		FROM users, roles
-		WHERE users.user_name = $1
-		AND roles.role_name = $2`
+		WHERE users.user_id = $1
+		AND roles.role_id = $2`
 
-	_, err := d.Connection.Exec(d.context, query, userName, roleName)
+	_, err := d.Connection.Exec(d.context, query, userID, roleID)
 	if err != nil {
 		errMsg := fmt.Sprintf("unable to add new role to: %s", err.Error())
 		return errors.New(errMsg)
@@ -217,16 +301,16 @@ func (d *DbManager) AddUserRole(userName string, roleName string) error {
 }
 
 // Delete a role from a user
-func (d *DbManager) DeleteUserRole(userName string, roleName string) error {
+func (d *DbManager) DeleteUserRole(userID string, roleID string) error {
 	query :=
 		`DELETE FROM userroles
-		WHERE user_id = (SELECT user_id FROM users WHERE user_name = $1)
-		AND role_id = (SELECT role_id FROM roles WHERE role_name = $2)`
+		WHERE user_id = $1
+		AND role_id = $2`
 
-	_, err := d.Connection.Exec(d.context, query, userName, roleName)
+	_, err := d.Connection.Exec(d.context, query, userID, roleID)
 	if err != nil {
 		errMsg := fmt.Sprintf("unable to delete '%s' role from '%s': %s",
-			roleName, userName, err.Error())
+			roleID, userID, err.Error())
 		return errors.New(errMsg)
 	}
 
@@ -236,10 +320,25 @@ func (d *DbManager) DeleteUserRole(userName string, roleName string) error {
 // Get count of users per role
 func (d *DbManager) GetRoles() ([]Role, error) {
 	query :=
-		`SELECT r.role_name, r.role_color, COUNT(ur.role_id)
+		`SELECT
+			r.role_id,
+			r.role_name,
+			r.role_color, 
+			COUNT(DISTINCT ur.role_id) AS user_count,
+			ARRAY_AGG(DISTINCT p.permission_id) FILTER (WHERE p.permission_id IS NOT NULL) AS permission_ids,
+			ARRAY_AGG(DISTINCT p.permission_name) FILTER (WHERE p.permission_name IS NOT NULL) AS permission_names
 		FROM roles r
-		LEFT JOIN userroles ur ON r.role_id = ur.role_id 
-		GROUP BY r.role_name, r.role_color`
+		LEFT JOIN
+			userroles ur ON r.role_id = ur.role_id
+		LEFT JOIN
+			rolepermissions rp ON r.role_id = rp.role_id
+		LEFT JOIN
+			permissions p ON rp.permission_id = p.permission_id
+		WHERE r.role_name != 'default'
+		GROUP BY
+			r.role_id,
+			r.role_name,
+			r.role_color`
 
 	rows, err := d.Connection.Query(d.context, query)
 	if err != nil {
@@ -250,15 +349,32 @@ func (d *DbManager) GetRoles() ([]Role, error) {
 
 	roles := []Role{}
 	for rows.Next() {
-		newRole := Role{}
-		colorField := pgtype.Text{}
-		err = rows.Scan(&newRole.Name, &colorField, &newRole.UserCount)
+		var newRole Role
+		var colorField pgtype.Text
+		var permIds []int32
+		var permNames []string
+		err = rows.Scan(
+			&newRole.Id,
+			&newRole.Name,
+			&colorField,
+			&newRole.UserCount,
+			&permIds,
+			&permNames,
+		)
 		if err != nil {
 			errMsg := fmt.Sprintf("error scanning row: %s", err.Error())
 			return nil, errors.New(errMsg)
 		}
 		if colorField.Valid {
 			newRole.Color = colorField.String
+		}
+
+		newRole.Permissions = make([]Permission, len(permIds))
+		for i := range permIds {
+			newRole.Permissions[i] = Permission{
+				Id:   int(permIds[i]),
+				Name: permNames[i],
+			}
 		}
 
 		roles = append(roles, newRole)
@@ -268,31 +384,119 @@ func (d *DbManager) GetRoles() ([]Role, error) {
 }
 
 // Add a new role to the database
-func (d *DbManager) AddRole(roleName string, roleColor string) error {
+func (d *DbManager) AddRole(role Role) (int, error) {
 	query :=
 		`INSERT INTO roles (role_name, role_color)
 		VALUES ($1, $2)
-		ON CONFLICT (role_name) DO NOTHING`
+		ON CONFLICT (role_name) DO NOTHING
+		RETURNING role_id`
 
-	_, err := d.Connection.Exec(d.context, query, roleName, roleColor)
+	id := nilId
+	err := d.Connection.QueryRow(d.context, query, role.Name, role.Color).Scan(&id)
 	if err != nil {
 		errMsg := fmt.Sprintf("unable to add new role: %s", err.Error())
-		return errors.New(errMsg)
+		return nilId, errors.New(errMsg)
+	}
+
+	return id, nil
+}
+
+// Update a role.
+func (d *DbManager) UpdateRole(role Role) error {
+	hasBasicUpdates := role.Name != "" || role.Color != ""
+	hasPermissionUpdates := len(role.Permissions) > 0
+
+	if !hasBasicUpdates && !hasPermissionUpdates {
+		return nil
+	}
+
+	// Start a transaction since we might need multiple operations
+	tx, err := d.Connection.Begin(d.context)
+	if err != nil {
+		return fmt.Errorf("unable to start transaction: %w", err)
+	}
+	defer tx.Rollback(d.context)
+
+	// Handle basic role info updates
+	if hasBasicUpdates {
+		query := "UPDATE roles SET"
+		argCount := 1
+		var args []any
+
+		if role.Name != "" {
+			query += " role_name = $" + strconv.Itoa(argCount)
+			args = append(args, role.Name)
+			argCount++
+		}
+
+		if role.Color != "" {
+			if argCount > 1 {
+				query += ","
+			}
+			query += " role_color = $" + strconv.Itoa(argCount)
+			args = append(args, role.Color)
+			argCount++
+		}
+
+		query += " WHERE role_id = $" + strconv.Itoa(argCount)
+		args = append(args, role.Id)
+
+		_, err = tx.Exec(d.context, query, args...)
+		if err != nil {
+			return fmt.Errorf("unable to update role basic info '%d': %w", role.Id, err)
+		}
+	}
+
+	// Handle permissions updates
+	if hasPermissionUpdates {
+		// First, delete existing role permissions
+		deleteQuery := "DELETE FROM rolepermissions WHERE role_id = $1"
+		_, err = tx.Exec(d.context, deleteQuery, role.Id)
+		if err != nil {
+			return fmt.Errorf("unable to delete existing permissions for role '%d': %w", role.Id, err)
+		}
+
+		// Then, insert new permissions
+		if len(role.Permissions) > 0 {
+			insertQuery := "INSERT INTO rolepermissions (role_id, permission_id) VALUES "
+			var insertArgs []any
+			argCount := 1
+
+			for i, permission := range role.Permissions {
+				if i > 0 {
+					insertQuery += ", "
+				}
+				insertQuery += fmt.Sprintf("($%d, $%d)", argCount, argCount+1)
+				insertArgs = append(insertArgs, role.Id, permission.Id)
+				argCount += 2
+			}
+
+			_, err = tx.Exec(d.context, insertQuery, insertArgs...)
+			if err != nil {
+				return fmt.Errorf("unable to insert new permissions for role '%d': %w", role.Id, err)
+			}
+		}
+	}
+
+	// Commit the transaction
+	err = tx.Commit(d.context)
+	if err != nil {
+		return fmt.Errorf("unable to commit transaction: %w", err)
 	}
 
 	return nil
 }
 
 // Update a role name
-func (d *DbManager) UpdateRoleName(oldName string, newName string) error {
+func (d *DbManager) UpdateRoleName(roleId int, newName string) error {
 	query :=
 		`UPDATE roles
 		SET role_name = $1
-		WHERE role_name = $2`
+		WHERE role_id = $2`
 
-	_, err := d.Connection.Exec(d.context, query, newName, oldName)
+	_, err := d.Connection.Exec(d.context, query, newName, roleId)
 	if err != nil {
-		errMsg := fmt.Sprintf("unable to update '%s' role: %s", oldName, err.Error())
+		errMsg := fmt.Sprintf("unable to update '%d' role: %s", roleId, err.Error())
 		return errors.New(errMsg)
 	}
 
@@ -300,30 +504,30 @@ func (d *DbManager) UpdateRoleName(oldName string, newName string) error {
 }
 
 // Update a role color
-func (d *DbManager) UpdateRoleColor(roleName string, newColor string) error {
+func (d *DbManager) UpdateRoleColor(roleId int, newColor string) error {
 	query :=
 		`UPDATE roles
 		SET role_color = $1
-		WHERE role_name = $2
+		WHERE role_id = $2
 		`
 
-	_, err := d.Connection.Exec(d.context, query, newColor, roleName)
+	_, err := d.Connection.Exec(d.context, query, newColor, roleId)
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
 // Delete a role
-func (d *DbManager) DeleteRole(roleName string) error {
+func (d *DbManager) DeleteRole(roleId int) error {
 	query :=
 		`DELETE FROM roles
-		WHERE role_name = $1`
+		WHERE role_id = $1`
 
-	_, err := d.Connection.Exec(d.context, query, roleName)
+	_, err := d.Connection.Exec(d.context, query, roleId)
 	if err != nil {
-		errMsg := fmt.Sprintf("unable to delete '%s' role: %s", roleName, err.Error())
+		errMsg := fmt.Sprintf("unable to delete '%d' role: %s", roleId, err.Error())
 		return errors.New(errMsg)
 	}
 
@@ -341,21 +545,6 @@ func (d *DbManager) InsertCustomQuery(query_name string, query_string string) (i
 	err := d.Connection.QueryRow(d.context, query, query_name, query_string).Scan(&query_id)
 
 	return query_id, err
-}
-
-func GetQuerySearchSuffix(query_name string) string {
-	query := ""
-
-	// Attempt to parse the ID into a separate variable
-	_, err := strconv.Atoi(query_name)
-	if err != nil {
-		query = "query_name LIKE $1;"
-	} else {
-		query = "query_id=$1;"
-	}
-
-	// Return the query
-	return query
 }
 
 // Get the custom query string saved as some ID
@@ -409,6 +598,10 @@ func (d *DbManager) ListCustomQueries() ([]Query, error) {
 }
 
 func (d *DbManager) ExecuteCustomQuery(query string) ([]map[string]string, error) {
+	if d == nil {
+		return nil, errors.New("This service has not been connected to a data-only database.\nUse POST /settings/cdb to set the postgres connection string.")
+	}
+
 	var retRows []map[string]string
 
 	// Get Rows
@@ -455,4 +648,29 @@ func (d *DbManager) ExecuteCustomQuery(query string) ([]map[string]string, error
 
 	// Success
 	return retRows, nil
+}
+
+// Get key-value pair from settings table in database
+func (d *DbManager) GetSetting(key string) (string, error) {
+	query := "SELECT svalue FROM settings WHERE skey = $1;"
+	var value string
+
+	err := d.Connection.QueryRow(d.context, query, key).Scan(&value)
+	if err != nil {
+		return "", fmt.Errorf("error getting setting '%s': %w", key, err)
+	}
+
+	return value, nil
+}
+
+// Set or update a key-value pair in the settings table in the database
+func (d *DbManager) SetSetting(key string, value string) error {
+	query := "UPDATE settings SET svalue = $2 WHERE skey = $1;"
+
+	_, err := d.Connection.Exec(d.context, query, key, value)
+	if err != nil {
+		return fmt.Errorf("error setting key '%s' to value '%s': %w", key, value, err)
+	}
+
+	return nil
 }
