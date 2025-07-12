@@ -21,7 +21,7 @@ export async function apiFetch(route, verb = 'GET', body = false, content = "app
 
     if (res.status == 401) {
         // Go back to login
-        router.push('/');
+        router.push('/login');
     }
 
 
