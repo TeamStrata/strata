@@ -17,7 +17,7 @@ const pageInfo = computed(() => { return route.meta })
 
 <template>
   <!-- main separator -->
-  <div>
+  <div class="h-screen w-screen overflow-clip">
     <!-- NEW Sidebar -->
     <SidebarProvider>
       <Navbar></Navbar>
@@ -40,7 +40,7 @@ const pageInfo = computed(() => { return route.meta })
         </div>
         <Separator></Separator>
         <!-- main content area -->
-        <div class="p-5 h-full">
+        <div class="p-5 h-full w-full">
           <RouterView></RouterView>
         </div>
 
