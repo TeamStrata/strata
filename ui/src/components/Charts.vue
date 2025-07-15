@@ -116,7 +116,17 @@ apiFetch('/queries')
 
 
 const removeChartSection = (index) => {
-  seriesSections.splice(index, 1)
+  let spliced = seriesSections.splice(index, 1)
+  spliced.forEach(s => {
+    apiFetch(`/chart/${selectedChartTitle.value.id}/series/${s.id}`, 'DELETE')
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to delete chart section')
+        console.log(`Section ${s.id} removed successfully`)
+      })
+      .catch(err => {
+        console.error(`Error removing section ${s.id}:`, err)
+      })
+  })
 }
 
 const chartData = ref([])
@@ -161,6 +171,7 @@ const saveChart = async () => {
     }
 
     const seriesPayload = seriesSections.map(section => ({
+      id:section.id,
       chart_id: chartId,
       query_id: section.query?.id,
       x_col_name: section.xColumn,
@@ -215,9 +226,11 @@ const loadChartFromDB = async () => {
         const chartData = await result.json();
 
         return {
+          id:seriesItem.id,
           query,
           xColumn: seriesItem.x_col_name,
           yColumn: seriesItem.y_col_name,
+          chart_id: seriesItem.chart_id,
           chartData,
           columns: Object.keys(chartData[0] || {}), // dynamically get columns for selects
         };

@@ -110,9 +110,9 @@ func (d *DbManager) DeleteChart(chart_id int) error {
 }
 
 func (d *DbManager) UpdateChart(chart Chart) error {
-    query := "UPDATE chart SET chart_title = $1, chart_type = $2 WHERE chart_id = $3;"
-    _, err := d.Connection.Exec(d.context, query, chart.Title, chart.Type, chart.Id)
-    return err
+	query := "UPDATE chart SET chart_title = $1, chart_type = $2 WHERE chart_id = $3;"
+	_, err := d.Connection.Exec(d.context, query, chart.Title, chart.Type, chart.Id)
+	return err
 }
 
 func (d *DbManager) ListChartSeries(chart_id int) ([]ChartSeries, error) {
@@ -144,8 +144,8 @@ func (d *DbManager) GetChartSeries(series_id int) (ChartSeries, error) {
 
 func (d *DbManager) InsertChartSeries(series ChartSeries) (int, error) {
 	var id int
-	query := "INSERT INTO chartSeries (chart_id, query_id, x_column, y_column) VALUES ($1, $2, $3, $4) RETURNING series_id;"
-	err := d.Connection.QueryRow(d.context, query, series.ChartID, series.QueryID, series.XCol, series.YCol).Scan(&id)
+	query := "INSERT INTO chartSeries (chart_id, query_id, x_column, y_column) SELECT $1, $2, $3, $4 WHERE NOT EXISTS (SELECT 1 FROM chartSeries WHERE series_id = $5) RETURNING series_id;"
+	err := d.Connection.QueryRow(d.context, query, series.ChartID, series.QueryID, series.XCol, series.YCol, series.Id).Scan(&id)
 	return id, err
 }
 
@@ -161,10 +161,10 @@ func (d *DbManager) DeleteAllChartSeries(chart_id int) error {
 	return err
 }
 
-func (d* DbManager) UpdateChartSeries(series ChartSeries) error {
-    query := "UPDATE chartSeries SET chart_id = $1, query_id = $2, x_column = $3, y_column = $4 WHERE series_id = $5;"
-    _, err := d.Connection.Exec(d.context, query, series.ChartID, series.QueryID, series.XCol, series.YCol, series.Id)
-    return err
+func (d *DbManager) UpdateChartSeries(series ChartSeries) error {
+	query := "UPDATE chartSeries SET chart_id = $1, query_id = $2, x_column = $3, y_column = $4 WHERE series_id = $5;"
+	_, err := d.Connection.Exec(d.context, query, series.ChartID, series.QueryID, series.XCol, series.YCol, series.Id)
+	return err
 }
 
 // List all dashboards
