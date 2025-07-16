@@ -154,6 +154,15 @@ const filteredQueries = computed(() => {
 		q.name.toLowerCase().includes(querySearch.value.toLowerCase())
 	);
 });
+
+//chat stuff
+const chatMessage = ref('');
+const chatBox = ref(null);
+
+function scaleChatBox() {
+	chatBox.value.style.height = 'auto'
+	chatBox.value.style.height = chatBox.value.scrollHeight + 'px'
+}
 </script>
 
 <template>
@@ -186,11 +195,29 @@ const filteredQueries = computed(() => {
 	</Dialog>
 
 	<Toast ref="toastRef" />
-	<ResizablePanelGroup id="demo-group-1" direction="horizontal" class="rounded-lg h-full">
+	<ResizablePanelGroup id="demo-group-1" direction="horizontal" class="h-full">
 		<ResizablePanel id="demo-panel-1" :default-size="20" :max-size="35" :min-size="15" collapsible
 			:collapsed-size="0">
-			<div class="flex h-[200px] items-center justify-center p-6">
-				<span class="font-semibold">Chat Goes Here</span>
+			<div class="h-full flex flex-col">
+				<div class="p-2 flex justify-between bg-accent">
+					<p>AI Chat</p>
+				</div>
+				<Separator></Separator>
+				<div class="flex-2">
+					CHAT GOES HERE
+				</div>
+				<Separator></Separator>
+				<div class="py-3 px-4 flex items-center">
+					<textarea placeholder="Write a message..." v-model="chatMessage" class="w-full resize-none break-words focus:outline-none"
+						rows="1" ref="chatBox" @input="scaleChatBox"></textarea>
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+						stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+						class="lucide lucide-send-horizontal-icon lucide-send-horizontal" :class="chatMessage == '' ? 'text-neutral-400' : 'text-black cursor-pointer'">
+						<path
+							d="M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" />
+						<path d="M6 12h16" />
+					</svg>
+				</div>
 			</div>
 		</ResizablePanel>
 		<ResizableHandle id="demo-handle-2" />
@@ -290,7 +317,8 @@ const filteredQueries = computed(() => {
 										</svg>
 									</DropdownMenuTrigger>
 									<DropdownMenuContent>
-										<DropdownMenuItem class="text-destructive focus:text-destructive" :onClick="() => {deleteQuery(q.name)}">
+										<DropdownMenuItem class="text-destructive focus:text-destructive"
+											:onClick="() => { deleteQuery(q.name) }">
 											<span>Delete</span>
 										</DropdownMenuItem>
 									</DropdownMenuContent>
