@@ -7,9 +7,6 @@ import {
 	ResizablePanel,
 	ResizablePanelGroup,
 } from '@/components/ui/resizable'
-import Card from "./Card.vue";
-import CardHeader from "./ui/card/CardHeader.vue";
-import CardContent from "./ui/card/CardContent.vue";
 import DropdownMenu from "./ui/dropdown-menu/DropdownMenu.vue";
 import DropdownMenuTrigger from "./ui/dropdown-menu/DropdownMenuTrigger.vue";
 import DropdownMenuContent from "./ui/dropdown-menu/DropdownMenuContent.vue";
@@ -23,6 +20,7 @@ import DialogHeader from "./ui/dialog/DialogHeader.vue";
 import DialogContent from "./ui/dialog/DialogContent.vue";
 import DialogFooter from "./ui/dialog/DialogFooter.vue";
 import DialogClose from "./ui/dialog/DialogClose.vue";
+import DialogDescription from "./ui/dialog/DialogDescription.vue";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -137,12 +135,25 @@ function executeQuery() {
 			console.error(error);
 		});
 }
+
+function openQuery(query) {
+	code.value = query.literal
+}
 //editor stuff
 const extensions = [sql()];
 const code = ref('SELECT * FROM users;');
 const queryResult = ref(null);
 const resultRows = computed(() => queryResult.value != null ? queryResult.value.length : null);
 const queryError = ref(null);
+
+//explorer stuff
+const querySearch = ref("");
+const filteredQueries = computed(() => {
+	if (!querySearch.value) return queries.value;
+	return queries.value.filter(q =>
+		q.name.toLowerCase().includes(querySearch.value.toLowerCase())
+	);
+});
 </script>
 
 <template>
@@ -182,12 +193,12 @@ const queryError = ref(null);
 				<span class="font-semibold">Chat Goes Here</span>
 			</div>
 		</ResizablePanel>
-		<ResizableHandle id="demo-handle-2"/>
+		<ResizableHandle id="demo-handle-2" />
 		<ResizablePanel id="demo-panel-2" :default-size="50">
 			<ResizablePanelGroup id="demo-group-2" direction="vertical">
 				<ResizablePanel id="demo-panel-3" :default-size="50" :min-size="20">
 					<div class="h-full items-center justify-center">
-						<div class="p-2 flex justify-between">
+						<div class="p-2 flex justify-between bg-accent">
 							<p>Name</p>
 							<div class="flex gap-2 px-2">
 								<Save @click="openSaveDialog" class="hover:cursor-pointer"></Save>
@@ -217,8 +228,8 @@ const queryError = ref(null);
 								</thead>
 								<tbody>
 									<tr v-for="(row, rowIndex) in queryResult" :key="index">
-										<td class="border border-neutral-300 py-2 px-3 last:border-r-0 first:border-l-0" v-for="(column, colIndex) in row"
-											:key="colIndex">
+										<td class="border border-neutral-300 py-2 px-3 last:border-r-0 first:border-l-0"
+											v-for="(column, colIndex) in row" :key="colIndex">
 											<pre>{{ column }}</pre>
 										</td>
 									</tr>
@@ -231,17 +242,43 @@ const queryError = ref(null);
 				</ResizablePanel>
 			</ResizablePanelGroup>
 		</ResizablePanel>
-		<ResizableHandle id="demo-handle-5"/>
+		<ResizableHandle id="demo-handle-5" />
 		<ResizablePanel id="demo-panel-5" :default-size="20" :max-size="35" :min-size="15" collapsible
 			:collapsed-size="0">
-			<div class="flex  justify-center p-6 max-w-full overflow-x-auto h-full">
-				<ul class="w-full space-y-4">
-					<li v-for="(q, index) in queries" :key="index">
-						<Card class="max-w-3xl">
-							<CardHeader class="flex flex-row justify-between p-0 mb-2">
-								<h1 class="">{{ q.name }}</h1>
+			<div>
+				<div class="p-2 flex justify-between bg-accent">
+					<p>Query Explorer</p>
+				</div>
+				<Separator></Separator>
+				<div>
+					<div class="flex items-center px-3 mt-3 justify-between w-full">
+						<div class="flex items-center w-full">
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+								fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+								stroke-linejoin="round"
+								class="lucide lucide-search-icon lucide-search text-muted-foreground">
+								<path d="m21 21-4.34-4.34" />
+								<circle cx="11" cy="11" r="8" />
+							</svg>
+							<input v-model="querySearch" placeholder="Search for queries"
+								class="px-2 focus:outline-none w-full" spellcheck="false">
+						</div>
+						<svg v-show="querySearch != ''" @click="querySearch = ''" xmlns="http://www.w3.org/2000/svg"
+							width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+							stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+							class="lucide lucide-x-icon lucide-x w-4 cursor-pointer">
+							<path d="M18 6 6 18" />
+							<path d="m6 6 12 12" />
+						</svg>
+					</div>
+					<ul class="w-full mt-3">
+						<li v-for="(q, index) in filteredQueries" :key="index"
+							class="flex items-center w-full justify-between group hover:bg-accent py-1 px-4 cursor-pointer"
+							@click="openQuery(q)">
+							<h1>{{ q.name }}</h1>
+							<div class="opacity-0 group-hover:opacity-100">
 								<DropdownMenu>
-									<DropdownMenuTrigger>
+									<DropdownMenuTrigger class="cursor-pointer align-middle" @click.stop>
 										<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
 											viewBox="0 0 24 24">
 											<g fill="none" stroke="currentColor" stroke-linecap="round"
@@ -253,19 +290,16 @@ const queryError = ref(null);
 										</svg>
 									</DropdownMenuTrigger>
 									<DropdownMenuContent>
-										<DropdownMenuItem class="text-destructive focus:text-destructive">
+										<DropdownMenuItem class="text-destructive focus:text-destructive" :onClick="() => {deleteQuery(q.name)}">
 											<span>Delete</span>
 										</DropdownMenuItem>
 									</DropdownMenuContent>
 								</DropdownMenu>
-							</CardHeader>
-							<CardContent>
-								<pre
-									class="truncate"><code class="language-sql rounded text-clip">{{ q.literal }}</code></pre>
-							</CardContent>
-						</Card>
-					</li>
-				</ul>
+							</div>
+
+						</li>
+					</ul>
+				</div>
 			</div>
 		</ResizablePanel>
 
@@ -302,3 +336,15 @@ const queryError = ref(null);
 		</li>
 	</ul>
 </template>
+
+<style scoped>
+.root-wrapper {
+	display: flex;
+	flex-direction: row;
+
+	.cm-editor {
+		width: 0;
+		flex-grow: 1;
+	}
+}
+</style>
