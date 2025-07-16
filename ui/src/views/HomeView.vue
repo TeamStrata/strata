@@ -40,7 +40,7 @@ const pageInfo = computed(() => { return route.meta })
         </div>
         <Separator></Separator>
         <!-- main content area -->
-        <div class="p-5 h-full w-full">
+        <div class="h-full w-full" :class="route.name == 'queries' ? 'p-0' : 'p-5'">
           <RouterView></RouterView>
         </div>
 
