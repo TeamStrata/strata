@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick } from "vue";
+import { ref, nextTick, computed } from "vue";
 import Toast, { ToastTypes } from "./Toast.vue";
 import { apiFetch } from "@/api/request";
 import {
@@ -7,7 +7,26 @@ import {
 	ResizablePanel,
 	ResizablePanelGroup,
 } from '@/components/ui/resizable'
-
+import Card from "./Card.vue";
+import CardHeader from "./ui/card/CardHeader.vue";
+import CardContent from "./ui/card/CardContent.vue";
+import DropdownMenu from "./ui/dropdown-menu/DropdownMenu.vue";
+import DropdownMenuTrigger from "./ui/dropdown-menu/DropdownMenuTrigger.vue";
+import DropdownMenuContent from "./ui/dropdown-menu/DropdownMenuContent.vue";
+import DropdownMenuItem from "./ui/dropdown-menu/DropdownMenuItem.vue";
+import { Codemirror } from "vue-codemirror";
+import { sql } from "@codemirror/lang-sql";
+import Separator from "./ui/separator/Separator.vue";
+import { Play, Save } from "lucide-vue-next";
+import Dialog from "./ui/dialog/Dialog.vue";
+import DialogHeader from "./ui/dialog/DialogHeader.vue";
+import DialogContent from "./ui/dialog/DialogContent.vue";
+import DialogFooter from "./ui/dialog/DialogFooter.vue";
+import DialogClose from "./ui/dialog/DialogClose.vue";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import DialogTitle from "./ui/dialog/DialogTitle.vue";
 // If we can't connect to the database, or while the fetch is in progress, this displays.
 var queries = ref([
 	{
@@ -17,14 +36,19 @@ var queries = ref([
 	},
 ]);
 var newQueryName = ref("");
-var newQueryLiteral = ref("");
 
-var addModal = ref(false);
+var isSaveOpen = ref(false);
 const toastRef = ref(null);
+
+function openSaveDialog() {
+	isSaveOpen.value = true;
+
+	nextTick(hljs.highlightAll);
+}
 
 function addQuery() {
 	// submit user and pass to form
-	apiFetch(`/query/${newQueryName.value}`, "POST", newQueryLiteral.value, "application/sql")
+	apiFetch(`/query/${newQueryName.value}`, "POST", code.value, "application/sql")
 		.then(async (response) => {
 			if (!response.ok) {
 				toastRef.value?.showToast(
@@ -35,24 +59,16 @@ function addQuery() {
 			}
 
 			toastRef.value?.showToast(
-				"The account was successfully created",
+				"Query Saved",
 				ToastTypes.SUCCESS,
 			);
 
-			// Push new user to the list
-			queries.value.push({
-				id: await response.text(),
-				name: newQueryName.value,
-				literal: newQueryLiteral.value,
-			});
-
 			// Wait for VUE DOM to update, then apply syntax highlighting
-			nextTick(hljs.highlightAll);
+			// nextTick(hljs.highlightAll);
 		})
 		.catch((error) => {
 			console.error("Error:", error);
 		});
-	addModal.value = false;
 }
 
 function deleteQuery(name) {
@@ -103,90 +119,153 @@ function loadQueries() {
 }
 
 loadQueries();
+
+function executeQuery() {
+	//clear old response data
+	queryResult.value = null;
+	queryError.value = null;
+
+	apiFetch('/query/executeLiteral', 'POST', code.value, 'application/sql')
+		.then(async (response) => {
+			if (!response.ok) {
+				queryError.value = await response.text();
+				throw new Error("Error executing query");
+			}
+			queryResult.value = await response.json();
+		})
+		.catch((error) => {
+			console.error(error);
+		});
+}
+//editor stuff
+const extensions = [sql()];
+const code = ref('SELECT * FROM users;');
+const queryResult = ref(null);
+const resultRows = computed(() => queryResult.value != null ? queryResult.value.length : null);
+const queryError = ref(null);
 </script>
 
 <template>
-	<!-- add user modal -->
-	<div class="static" v-if="addModal">
-		<div class="bg-black/20 w-screen h-screen absolute left-0 top-0 backdrop-blur-xs" @click="addModal = false">
-		</div>
-		<div
-			class="bg-white p-8 w-96 m-auto rounded-lg shadow-md absolute left-1/2 transform -translate-x-1/2 top-1/3 -translate-y-1/2">
-			<h1 class="text-2xl font-semibold text-gray-800 mb-6">Add Query</h1>
-			<div>
-				<label for="newQuery" class="text-gray-600">Query Name</label>
-				<input id="newQueryName" v-model="newQueryName"
-					class="mt-1 border border-gray-300 rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-					placeholder="Enter query name" />
+
+	<!-- save query dialog -->
+	<Dialog :open="isSaveOpen" @update:open="isSaveOpen = $event">
+		<DialogContent class="sm:max-w-[425px]">
+			<DialogHeader>
+				<DialogTitle>Save Query</DialogTitle>
+				<DialogDescription>
+					Click 'Confirm' to save changes.
+				</DialogDescription>
+			</DialogHeader>
+			<div class="grid gap-4 py-4">
+				<div class="grid grid-cols-4 items-center gap-4">
+					<Label for="edit-name-input" class="text-right">Name</Label>
+					<Input id="edit-name-input" type="text" v-model="newQueryName" class="col-span-3" />
+				</div>
+				<pre><code class="language-sql rounded">{{ code }}</code></pre>
 			</div>
-			<div class="mt-4">
-				<label for="newPass" class="text-gray-600">Query Literal</label>
-				<input id="newQueryLiteral" v-model="newQueryLiteral"
-					class="mt-1 border border-gray-300 rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-					placeholder="Enter query SQL string" />
-			</div>
-			<div class="flex flex-row justify-between mt-6">
-				<button
-					class="bg-neutral-200 px-4 py-2 rounded-md cursor-pointer hover:bg-neutral-300 focus:outline-none focus:ring-2 focus:ring-gray-300"
-					@click="addModal = false">
-					Cancel
-				</button>
-				<button
-					class="bg-blue-500 text-white py-2 px-4 rounded-md cursor-pointer hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200"
-					@click="addQuery">
-					Add Query
-				</button>
-			</div>
-		</div>
-	</div>
+			<DialogFooter>
+				<DialogClose as-child>
+					<Button type="button" variant="outline">
+						Cancel
+					</Button>
+				</DialogClose>
+				<Button type="submit" @click="addQuery">Confirm</Button>
+			</DialogFooter>
+		</DialogContent>
+	</Dialog>
 
 	<Toast ref="toastRef" />
-
-	<!-- <p class="text-gray-700 mb-4">Manage your organizations queries</p> -->
-
-	<!-- list header -->
-	<!-- <div class="flex flex-row justify-between items-center mb-6">
-		<h1 class="text-2xl font-semibold text-gray-800">Queries</h1>
-
-		<div class="flex flex-row pb-2 items-center space-x-3">
-			<p class="text-gray-600">{{ queries?.length }} queries</p>
-			<input placeholder="Search"
-				class="p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
-				type="text" />
-			<button @click="addModal = true"
-				class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200 cursor-pointer">
-				Add Query
-			</button>
-		</div>
-	</div> -->
-
-	<ResizablePanelGroup id="demo-group-1" direction="horizontal" class="rounded-lg border h-full">
-		<ResizablePanel id="demo-panel-1" :default-size="50">
+	<ResizablePanelGroup id="demo-group-1" direction="horizontal" class="rounded-lg h-full">
+		<ResizablePanel id="demo-panel-1" :default-size="20" :max-size="35" :min-size="15" collapsible
+			:collapsed-size="0">
 			<div class="flex h-[200px] items-center justify-center p-6">
 				<span class="font-semibold">Chat Goes Here</span>
 			</div>
 		</ResizablePanel>
-		<ResizableHandle id="demo-handle-1" />
+		<ResizableHandle id="demo-handle-2"/>
 		<ResizablePanel id="demo-panel-2" :default-size="50">
 			<ResizablePanelGroup id="demo-group-2" direction="vertical">
-				<ResizablePanel id="demo-panel-3" :default-size="25">
-					<div class="flex h-full items-center justify-center p-6">
-						<span class="font-semibold">Two</span>
+				<ResizablePanel id="demo-panel-3" :default-size="50" :min-size="20">
+					<div class="h-full items-center justify-center">
+						<div class="p-2 flex justify-between">
+							<p>Name</p>
+							<div class="flex gap-2 px-2">
+								<Save @click="openSaveDialog" class="hover:cursor-pointer"></Save>
+								<Play @click="executeQuery" class="hover:cursor-pointer"></Play>
+							</div>
+						</div>
+						<Separator></Separator>
+						<Codemirror v-model="code" :extensions="extensions"></Codemirror>
 					</div>
 				</ResizablePanel>
 				<ResizableHandle id="demo-handle-2" />
-				<ResizablePanel id="demo-panel-4" :default-size="75">
-					<div class="flex h-full items-center justify-center p-6">
-						<span class="font-semibold">Three</span>
+				<ResizablePanel id="demo-panel-4" :default-size="50" :min-size="20">
+					<div class="flex flex-col justify-center" :class="queryResult != null ? '' : 'h-full items-center'">
+						<div v-if="queryResult != null">
+							<div class="py-2 px-3">
+								<p class="text-muted-foreground">{{ resultRows }} rows in result</p>
+							</div>
+							<!-- list body -->
+							<table class="w-full">
+								<thead>
+									<tr class="bg-accent">
+										<th class="border border-neutral-300 py-2 px-3 last:border-r-0 first:border-l-0 text-left"
+											v-for="(column, colIndex) in queryResult[0]" :key="colIndex">
+											<pre>{{ colIndex }}</pre>
+										</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr v-for="(row, rowIndex) in queryResult" :key="index">
+										<td class="border border-neutral-300 py-2 px-3 last:border-r-0 first:border-l-0" v-for="(column, colIndex) in row"
+											:key="colIndex">
+											<pre>{{ column }}</pre>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+						<p v-else-if="queryError != null" class="text-destructive text-lg">{{ queryError }}</p>
+						<p v-else class="text-neutral-500 text-lg my-1/4">Execute a query to see results.</p>
 					</div>
 				</ResizablePanel>
 			</ResizablePanelGroup>
 		</ResizablePanel>
-		<ResizableHandle id="demo-handle-5" />
-
-		<ResizablePanel id="demo-panel-5" :default-size="50">
-			<div class="flex h-[200px] items-center justify-center p-6">
-				<span class="font-semibold">Saved goes here</span>
+		<ResizableHandle id="demo-handle-5"/>
+		<ResizablePanel id="demo-panel-5" :default-size="20" :max-size="35" :min-size="15" collapsible
+			:collapsed-size="0">
+			<div class="flex  justify-center p-6 max-w-full overflow-x-auto h-full">
+				<ul class="w-full space-y-4">
+					<li v-for="(q, index) in queries" :key="index">
+						<Card class="max-w-3xl">
+							<CardHeader class="flex flex-row justify-between p-0 mb-2">
+								<h1 class="">{{ q.name }}</h1>
+								<DropdownMenu>
+									<DropdownMenuTrigger>
+										<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+											viewBox="0 0 24 24">
+											<g fill="none" stroke="currentColor" stroke-linecap="round"
+												stroke-linejoin="round" stroke-width="2">
+												<circle cx="12" cy="12" r="1" />
+												<circle cx="19" cy="12" r="1" />
+												<circle cx="5" cy="12" r="1" />
+											</g>
+										</svg>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent>
+										<DropdownMenuItem class="text-destructive focus:text-destructive">
+											<span>Delete</span>
+										</DropdownMenuItem>
+									</DropdownMenuContent>
+								</DropdownMenu>
+							</CardHeader>
+							<CardContent>
+								<pre
+									class="truncate"><code class="language-sql rounded text-clip">{{ q.literal }}</code></pre>
+							</CardContent>
+						</Card>
+					</li>
+				</ul>
 			</div>
 		</ResizablePanel>
 
@@ -223,10 +302,3 @@ loadQueries();
 		</li>
 	</ul>
 </template>
-
-<style scoped>
-input {
-	background-color: rgb(230, 230, 230);
-	margin: 1px;
-}
-</style>
