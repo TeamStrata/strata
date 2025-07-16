@@ -110,6 +110,36 @@ func ExecuteQueryHandler(d *database.DbManager) gin.HandlerFunc {
 	}
 }
 
+func ExecuteQueryLiteralHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Read the SQL string from the request body
+		sqlBytes, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
+			return
+		}
+		sqlString := string(sqlBytes)
+
+		rows, qerr := d.ExecuteCustomQuery(sqlString)
+		if qerr != nil {
+			c.Data(500, "text/plain", []byte(qerr.Error()))
+			c.Done()
+			return
+		}
+
+		data, jerr := json.Marshal(rows)
+		if jerr != nil {
+			c.Data(500, "text/plain", []byte(jerr.Error()))
+			c.Done()
+			return
+		}
+
+		c.Data(200, "application/json", data)
+		c.Done()
+	}
+}
+
 // @Summary Save Query
 // @Description Save a custom query to the database. Responds with the Query ID.
 // @Tags Queries
