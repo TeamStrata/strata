@@ -50,7 +50,7 @@ function addUser(user) {
 	}
 
 	// submit user and pass to form
-	apiFetch('/signup', 'POST', JSON.stringify(body))
+	apiFetch('/admin/signup', 'POST', JSON.stringify(body))
 		.then((response) => {
 			if (!response.ok) {
 				toastRef.value?.showToast(
@@ -76,7 +76,7 @@ function addUser(user) {
 
 function deleteUser(username) {
 
-	apiFetch(`/user/${username}`, "DELETE")
+	apiFetch(`/admin/user/${username}`, "DELETE")
 		.then((res) => {
 			if (!res.ok) {
 				toastRef.value?.showToast(
@@ -101,7 +101,7 @@ function deleteUser(username) {
 }
 
 function loadUsers() {
-	apiFetch('/users', 'GET')
+	apiFetch('/admin/users', 'GET')
 		.then(async (response) => {
 			// Handle error
 			if (!response.ok) {
@@ -120,7 +120,7 @@ function loadUsers() {
 }
 
 function loadRoles() {
-	apiFetch('/roles', 'GET').then(async res => {
+	apiFetch('/admin/roles', 'GET').then(async res => {
 		let val = await res.json();
 		roleList.value = val;
 
@@ -131,7 +131,7 @@ function loadRoles() {
 }
 
 function addUserRole(uid, rid) {
-	apiFetch(`/user/${uid}/role/${rid}`, 'POST').then((res) => {
+	apiFetch(`/admin/user/${uid}/role/${rid}`, 'POST').then((res) => {
 		if (res.ok) {
 			loadUsers()
 		} else {
@@ -141,7 +141,7 @@ function addUserRole(uid, rid) {
 }
 
 function removeUserRole(uid, rid) {
-	apiFetch(`/user/${uid}/role/${rid}`, 'DELETE').then((res) => {
+	apiFetch(`/admin/user/${uid}/role/${rid}`, 'DELETE').then((res) => {
 
 		if (res.ok) {
 			loadUsers()
@@ -170,7 +170,7 @@ function submitEdit() {
 		body.password = tempUser.value.password
 	}
 
-	let route = "/user/" + body.id;
+	let route = "/admin/user/" + body.id;
 	apiFetch(route, "PATCH", JSON.stringify(body))
 		.then((response) => {
 			if (!response.ok) {

@@ -41,7 +41,7 @@ function submitEdit(key) {
     let value = document.getElementById(`setting-${key}`).value
     console.log(value);
  
-    apiFetch(`/settings/${key}`, "PATCH", value)
+    apiFetch(`/admin/settings/${key}`, "PATCH", value)
         .then((response) => {
             if (!response.ok) {
                 toastRef.value?.showToast(
@@ -65,7 +65,7 @@ function submitEdit(key) {
 
 // Fetch roles from backend API
 function loadSettings() {
-    apiFetch("/settings")
+    apiFetch("/admin/settings")
         .then(async (response) => {
             
             if (!response.ok) {

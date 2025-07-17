@@ -49,7 +49,7 @@ func main() {
 	// Map for active users and uuids
 	// key: uuid
 	// value: username
-	activeUsers := make(map[string]string)
+	activeUsers := make(map[string]api.UserSessionData)
 
 	// Frontend
 	server.Static("/assets", "ui/dist/assets")
@@ -62,29 +62,8 @@ func main() {
 	protected := server.Group("/api")
 	{
 		protected.Use(api.AuthHandler(activeUsers))
-		protected.POST("/signup", api.SignUpHandler(db, activeUsers))
 		protected.POST("/logout", api.LogoutHandler(activeUsers))
 		protected.POST("/auth", api.AuthHandler(activeUsers))
-
-		// Users
-		protected.GET("/users", api.GetUsersHandler(db))
-		protected.GET("/user/:uid", api.GetUserHandler(db))
-		protected.DELETE("/user/:uname", api.DeleteUserHandler(db, activeUsers))
-		protected.PATCH("/user/:uid", api.UpdateUserHandler(db))
-
-		// User roles
-		protected.DELETE("/user/:uname/role/:rname", api.DeleteUserRoleHandler(db))
-		protected.POST("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
-
-		// Roles
-		protected.GET("/roles", api.GetRolesHandler(db))
-		protected.POST("/role", api.AddRoleHandler(db))
-		protected.PATCH("/role/:rid", api.UpdateRoleHandler(db))
-		protected.DELETE("/role/:rid", api.DeleteRoleHandler(db))
-
-		// Permissions
-		protected.GET("/permissions", api.GetPermissionsHandler(db))
-		protected.GET("/permissions/:scope", api.GetScopedPermissionsHandler(db))
 
 		// Dashboard Components
 		/// Charts
@@ -111,7 +90,7 @@ func main() {
 
 		// Query Endpoints
 		protected.GET("/queries", api.GetQueryList(db))
-		protected.GET("/query/:qid", api.ReadQueryLiteralHandler(db))     // Return the query SQL string
+		protected.GET("/query/:qid", api.ReadQueryLiteralHandler(db))           // Return the query SQL string
 		protected.GET("/query/:qid/execute", api.ExecuteQueryHandler(db, &cdb)) // Execute a saved query (custom or standard saved queries)
 		protected.POST("/query/:qid", api.SaveQueryHandler(db))
 		protected.DELETE("/query/:qid", api.DeleteQueryHandler(db))
@@ -121,9 +100,36 @@ func main() {
 
 		// Misc Endpoints
 		protected.GET("/ping", api.PingHandler)
-		protected.GET("/settings", api.GetAllSettingsHandler(db))
-		protected.GET("/settings/:key", api.GetSettingHandler(db))
-		protected.PATCH("/settings/:key", api.UpdateSettingHandler(db, &cdb))
+
+		admin := protected.Group("/admin")
+		{
+			// Account creation
+			admin.POST("/signup", api.SignUpHandler(db, activeUsers))
+
+			// Users
+			admin.GET("/users", api.GetUsersHandler(db))
+			admin.GET("/user/:uid", api.GetUserHandler(db))
+			admin.DELETE("/user/:uname", api.DeleteUserHandler(db, activeUsers))
+			admin.PATCH("/user/:uid", api.UpdateUserHandler(db))
+
+			// User roles
+			admin.DELETE("/user/:uname/role/:rname", api.DeleteUserRoleHandler(db))
+			admin.POST("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
+
+			// Roles
+			admin.GET("/roles", api.GetRolesHandler(db))
+			admin.POST("/role", api.AddRoleHandler(db))
+			admin.PATCH("/role/:rid", api.UpdateRoleHandler(db))
+			admin.DELETE("/role/:rid", api.DeleteRoleHandler(db))
+
+			// Permissions
+			admin.Use(api.AuthHandler(activeUsers))
+			admin.GET("/permissions", api.GetPermissionsHandler(db))
+			admin.GET("/permissions/:scope", api.GetScopedPermissionsHandler(db))
+			admin.GET("/settings", api.GetAllSettingsHandler(db))
+			admin.GET("/settings/:key", api.GetSettingHandler(db))
+			admin.PATCH("/settings/:key", api.UpdateSettingHandler(db, &cdb))
+		}
 	}
 
 	err = server.Run(":8080")

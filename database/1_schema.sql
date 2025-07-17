@@ -12,22 +12,9 @@ BEGIN
 		SELECT 1
 		FROM information_schema.tables
 		WHERE table_schema = 'public'
-		AND table_name = 'users'
 	) THEN
-		DROP TABLE IF EXISTS public.dashboardRolePermissions CASCADE;
-		DROP TABLE IF EXISTS public.rolePermissions CASCADE;
-		DROP TABLE IF EXISTS public.userRoles CASCADE;
-		DROP TABLE IF EXISTS public.queryPermissions CASCADE;
-		DROP TABLE IF EXISTS public.dashboardGraphs CASCADE;
-		DROP TABLE IF EXISTS public.chartSeries CASCADE;
-		DROP TABLE IF EXISTS public.chart CASCADE;
-		DROP TABLE IF EXISTS public.dashboard CASCADE;
-		DROP TABLE IF EXISTS public.queries CASCADE;
-		DROP TABLE IF EXISTS public.permissions CASCADE;
-		DROP TABLE IF EXISTS public.roles CASCADE;
-		DROP TABLE IF EXISTS public.users CASCADE;
-		DROP TYPE IF EXISTS scope CASCADE;
-		DROP TYPE IF EXISTS CHART_TYPE CASCADE;
+		DROP SCHEMA public CASCADE;
+		CREATE SCHEMA public;
 	END IF;
 
 	DO $$ BEGIN
