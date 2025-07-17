@@ -238,34 +238,48 @@ function scaleChatBox() {
 				</ResizablePanel>
 				<ResizableHandle id="demo-handle-2" />
 				<ResizablePanel id="demo-panel-4" :default-size="50" :min-size="20">
-					<div class="flex flex-col justify-center" :class="queryResult != null ? '' : 'h-full items-center'">
-						<div v-if="queryResult != null">
-							<div class="py-2 px-3">
-								<p class="text-muted-foreground">{{ resultRows }} rows in result</p>
-							</div>
-							<!-- list body -->
-							<table class="w-full">
-								<thead>
-									<tr class="bg-accent">
-										<th class="border border-neutral-300 py-2 px-3 last:border-r-0 first:border-l-0 text-left"
-											v-for="(column, colIndex) in queryResult[0]" :key="colIndex">
-											<pre>{{ colIndex }}</pre>
-										</th>
-									</tr>
-								</thead>
-								<tbody>
-									<tr v-for="(row, rowIndex) in queryResult" :key="index">
-										<td class="border border-neutral-300 py-2 px-3 last:border-r-0 first:border-l-0"
-											v-for="(column, colIndex) in row" :key="colIndex">
-											<pre>{{ column }}</pre>
-										</td>
-									</tr>
-								</tbody>
-							</table>
-						</div>
-						<p v-else-if="queryError != null" class="text-destructive text-lg">{{ queryError }}</p>
-						<p v-else class="text-neutral-500 text-lg my-1/4">Execute a query to see results.</p>
-					</div>
+<div class="flex flex-col h-full justify-center" :class="queryResult != null ? '' : 'items-center'">
+	<div v-if="queryResult != null" class="flex flex-col h-full">
+		<div class="py-2 px-3">
+			<p class="text-muted-foreground">{{ resultRows }} rows in result</p>
+		</div>
+
+		<!-- Horizontal scroll container -->
+		<div class="overflow-x-auto h-full">
+			<!-- Inner container to support sticky header + vertical scroll -->
+			<div class="min-w-full h-full flex flex-col">
+				<!-- Use a single table with sticky header -->
+				<table class="table-auto w-full border-collapse">
+					<thead class="bg-accent">
+						<tr>
+							<th
+								v-for="(column, colIndex) in queryResult[0]"
+								:key="colIndex"
+								class="sticky top-0 z-10 bg-accent border border-neutral-300 py-2 px-3 text-left"
+							>
+								<pre class="whitespace-pre-wrap">{{ colIndex }}</pre>
+							</th>
+						</tr>
+					</thead>
+					<tbody class="overflow-y-auto">
+						<tr v-for="(row, rowIndex) in queryResult" :key="rowIndex">
+							<td
+								v-for="(column, colIndex) in row"
+								:key="colIndex"
+								class="border border-neutral-300 py-2 px-3 align-top"
+							>
+								<pre class="whitespace-pre-wrap">{{ column }}</pre>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+
+	<p v-else-if="queryError != null" class="text-destructive text-lg">{{ queryError }}</p>
+	<p v-else class="text-neutral-500 text-lg my-1/4">Execute a query to see results.</p>
+</div>
 				</ResizablePanel>
 			</ResizablePanelGroup>
 		</ResizablePanel>
