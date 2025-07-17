@@ -32,7 +32,7 @@ const uuidTag = "uuid"
 // @Accept json
 // @Produce json
 // @Param login body database.User true "User credentials"
-// @Success 200 {string} string "OK"
+// @Success 200 {object} object{isAdmin=bool} "OK"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 401 {string} string "Unauthorized"
 // @Failure 500 {string} string "Internal Server Error"
@@ -76,7 +76,7 @@ func LoginHandler(d *database.DbManager, activeUsers map[string]UserSessionData)
 			true,
 		)
 
-		body := map[string]any{
+		body := map[string]bool{
 			"isAdmin": isAdmin,
 		}
 		c.JSON(http.StatusOK, body)
