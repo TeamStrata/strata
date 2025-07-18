@@ -2,23 +2,20 @@
   <div class="dashboard-container">
     <h2>Charts</h2>
 
-    <!-- List of saved charts -->
-    <div class="charts-list">
-      <div
-        v-for="chart in charts"
-        :key="chart.id"
-        class="chart-card"
+    <!-- Load Saved Charts Box -->
+    <div class="bg-white border border-gray-300 rounded-xl p-4 shadow mb-6 w-full max-w-md">
+      <h3 class="text-lg font-semibold text-gray-800 mb-2">📊 Load Saved Chart</h3>
+      <label class="block text-gray-600 font-medium mb-1">Select from saved charts:</label>
+      <select
+        v-model="selectedChartTitle"
+        @change="loadChartFromDB"
+        class="w-full p-2 border border-gray-300 rounded"
       >
-        <strong>{{ chart.name }}</strong>
-        <span class="tag" :style="{ backgroundColor: chart.color }">{{ chart.color }}</span>
-        <button @click="editChart(chart)">Edit</button>
-        <button @click="deleteChart(chart.id)">Delete</button>
-      </div>
-
-      <!-- Create a new chart -->
-      <div class="create-card" @click="createChart">
-        <span>＋ Create a New Chart</span>
-      </div>
+        <option value="">-- Select a chart --</option>
+        <option v-for="chart in savedChartTitles" :key="chart.id" :value="chart">
+          {{ chart.title }}
+        </option>
+      </select>
     </div>
 
     <!-- Selected chart(s) shown below -->
@@ -30,6 +27,7 @@
         @close="removeChart(chart.id)"
       />
     </div>
+
     <div>
       <button @click="saveDashboardCharts">💾 Save Layout</button>
     </div>
@@ -49,21 +47,21 @@ const dashboardId = route.params.id;
 
 const charts = ref([]);
 const selectedCharts = ref([]);
+const selectedChartId = ref("");
+const selectedChartTitle = ref("");
 const toastRef = ref(null);
+const savedChartTitles = ref([])
 
-const loadCharts = async () => {
+const fetchSavedChartTitles = async () => {
   try {
-    const response = await apiFetch('/charts');
-    if (!response.ok) {
-      toastRef.value?.showToast('Failed to load charts', ToastTypes.FAIL);
-      return;
-    }
-    charts.value = await response.json();
+    const response = await apiFetch('/charts')
+    if (!response.ok) throw new Error('Failed to fetch chart titles')
+    savedChartTitles.value = await response.json() 
   } catch (err) {
-    toastRef.value?.showToast('Error loading charts', ToastTypes.FAIL);
-    console.error(err);
+    console.error('Error fetching titles:', err)
   }
-};
+}
+
 const saveDashboardCharts = async () => {
   const dashboardGraphs = selectedCharts.value.map((chart, index) => ({
     dash_id: parseInt(dashboardId),
@@ -92,13 +90,18 @@ const saveDashboardCharts = async () => {
     toastRef.value?.showToast('Error saving dashboard layout', ToastTypes.FAIL);
   }
 };
+
 const loadDashboardGraphs = async () => {
   try {
     const response = await apiFetch(`/dashboard/${dashboardId}/charts`);
-    if (!response.ok) {
+
+    if (response.status === 404) {
+      return;
+    } else if (!response.ok) {
       toastRef.value?.showToast('Failed to load dashboard graphs', ToastTypes.FAIL);
       return;
     }
+
     const graphMappings = await response.json();
     for (const mapping of graphMappings) {
       const chartResponse = await apiFetch(`/charts/${mapping.chart_id}`);
@@ -116,53 +119,34 @@ const loadDashboardGraphs = async () => {
   }
 };
 
-const editChart = (chart) => {
-  if (!selectedCharts.value.find((c) => c.id === chart.id)) {
-    selectedCharts.value.push(chart);
-  }
-};
-
-const createChart = () => {
-  const newChart = {
-    id: Date.now(),
-    name: 'New Chart',
-    color: '#888',
-    data: {},
-    size_x: 300,
-    size_y: 300,
-    chart_order: selectedCharts.value.length + 1
-  };
-  selectedCharts.value.push(newChart);
-};
-
-const deleteChart = async (id) => {
-  try {
-    const response = await apiFetch(`/charts/${id}`, { method: 'DELETE' });
-    if (!response.ok) {
-      toastRef.value?.showToast('Delete failed', ToastTypes.FAIL);
-      return;
-    }
-    charts.value = charts.value.filter((c) => c.id !== id);
-    selectedCharts.value = selectedCharts.value.filter((c) => c.id !== id);
-  } catch (err) {
-    toastRef.value?.showToast('Error deleting chart', ToastTypes.FAIL);
-    console.error(err);
-  }
-};
-
 const removeChart = (id) => {
   selectedCharts.value = selectedCharts.value.filter((c) => c.id !== id);
 };
 
+const loadChartFromDB = () => {
+  if (!selectedChartTitle.value) return;
+  const existing = selectedCharts.value.find(c => c.id === selectedChartTitle.value.id);
+  if (existing) return;
+  selectedCharts.value.push({
+    ...selectedChartTitle.value,
+    size_x: 300,
+    size_y: 300,
+    chart_order: selectedCharts.value.length + 1
+  });
+  selectedChartTitle.value = "";
+};
+
 onMounted(async () => {
-  await loadCharts();
   await loadDashboardGraphs();
+  await fetchSavedChartTitles();
 });
 </script>
 
 <style scoped>
 .dashboard-container {
   padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .charts-list {

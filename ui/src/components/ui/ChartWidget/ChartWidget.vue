@@ -13,6 +13,7 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue';
 import Chart from 'chart.js/auto';
+import { apiFetch } from '@/api/request';
 
 const props = defineProps({
   chartData: {
@@ -37,38 +38,79 @@ const style = {
   maxHeight: '600px'
 };
 
-const renderChart = () => {
+const fetchSeriesAndRender = async () => {
   if (chartInstance) {
     chartInstance.destroy();
   }
 
-  const data = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-    datasets: [
-      {
-        label: props.chartData.name,
-        data: [12, 19, 3, 5, 2, 3], // Placeholder, replace with real data
-        backgroundColor: props.chartData.color || '#888'
-      }
-    ]
-  };
-
-  chartInstance = new Chart(chartCanvas.value, {
-    type: 'bar',
-    data,
-    options: {
-      responsive: true,
-      maintainAspectRatio: false
+  try {
+    const response = await apiFetch(`/chart/${props.chartData.id}/series`);
+    if (!response.ok) {
+      console.error('Failed to load chart series');
+      return;
     }
-  });
+    const seriesList = await response.json();
+
+    const datasets = await Promise.all(seriesList.map(async (series) => {
+      const result = await apiFetch(`/query/${series.query_id}/execute`);
+      if (!result.ok) return null;
+      const chartData = await result.json();
+
+      return {
+        label: series.name,
+        data: chartData.map(row => ({
+          x: row[series.x_col_name],
+          y: row[series.y_col_name]
+        })),
+        fill: false
+      };
+    }));
+
+    const filteredDatasets = datasets.filter(Boolean);
+
+    chartInstance = new Chart(chartCanvas.value, {
+      type: props.chartData.chart_type || 'line',
+      data: {
+        datasets: filteredDatasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        parsing: false,
+        scales: {
+          x: {
+            type: 'category',
+            title: {
+              display: true,
+              text: 'X Axis'
+            }
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'Y Axis'
+            },
+            ticks: {
+              callback: function(value) {
+                return Number.isInteger(value) ? value : null;
+              },
+              stepSize: 1
+            }
+          }
+        }
+      }
+    });
+  } catch (err) {
+    console.error('Error rendering chart', err);
+  }
 };
 
 onMounted(() => {
-  renderChart();
+  fetchSeriesAndRender();
 });
 
 watch(() => props.chartData, () => {
-  renderChart();
+  fetchSeriesAndRender();
 }, { deep: true });
 </script>
 
