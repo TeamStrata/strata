@@ -339,7 +339,7 @@ function scaleChatBox() {
 										<thead class="bg-accent">
 											<tr>
 												<th v-for="(column, colIndex) in queryResult[0]" :key="colIndex"
-													class="sticky top-0 z-10 bg-accent border border-neutral-300 py-2 px-3 text-left">
+													class="sticky top-0 z-10 bg-accent border first:border-l-0 last:border-r-0 border-neutral-300 py-2 px-3 text-left">
 													<pre class="whitespace-pre-wrap">{{ colIndex }}</pre>
 												</th>
 											</tr>
@@ -347,7 +347,7 @@ function scaleChatBox() {
 										<tbody class="overflow-y-auto">
 											<tr v-for="(row, rowIndex) in queryResult" :key="rowIndex">
 												<td v-for="(column, colIndex) in row" :key="colIndex"
-													class="border border-neutral-300 py-2 px-3 align-top">
+													class="border first:border-l-0 last:border-r-0 border-neutral-300 py-2 px-3 align-top">
 													<pre class="whitespace-pre-wrap">{{ column }}</pre>
 												</td>
 											</tr>
