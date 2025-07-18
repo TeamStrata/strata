@@ -379,13 +379,13 @@ func ListDashboardChartsHandler(d *database.DbManager) gin.HandlerFunc {
 			c.Done()
 			return
 		}
-		graphs, err := d.ListDashboardCharts(dash_id)
+		charts, err := d.ListDashboardCharts(dash_id)
 		if err != nil {
 			c.Data(500, "text/plain", []byte("Internal server error"))
 			c.Done()
 			return
 		}
-		data, err := json.Marshal(graphs)
+		data, err := json.Marshal(charts)
 		if err != nil {
 			c.Data(500, "text/plain", []byte("Internal server error"))
 			c.Done()
