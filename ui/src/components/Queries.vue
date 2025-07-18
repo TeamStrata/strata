@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick, computed } from "vue";
+import { ref, nextTick, computed, watchEffect } from "vue";
 import Toast, { ToastTypes } from "./Toast.vue";
 import { apiFetch } from "@/api/request";
 import {
@@ -137,14 +137,60 @@ function executeQuery() {
 }
 
 function openQuery(query) {
-	code.value = query.literal
+	let id = tabManager.openQuery(query.id, query.name, query.literal);
+	focusTab(id);
 }
+
 //editor stuff
 const extensions = [sql()];
-const code = ref('SELECT * FROM users;');
+const code = ref('');
 const queryResult = ref(null);
 const resultRows = computed(() => queryResult.value != null ? queryResult.value.length : null);
 const queryError = ref(null);
+
+//editor tabs
+import { useEditorTabStore } from "@/stores/editorTab";
+const tabManager = useEditorTabStore();
+const activeTab = ref(null);
+function focusTab(id) {
+	pause();
+	code.value = tabManager.getTabById(id).currentLiteral
+	activeTab.value = id;
+	tabManager.currentTab = id;
+	resume();
+}
+
+function closeTab(id) {
+	//check if there are any unsaved changes
+	if (!tabManager.isSaved(id)) {
+		if (!confirm(`You have unsaved changes, are you sure you want to close:\n\n ${tabManager.getTabById(activeTab.value).name}`)) {
+			return;
+		}
+	}
+	//close the tab
+	tabManager.closeQuery(id);
+}
+
+import { watch } from "vue";
+
+const { pause, resume } = watch(code, (newVal, oldVal) => {
+	console.log("code changed:", oldVal, "=>", newVal);
+	tabManager.getTabById(activeTab.value).currentLiteral = newVal;
+});
+
+const tabContainer = ref(null);
+//tabs scroll
+function handleTabScroll(e) {
+	const container = e.currentTarget;
+	container.scrollLeft += e.deltaY;
+}
+
+//tabs initial load
+if (tabManager.allTabs.length < 1) {
+	focusTab(tabManager.createNewQueryTab());
+} else {
+	focusTab(tabManager.currentTab);
+}
 
 //explorer stuff
 const querySearch = ref("");
@@ -208,11 +254,13 @@ function scaleChatBox() {
 				</div>
 				<Separator></Separator>
 				<div class="py-3 px-4 flex items-center">
-					<textarea placeholder="Write a message..." v-model="chatMessage" class="w-full resize-none break-words focus:outline-none"
-						rows="1" ref="chatBox" @input="scaleChatBox"></textarea>
+					<textarea placeholder="Write a message..." v-model="chatMessage"
+						class="w-full resize-none break-words focus:outline-none" rows="1" ref="chatBox"
+						@input="scaleChatBox"></textarea>
 					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
 						stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-						class="lucide lucide-send-horizontal-icon lucide-send-horizontal" :class="chatMessage == '' ? 'text-neutral-400' : 'text-black cursor-pointer'">
+						class="lucide lucide-send-horizontal-icon lucide-send-horizontal"
+						:class="chatMessage == '' ? 'text-neutral-400' : 'text-black cursor-pointer'">
 						<path
 							d="M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" />
 						<path d="M6 12h16" />
@@ -225,61 +273,93 @@ function scaleChatBox() {
 			<ResizablePanelGroup id="demo-group-2" direction="vertical">
 				<ResizablePanel id="demo-panel-3" :default-size="50" :min-size="20">
 					<div class="h-full items-center justify-center">
-						<div class="p-2 flex justify-between bg-accent">
-							<p>Name</p>
-							<div class="flex gap-2 px-2">
-								<Save @click="openSaveDialog" class="hover:cursor-pointer"></Save>
-								<Play @click="executeQuery" class="hover:cursor-pointer"></Play>
+						<div class="h-10 flex justify-between bg-accent">
+							<div class="flex items-center overflow-auto hideScrollbar" ref="tabContainer"
+								@wheel.prevent="handleTabScroll">
+								<div v-for="tab in tabManager.allTabs" :key="tab.id"
+									class="px-2 border-r border-neutral-300 h-full relative flex items-center cursor-pointer border-b-2 text-nowrap group"
+									:class="activeTab === tab.id ? 'bg-white border-b-primary' : 'border-b-transparent bg-accent'"
+									@click="() => { focusTab(tab.id) }">
+									<p :class="tab.id < 0 ? 'italic' : ''">{{ tab.name }}</p>
+									<p v-show="!tabManager.isSaved(tab.id) || tab.id < 0">*</p>
+									<div class="absolute pl-1 right-2 hidden group-hover:inline bg-inherit"
+										@click="() => { closeTab(tab.id) }">
+										<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+											viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+											stroke-linecap="round" stroke-linejoin="round"
+											class="lucide lucide-x-icon lucide-x">
+											<path d="M18 6 6 18" />
+											<path d="m6 6 12 12" />
+										</svg>
+									</div>
+								</div>
+								<div class="ml-3" @click="() => { focusTab(tabManager.createNewQueryTab()) }">
+									<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+										fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+										stroke-linejoin="round" class="lucide lucide-plus-icon lucide-plus">
+										<path d="M5 12h14" />
+										<path d="M12 5v14" />
+									</svg>
+								</div>
+							</div>
+							<div class="flex gap-2 px-3 items-center">
+								<Save @click="openSaveDialog" :size="24" class="hover:cursor-pointer"></Save>
+								<Play @click="executeQuery" :size="24" class="hover:cursor-pointer"></Play>
 							</div>
 						</div>
 						<Separator></Separator>
-						<Codemirror v-model="code" :extensions="extensions"></Codemirror>
+						<Codemirror v-if="tabManager.allTabs.length > 0" v-model="code" :extensions="extensions">
+						</Codemirror>
+						<div @click="() => { focusTab(tabManager.createNewQueryTab()) }" v-else
+							class="flex text-neutral-400 relative ml-2 mt-2">
+							<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 24 24"
+								fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+								stroke-linejoin="round" class="lucide lucide-corner-left-up-icon lucide-corner-left-up">
+								<path d="M14 9 9 4 4 9" />
+								<path d="M20 20h-7a4 4 0 0 1-4-4V4" />
+							</svg>
+							<p class="cursor-default text-xl my-1/4 mt-4 ml-2">Create a query to get started!</p>
+						</div>
 					</div>
 				</ResizablePanel>
 				<ResizableHandle id="demo-handle-2" />
 				<ResizablePanel id="demo-panel-4" :default-size="50" :min-size="20">
-<div class="flex flex-col h-full justify-center" :class="queryResult != null ? '' : 'items-center'">
-	<div v-if="queryResult != null" class="flex flex-col h-full">
-		<div class="py-2 px-3">
-			<p class="text-muted-foreground">{{ resultRows }} rows in result</p>
-		</div>
+					<div class="flex flex-col h-full justify-center" :class="queryResult != null ? '' : 'items-center'">
+						<div v-if="queryResult != null" class="flex flex-col h-full">
+							<div class="py-2 px-3">
+								<p class="text-muted-foreground">{{ resultRows }} rows in result</p>
+							</div>
 
-		<!-- Horizontal scroll container -->
-		<div class="overflow-x-auto h-full">
-			<!-- Inner container to support sticky header + vertical scroll -->
-			<div class="min-w-full h-full flex flex-col">
-				<!-- Use a single table with sticky header -->
-				<table class="table-auto w-full border-collapse">
-					<thead class="bg-accent">
-						<tr>
-							<th
-								v-for="(column, colIndex) in queryResult[0]"
-								:key="colIndex"
-								class="sticky top-0 z-10 bg-accent border border-neutral-300 py-2 px-3 text-left"
-							>
-								<pre class="whitespace-pre-wrap">{{ colIndex }}</pre>
-							</th>
-						</tr>
-					</thead>
-					<tbody class="overflow-y-auto">
-						<tr v-for="(row, rowIndex) in queryResult" :key="rowIndex">
-							<td
-								v-for="(column, colIndex) in row"
-								:key="colIndex"
-								class="border border-neutral-300 py-2 px-3 align-top"
-							>
-								<pre class="whitespace-pre-wrap">{{ column }}</pre>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</div>
-	</div>
+							<!-- Horizontal scroll container -->
+							<div class="overflow-x-auto h-full">
+								<!-- Inner container to support sticky header + vertical scroll -->
+								<div class="min-w-full h-full flex flex-col">
+									<!-- Use a single table with sticky header -->
+									<table class="table-auto w-full border-collapse">
+										<thead class="bg-accent">
+											<tr>
+												<th v-for="(column, colIndex) in queryResult[0]" :key="colIndex"
+													class="sticky top-0 z-10 bg-accent border border-neutral-300 py-2 px-3 text-left">
+													<pre class="whitespace-pre-wrap">{{ colIndex }}</pre>
+												</th>
+											</tr>
+										</thead>
+										<tbody class="overflow-y-auto">
+											<tr v-for="(row, rowIndex) in queryResult" :key="rowIndex">
+												<td v-for="(column, colIndex) in row" :key="colIndex"
+													class="border border-neutral-300 py-2 px-3 align-top">
+													<pre class="whitespace-pre-wrap">{{ column }}</pre>
+												</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</div>
 
-	<p v-else-if="queryError != null" class="text-destructive text-lg">{{ queryError }}</p>
-	<p v-else class="text-neutral-500 text-lg my-1/4">Execute a query to see results.</p>
-</div>
+						<p v-else-if="queryError != null" class="text-destructive text-lg">{{ queryError }}</p>
+						<p v-else class="text-neutral-500 text-lg my-1/4">Execute a query to see results.</p>
+					</div>
 				</ResizablePanel>
 			</ResizablePanelGroup>
 		</ResizablePanel>
@@ -358,5 +438,17 @@ function scaleChatBox() {
 		width: 0;
 		flex-grow: 1;
 	}
+}
+
+.hideScrollbar {
+	scrollbar-width: none;
+	/* Firefox */
+	-ms-overflow-style: none;
+	/* IE 10+ */
+}
+
+.hideScrollbar::-webkit-scrollbar {
+	display: none;
+	/* Chrome, Safari */
 }
 </style>
