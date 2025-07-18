@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/TeamStrata/strata/pkg/database"
 	"github.com/gin-gonic/gin"
@@ -53,5 +54,77 @@ func GetPermissionsHandler(d *database.DbManager) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, permissions)
+	}
+}
+
+func AddDashboardRolePermissionHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		dashIdStr := c.Param("did")
+		roleIdStr := c.Param("rid")
+		permIdStr := c.Param("pid")
+
+		if dashIdStr == "" || roleIdStr == "" || permIdStr == "" {
+			c.String(http.StatusBadRequest, "missing route parameters")
+			return
+		}
+
+		dashId, err := strconv.Atoi(dashIdStr)
+		if err != nil {
+			c.String(http.StatusBadRequest, "invalid dashboard id param")
+		}
+
+		roleId, err := strconv.Atoi(roleIdStr)
+		if err != nil {
+			c.String(http.StatusBadRequest, "invalid dashboard id param")
+		}
+
+		permId, err := strconv.Atoi(permIdStr)
+		if err != nil {
+			c.String(http.StatusBadRequest, "invalid dashboard id param")
+		}
+
+		err = d.AddDashboardRolePermission(dashId, roleId, permId)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		c.Status(http.StatusOK)
+	}
+}
+
+func DeleteDashboardRolePermissionHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		dashIdStr := c.Param("did")
+		roleIdStr := c.Param("rid")
+		permIdStr := c.Param("pid")
+
+		if dashIdStr == "" || roleIdStr == "" || permIdStr == "" {
+			c.String(http.StatusBadRequest, "missing route parameters")
+			return
+		}
+
+		dashId, err := strconv.Atoi(dashIdStr)
+		if err != nil {
+			c.String(http.StatusBadRequest, "invalid dashboard id param")
+		}
+
+		roleId, err := strconv.Atoi(roleIdStr)
+		if err != nil {
+			c.String(http.StatusBadRequest, "invalid dashboard id param")
+		}
+
+		permId, err := strconv.Atoi(permIdStr)
+		if err != nil {
+			c.String(http.StatusBadRequest, "invalid dashboard id param")
+		}
+
+		err = d.DeleteDashboardRolePermission(dashId, roleId, permId)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		c.Status(http.StatusOK)
 	}
 }

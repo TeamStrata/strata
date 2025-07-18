@@ -134,6 +134,7 @@ func main() {
 			admin.GET("/permissions", api.GetPermissionsHandler(db))
 			admin.GET("/permissions/:scope", api.GetScopedPermissionsHandler(db))
 			admin.POST("/dashboard/:did/role/:rid/permission/:pid", api.AddDashboardRolePermissionHandler(db))
+			admin.DELETE("/dashboard/:did/role/:rid/permission/:pid", api.DeleteDashboardRolePermissionHandler(db))
 
 			// Settings
 			admin.GET("/settings", api.GetAllSettingsHandler(db))
