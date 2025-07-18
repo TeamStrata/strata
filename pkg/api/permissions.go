@@ -57,6 +57,19 @@ func GetPermissionsHandler(d *database.DbManager) gin.HandlerFunc {
 	}
 }
 
+// AddDashboardRolePermissionHandler
+// @Summary Add a permission to a role for a specific dashboard
+// @Description Adds a permission to a role associated with a given dashboard.
+// @Tags Admin
+// @Accept json
+// @Produce json
+// @Param did path int true "Dashboard ID"
+// @Param rid path int true "Role ID"
+// @Param pid path int true "Permission ID"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/admin/dashboard/{did}/role/{rid}/permission/{pid} [post]
 func AddDashboardRolePermissionHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		dashIdStr := c.Param("did")
@@ -93,6 +106,19 @@ func AddDashboardRolePermissionHandler(d *database.DbManager) gin.HandlerFunc {
 	}
 }
 
+// DeleteDashboardRolePermissionHandler
+// @Summary Delete a permission from a role for a specific dashboard
+// @Description Deletes a permission from a role associated with a given dashboard.
+// @Tags Admin
+// @Accept json
+// @Produce json
+// @Param did path int true "Dashboard ID"
+// @Param rid path int true "Role ID"
+// @Param pid path int true "Permission ID"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/admin/dashboard/{did}/role/{rid}/permission/{pid} [delete]
 func DeleteDashboardRolePermissionHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		dashIdStr := c.Param("did")
