@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"slices"
@@ -242,6 +243,31 @@ func (d *DbManager) DeleteUser(username string) error {
 		WHERE user_name = $1`
 	_, err := d.Connection.Query(d.context, query, username)
 	return err
+}
+
+// Check if a user has the admin role.
+func (d *DbManager) IsUserAdmin(user User) (bool, error) {
+	query :=
+		`SELECT
+			1
+		FROM
+			userroles
+			INNER JOIN users ON userroles.user_id = users.user_id
+			INNER JOIN roles ON userroles.role_id = roles.role_id
+		WHERE users.user_id = $1 AND roles.role_name = 'admin'
+		LIMIT 1`
+
+	var exists int
+	err := d.Connection.QueryRow(d.context, query, user.Id).Scan(&exists)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		} else {
+			return false, err
+		}
+	}
+
+	return true, nil
 }
 
 // Update a user, expects pre-hashed password (do not give this plaintext pls)
@@ -599,7 +625,7 @@ func (d *DbManager) ListCustomQueries() ([]Query, error) {
 
 func (d *DbManager) ExecuteCustomQuery(query string) ([]map[string]string, error) {
 	if d == nil {
-		return nil, errors.New("This service has not been connected to a data-only database.\nUse POST /settings/cdb to set the postgres connection string.")
+		return nil, errors.New("this service has not been connected to a data-only database.\nUse POST /settings/cdb to set the postgres connection string")
 	}
 
 	var retRows []map[string]string

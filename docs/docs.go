@@ -75,7 +75,12 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "properties": {
+                                "isAdmin": {
+                                    "type": "boolean"
+                                }
+                            }
                         }
                     },
                     "400": {

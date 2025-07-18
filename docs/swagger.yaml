@@ -112,7 +112,10 @@ paths:
         "200":
           description: OK
           schema:
-            type: string
+            properties:
+              isAdmin:
+                type: boolean
+            type: object
         "400":
           description: Bad Request
           schema:

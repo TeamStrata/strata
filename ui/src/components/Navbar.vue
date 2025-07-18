@@ -94,7 +94,7 @@ loadDashboards();
             <img src="@/assets/StrataFullx256.png" alt="STRATA" class="mx-auto w-5/6 pt-2"></img>
         </SidebarHeader>
         <SidebarContent>
-            <SidebarGroup>
+            <SidebarGroup v-if="user.isAdmin">
                 <SidebarGroupLabel>Administration</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>

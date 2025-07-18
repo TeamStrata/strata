@@ -23,7 +23,7 @@ import (
 // @Failure 400 {string} string "Bad Request - Invalid JSON format"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /signup [post]
-func SignUpHandler(d *database.DbManager, activeUsers map[string]string) gin.HandlerFunc {
+func SignUpHandler(d *database.DbManager, activeUsers map[string]UserSessionData) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user := database.User{}
 		err := c.ShouldBindJSON(&user)
@@ -46,7 +46,14 @@ func SignUpHandler(d *database.DbManager, activeUsers map[string]string) gin.Han
 			return
 		}
 
-		newId := addNewUUID(user.Name, activeUsers)
+		isAdmin, err := d.IsUserAdmin(user)
+		if err != nil {
+			errMsg := fmt.Sprintf("internal server error: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+
+		newId := addNewUUID(user.Name, isAdmin, activeUsers)
 		c.SetCookie(
 			uuidTag,
 			newId,
@@ -123,12 +130,12 @@ func GetUserHandler(d *database.DbManager) gin.HandlerFunc {
 // @Success 200 {string} string "User deleted successfully"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /user/{uname} [delete]
-func DeleteUserHandler(d *database.DbManager, activeUsers map[string]string) gin.HandlerFunc {
+func DeleteUserHandler(d *database.DbManager, activeUsers map[string]UserSessionData) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		name := c.Param("uname")
 
-		for id, tmpName := range activeUsers {
-			if tmpName == name {
+		for id, user := range activeUsers {
+			if user.Name == name {
 				delete(activeUsers, id)
 				break
 			}
