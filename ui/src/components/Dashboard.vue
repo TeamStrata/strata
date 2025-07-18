@@ -1,10 +1,8 @@
 <template>
   <div class="dashboard-container">
-    <h2>Charts</h2>
-
     <!-- Load Saved Charts Box -->
     <div class="bg-white border border-gray-300 rounded-xl p-4 shadow mb-6 w-full max-w-md">
-      <h3 class="text-lg font-semibold text-gray-800 mb-2">📊 Load Saved Chart</h3>
+      <h3 class="text-lg font-semibold text-gray-800 mb-2">Saved Chart</h3>
       <label class="block text-gray-600 font-medium mb-1">Select from saved charts:</label>
       <select
         v-model="selectedChartTitle"
@@ -29,7 +27,7 @@
     </div>
 
     <div>
-      <button @click="saveDashboardCharts">💾 Save Layout</button>
+      <button @click="saveDashboardCharts">Save Layout</button>
     </div>
     <Toast ref="toastRef" />
   </div>
@@ -63,28 +61,33 @@ const fetchSavedChartTitles = async () => {
 }
 
 const saveDashboardCharts = async () => {
-  const dashboardGraphs = selectedCharts.value.map((chart, index) => ({
-    dash_id: parseInt(dashboardId),
-    chart_id: chart.id,
-    size_x: chart.size_x || 300,
-    size_y: chart.size_y || 300,
-    order: chart.chart_order || index + 1
-  }));
-
   try {
-    const response = await apiFetch(`/dashboard`, {
-      method: 'POST',
-      body: JSON.stringify(dashboardGraphs),
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
+    for (let index = 0; index < selectedCharts.value.length; index++) {
+      const chart = selectedCharts.value[index];
+      const payload = {
+        size_x: chart.size_x || 300,
+        size_y: chart.size_y || 300,
+        order: chart.chart_order || index + 1
+      };
 
-    if (!response.ok) {
-      toastRef.value?.showToast('Failed to save dashboard layout', ToastTypes.FAIL);
-    } else {
-      toastRef.value?.showToast('Dashboard layout saved successfully', ToastTypes.SUCCESS);
+      const response = await apiFetch(`/dashboard/${dashboardId}/chart/${chart.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        toastRef.value?.showToast(
+          `Failed to save chart ${chart.name || chart.id} to dashboard`,
+          ToastTypes.FAIL
+        );
+        return;
+      }
     }
+
+    toastRef.value?.showToast('Dashboard layout saved successfully', ToastTypes.SUCCESS);
   } catch (error) {
     console.error(error);
     toastRef.value?.showToast('Error saving dashboard layout', ToastTypes.FAIL);
@@ -96,25 +99,27 @@ const loadDashboardGraphs = async () => {
     const response = await apiFetch(`/dashboard/${dashboardId}/charts`);
 
     if (response.status === 404) {
-      return;
-    } else if (!response.ok) {
-      toastRef.value?.showToast('Failed to load dashboard graphs', ToastTypes.FAIL);
-      return;
+      return; 
     }
 
     const graphMappings = await response.json();
-    for (const mapping of graphMappings) {
-      const chartResponse = await apiFetch(`/charts/${mapping.chart_id}`);
-      if (chartResponse.ok) {
-        const chart = await chartResponse.json();
-        chart.size_x = mapping.size_x;
-        chart.size_y = mapping.size_y;
-        chart.chart_order = mapping.chart_order;
-        selectedCharts.value.push(chart);
+    console.log(graphMappings);
+    if(graphMappings!=null){
+      for (const mapping of graphMappings) {
+        const chartResponse = await apiFetch(`/charts/${mapping.chart_id}`);
+        if (chartResponse.ok) {
+          const chart = await chartResponse.json();
+          chart.size_x = mapping.size_x;
+          chart.size_y = mapping.size_y;
+          chart.order = mapping.order;
+          selectedCharts.value.push(chart);
+        }
       }
     }
   } catch (err) {
-    toastRef.value?.showToast('Error loading dashboard graphs', ToastTypes.FAIL);
+    if (err?.response?.status !== 404) {
+      toastRef.value?.showToast('Error loading dashboard graphs', ToastTypes.FAIL);
+    }
     console.error(err);
   }
 };

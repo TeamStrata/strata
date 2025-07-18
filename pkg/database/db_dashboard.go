@@ -212,7 +212,7 @@ func (d *DbManager) DeleteDashboard(dashID int) error {
 // List all charts for a dashboard
 func (d *DbManager) ListDashboardCharts(dashID int) ([]DashboardGraphs, error) {
 	var charts []DashboardGraphs
-	query := "SELECT dash_id, chart_id, size_x, size_y, \"order\" FROM dashbordgraphs WHERE dash_id = $1 ORDER BY \"order\";"
+	query := "SELECT dashboard_id, chart_id, size_x, size_y, chart_order FROM dashbordGraphs WHERE dashboard_id = $1 ORDER BY chart_order;"
 	rows, err := d.Connection.Query(d.context, query, dashID)
 	if err != nil {
 		return nil, err
@@ -230,14 +230,14 @@ func (d *DbManager) ListDashboardCharts(dashID int) ([]DashboardGraphs, error) {
 
 // Append a chart to a dashboard
 func (d *DbManager) AppendChartToDashboard(dashID, chartID int) error {
-	query := "INSERT INTO dashboard_graphs (dash_id, chart_id, size_x, size_y, \"order\") VALUES ($1, $2, 1, 1, (SELECT COALESCE(MAX(\"order\"), 0) + 1 FROM dashboard_graphs WHERE dash_id = $1));"
+	query := "INSERT INTO dashbordGraphs (dashboard_id, chart_id, size_x, size_y, chart_order) VALUES ($1, $2, 1, 1, (SELECT COALESCE(MAX(chart_order), 0) + 1 FROM dashbordGraphs WHERE dashboard_id = $1));"
 	_, err := d.Connection.Exec(d.context, query, dashID, chartID)
 	return err
 }
 
 // Remove a chart from a dashboard
 func (d *DbManager) RemoveChartFromDashboard(dashID, chartID int) error {
-	query := "DELETE FROM dashboard_graphs WHERE dash_id = $1 AND chart_id = $2;"
+	query := "DELETE FROM dashbordGraphs WHERE dashboard_id = $1 AND chart_id = $2;"
 	_, err := d.Connection.Exec(d.context, query, dashID, chartID)
 	return err
 }

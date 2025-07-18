@@ -5,25 +5,28 @@
       <button @click="$emit('close')">✖</button>
     </div>
     <div class="chart-container">
-      <canvas ref="chartCanvas"></canvas>
+      <component
+        v-if="ChartComponent && chartSeries.length"
+        :is="ChartComponent"
+        :series="chartSeries"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue';
-import Chart from 'chart.js/auto';
+import { ref, watch, onMounted, shallowRef } from 'vue';
 import { apiFetch } from '@/api/request';
 
 const props = defineProps({
   chartData: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 });
 
-const chartCanvas = ref(null);
-let chartInstance = null;
+const chartSeries = ref([]);
+const ChartComponent = shallowRef(null);
 
 const style = {
   resize: 'both',
@@ -35,14 +38,37 @@ const style = {
   minWidth: '300px',
   minHeight: '300px',
   maxWidth: '600px',
-  maxHeight: '600px'
+  maxHeight: '600px',
+};
+
+const loadChartComponent = async (type) => {
+  try {
+    switch (type) {
+      case 'line':
+        ChartComponent.value = (await import('../../charts/LineChart.vue')).default;
+        break;
+      case 'bar':
+        ChartComponent.value = (await import('../../charts/BarChart.vue')).default;
+        break;
+      case 'column':
+        ChartComponent.value = (await import('../../charts/ColumnChart.vue')).default;
+        break;
+      case 'scatter':
+        ChartComponent.value = (await import('../../charts/ScatterChart.vue')).default;
+        break;
+      case 'area':
+        ChartComponent.value = (await import('../../charts/AreaChart.vue')).default;
+        break;
+      default:
+        console.warn('Unknown chart type:', type);
+        ChartComponent.value = null;
+    }
+  } catch (err) {
+    console.error('Error loading chart component:', err);
+  }
 };
 
 const fetchSeriesAndRender = async () => {
-  if (chartInstance) {
-    chartInstance.destroy();
-  }
-
   try {
     const response = await apiFetch(`/chart/${props.chartData.id}/series`);
     if (!response.ok) {
@@ -51,67 +77,33 @@ const fetchSeriesAndRender = async () => {
     }
     const seriesList = await response.json();
 
-    const datasets = await Promise.all(seriesList.map(async (series) => {
-      const result = await apiFetch(`/query/${series.query_id}/execute`);
-      if (!result.ok) return null;
-      const chartData = await result.json();
+    const datasets = await Promise.all(
+      seriesList.map(async (series) => {
+        const result = await apiFetch(`/query/${series.query_id}/execute`);
+        if (!result.ok) return null;
+        const data = await result.json();
 
-      return {
-        label: series.name,
-        data: chartData.map(row => ({
-          x: row[series.x_col_name],
-          y: row[series.y_col_name]
-        })),
-        fill: false
-      };
-    }));
+        return {
+          ...series,
+          chartData: data,
+        };
+      })
+    );
 
-    const filteredDatasets = datasets.filter(Boolean);
-
-    chartInstance = new Chart(chartCanvas.value, {
-      type: props.chartData.chart_type || 'line',
-      data: {
-        datasets: filteredDatasets
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        parsing: false,
-        scales: {
-          x: {
-            type: 'category',
-            title: {
-              display: true,
-              text: 'X Axis'
-            }
-          },
-          y: {
-            title: {
-              display: true,
-              text: 'Y Axis'
-            },
-            ticks: {
-              callback: function(value) {
-                return Number.isInteger(value) ? value : null;
-              },
-              stepSize: 1
-            }
-          }
-        }
-      }
-    });
+    chartSeries.value = datasets.filter(Boolean);
   } catch (err) {
-    console.error('Error rendering chart', err);
+    console.error('Error fetching series:', err);
   }
 };
 
-onMounted(() => {
-  fetchSeriesAndRender();
-});
-
-watch(() => props.chartData, () => {
-  fetchSeriesAndRender();
-}, { deep: true });
+watch(
+  () => props.chartData,
+  async (newChart) => {
+    await loadChartComponent(newChart.chart_type);
+    await fetchSeriesAndRender();
+  },
+  { immediate: true, deep: true }
+);
 </script>
 
 <style scoped>
@@ -119,7 +111,7 @@ watch(() => props.chartData, () => {
   position: relative;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
 }
 
 .header {
