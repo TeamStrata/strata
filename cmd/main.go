@@ -41,9 +41,15 @@ func main() {
 
 	// Create the client database which will be used for custom queries
 	cdb_str, cerr := db.GetSetting("cdb")
+	if cerr != nil {
+		log.Printf("error reading DB settings: %s", cerr.Error())
+		return
+	}
+
 	cdb, cerr := database.NewDbManager(cdb_str, context.Background())
 	if cerr != nil {
 		log.Printf("error initializing client DB manager: %s", cerr.Error())
+		return
 	}
 
 	// Map for active users and uuids
@@ -103,6 +109,8 @@ func main() {
 
 		admin := protected.Group("/admin")
 		{
+			admin.Use(api.AuthHandler(activeUsers))
+
 			// Account creation
 			admin.POST("/signup", api.SignUpHandler(db, activeUsers))
 
@@ -123,9 +131,11 @@ func main() {
 			admin.DELETE("/role/:rid", api.DeleteRoleHandler(db))
 
 			// Permissions
-			admin.Use(api.AuthHandler(activeUsers))
 			admin.GET("/permissions", api.GetPermissionsHandler(db))
 			admin.GET("/permissions/:scope", api.GetScopedPermissionsHandler(db))
+			admin.POST("/dashboard/:did/role/:rid/permission/:pid", api.AddDashboardRolePermissionHandler(db))
+
+			// Settings
 			admin.GET("/settings", api.GetAllSettingsHandler(db))
 			admin.GET("/settings/:key", api.GetSettingHandler(db))
 			admin.PATCH("/settings/:key", api.UpdateSettingHandler(db, &cdb))
