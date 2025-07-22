@@ -101,6 +101,7 @@ func main() {
 		protected.GET("/query/:qid/execute", api.ExecuteQueryHandler(db))           // Execute a saved query (custom or standard saved queries)
 		protected.POST("/query/:qid", api.SaveQueryHandler(db))
 		protected.DELETE("/query/:qid", api.DeleteQueryHandler(db))
+		protected.PATCH("/query/:qid", api.UpdateQueryHandler(db)) // Update a custom query in the database
 
 		// Documenation Endpoints
 		protected.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

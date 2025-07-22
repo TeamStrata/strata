@@ -210,3 +210,56 @@ func DeleteQueryHandler(d *database.DbManager) gin.HandlerFunc {
 		c.Done()
 	}
 }
+
+func UpdateQueryHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		query_id, err := strconv.Atoi(c.Param("qid"))
+		if err != nil {
+			c.Data(400, "text/plain", []byte("Invalid query ID"))
+			c.Done()
+			return
+		}
+
+		data, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
+			return
+		}
+
+		var req struct {
+			Name    *string `json:"name"`
+			Literal *string `json:"literal"`
+		}
+		if err := json.Unmarshal(data, &req); err != nil {
+			c.Data(400, "text/plain", []byte("Invalid JSON"))
+			c.Done()
+			return
+		}
+
+		// If the request does not contain any fields, return an error
+		if req.Name == nil && req.Literal == nil {
+			c.Data(400, "text/plain", []byte("At least one field must be provided"))
+			c.Done()
+			return
+		}
+
+		if req.Name != nil {
+			if err := d.UpdateCustomQueryName(query_id, *req.Name); err != nil {
+				c.Data(500, "text/plain", []byte(err.Error()))
+				c.Done()
+				return
+			}
+		}
+		if req.Literal != nil {
+			if err := d.UpdateCustomQueryLiteral(query_id, *req.Literal); err != nil {
+				c.Data(500, "text/plain", []byte(err.Error()))
+				c.Done()
+				return
+			}
+		}
+
+		c.Status(200)
+		c.Done()
+	}
+}

@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { watch } from 'vue';
 
@@ -23,18 +23,18 @@ export class QueryEditorTab {
 
 export const useEditorTabStore = defineStore('editorTabs', () => {
 
-  const map = ref<Record<number, QueryEditorTab>>({})
+  const map = reactive<Record<number, QueryEditorTab>>({})
   let current_tempID = -1; //ID value for queries that aren't managed by the db, increments negatively
 
   //persistence of active tab
   const currentTab = ref(null);
 
   const allTabs = computed(() =>
-    Object.values(map.value).map(({ id, name }) => ({ id, name }))
+    Object.values(map)
   );
 
   const recycleTempID = () => {
-    const tempIDs = Object.keys(map.value)
+    const tempIDs = Object.keys(map)
       .map(Number)
       .filter(id => id < 0);
     if (tempIDs.length === 0) {
@@ -45,7 +45,7 @@ export const useEditorTabStore = defineStore('editorTabs', () => {
   // Watch for changes to map and recycle tempID if needed
 
   watch(
-    () => Object.keys(map.value),
+    () => Object.keys(map),
     () => {
       recycleTempID();
     },
@@ -55,19 +55,19 @@ export const useEditorTabStore = defineStore('editorTabs', () => {
   const createNewQueryTab = () => {
     const id = current_tempID--;
     const name = `untitled${id}`;
-    map.value[id] = new QueryEditorTab(id, name, '');
+    map[id] = new QueryEditorTab(id, name, '');
     return id;
   };
 
-  const getTabById = (id: number) => map.value[id];
+  const getTabById = (id: number) => map[id];
 
   const openQuery = (id: number, name: string, literal: string) => {
-    map.value[id] = new QueryEditorTab(id, name, literal);
+    map[id] = new QueryEditorTab(id, name, literal);
     return id;
   };
 
   const closeQuery = (id: number) => {
-    delete map.value[id];
+    delete map[id];
   };
 
   function isSaved(id: number) {

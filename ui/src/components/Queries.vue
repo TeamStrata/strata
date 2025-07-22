@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import DialogTitle from "./ui/dialog/DialogTitle.vue";
+import { watch } from "vue";
 // If we can't connect to the database, or while the fetch is in progress, this displays.
 var queries = ref([
 	{
@@ -171,7 +172,22 @@ function closeTab(id) {
 	tabManager.closeQuery(id);
 }
 
-import { watch } from "vue";
+//update tab names when query names change
+watch(queries, (newQueries) => {
+	//get all active tabs
+	const allTabs = tabManager.allTabs.filter(tab => tab.id >= 0);
+	console.log("Updating tab names with queries:", newQueries, "for tabs:", allTabs);
+	//for each tab in all tabs, write the name of the query to the tab
+	allTabs.forEach(tab => {
+		const query = newQueries.find(q => q.id === tab.id);
+		if (query) {
+			tab.name = query.name;
+		} else {
+			//throw error if the query is not found
+			console.error(`Query with id ${tab.id} not found in queries list`);
+		}
+	});
+});
 
 const { pause, resume } = watch(code, (newVal, oldVal) => {
 	console.log("code changed:", oldVal, "=>", newVal);
@@ -194,12 +210,37 @@ if (tabManager.allTabs.length < 1) {
 
 //explorer stuff
 const querySearch = ref("");
+const isRenameOpen = ref(false);
 const filteredQueries = computed(() => {
 	if (!querySearch.value) return queries.value;
 	return queries.value.filter(q =>
 		q.name.toLowerCase().includes(querySearch.value.toLowerCase())
 	);
 });
+const renameQueryName = ref("");
+const renameQueryID = ref();
+function renameQuery() {
+	const body = JSON.stringify({ Name: renameQueryName.value });
+	apiFetch(`/query/${renameQueryID.value}`, "PATCH", body).then(async (response) => {
+		if (!response.ok) {
+			toastRef.value?.showToast(
+				"There was an issue renaming the query",
+				ToastTypes.FAIL,
+			);
+			throw new Error("Error renaming query");
+		}
+
+		toastRef.value?.showToast(
+			"Query Renamed",
+			ToastTypes.SUCCESS,
+		);
+
+		isRenameOpen.value = false;
+		loadQueries();
+	}).catch((error) => {
+		console.error("Error:", error);
+	});
+}
 
 //chat stuff
 const chatMessage = ref('');
@@ -213,7 +254,7 @@ function scaleChatBox() {
 
 <template>
 
-	<!-- save query dialog -->
+	<!-- save as query dialog -->
 	<Dialog :open="isSaveOpen" @update:open="isSaveOpen = $event">
 		<DialogContent class="sm:max-w-[425px]">
 			<DialogHeader>
@@ -236,6 +277,31 @@ function scaleChatBox() {
 					</Button>
 				</DialogClose>
 				<Button type="submit" @click="addQuery">Confirm</Button>
+			</DialogFooter>
+		</DialogContent>
+	</Dialog>
+
+	<!-- rename query dialog -->
+	<Dialog :open="isRenameOpen" @update:open="isRenameOpen = $event">
+		<DialogContent class="sm:max-w-[425px]">
+			<DialogHeader>
+				<DialogTitle>Rename Query</DialogTitle>
+				<DialogDescription>
+					Enter a new name for this query.
+				</DialogDescription>
+			</DialogHeader>
+			<div class="grid gap-4 py-4">
+				<div class="grid grid-cols-4 items-center gap-4">
+					<Label for="rename-input" class="text-right">New Name</Label>
+					<Input id="rename-input" type="text" v-model="renameQueryName" class="col-span-3"
+						@keydown.enter="renameQuery" />
+				</div>
+			</div>
+			<DialogFooter>
+				<DialogClose as-child>
+					<Button type="button" variant="outline">Cancel</Button>
+				</DialogClose>
+				<Button type="submit" @click="renameQuery">Confirm</Button>
 			</DialogFooter>
 		</DialogContent>
 	</Dialog>
@@ -411,14 +477,16 @@ function scaleChatBox() {
 										</svg>
 									</DropdownMenuTrigger>
 									<DropdownMenuContent>
-										<DropdownMenuItem class="text-destructive focus:text-destructive"
+										<DropdownMenuItem class="cursor-pointer" @click="isRenameOpen = true; renameQueryID = q.id">
+											Rename
+										</DropdownMenuItem>
+										<DropdownMenuItem class="text-destructive focus:text-destructive cursor-pointer"
 											:onClick="() => { deleteQuery(q.name) }">
 											<span>Delete</span>
 										</DropdownMenuItem>
 									</DropdownMenuContent>
 								</DropdownMenu>
 							</div>
-
 						</li>
 					</ul>
 				</div>
