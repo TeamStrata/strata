@@ -14,7 +14,7 @@ import DropdownMenuItem from "./ui/dropdown-menu/DropdownMenuItem.vue";
 import { Codemirror } from "vue-codemirror";
 import { sql } from "@codemirror/lang-sql";
 import Separator from "./ui/separator/Separator.vue";
-import { Play, Save } from "lucide-vue-next";
+import { Play, Save, SaveAll } from "lucide-vue-next";
 import Dialog from "./ui/dialog/Dialog.vue";
 import DialogHeader from "./ui/dialog/DialogHeader.vue";
 import DialogContent from "./ui/dialog/DialogContent.vue";
@@ -38,6 +38,37 @@ var newQueryName = ref("");
 
 var isSaveOpen = ref(false);
 const toastRef = ref(null);
+
+function quickSave() {
+	if (tabManager.currentTab < 0) {
+		//open save dialog
+		openSaveDialog();
+	} else {
+		//jsonify the query literal into a field called "Literal"
+		const body = JSON.stringify({ Literal: code.value });
+		//send a PATCH request to the server with the query name and literal
+		apiFetch(`/query/${tabManager.currentTab}`, "PATCH", body, "application/json")
+			.then(async (response) => {
+				if (!response.ok) {
+					toastRef.value?.showToast(
+						"There was an issue with saving the query",
+						ToastTypes.FAIL,
+					);
+					throw new Error("Something went wrong");
+				}
+
+				toastRef.value?.showToast(
+					"Query Saved",
+					ToastTypes.SUCCESS,
+				);
+
+				tabManager.getTabById(tabManager.currentTab).savedLiteral = code.value;
+			})
+			.catch((error) => {
+				console.error("Error:", error);
+			});
+	}
+}
 
 function openSaveDialog() {
 	isSaveOpen.value = true;
@@ -359,7 +390,8 @@ function scaleChatBox() {
 										</svg>
 									</div>
 								</div>
-								<div class="ml-3" @click="() => { focusTab(tabManager.createNewQueryTab()) }">
+								<div class="ml-2 p-1 cursor-pointer hover:bg-neutral-200 rounded-sm"
+									@click="() => { focusTab(tabManager.createNewQueryTab()) }">
 									<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
 										fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
 										stroke-linejoin="round" class="lucide lucide-plus-icon lucide-plus">
@@ -369,7 +401,8 @@ function scaleChatBox() {
 								</div>
 							</div>
 							<div class="flex gap-2 px-3 items-center">
-								<Save @click="openSaveDialog" :size="24" class="hover:cursor-pointer"></Save>
+								<Save @click="quickSave" :size="24" class="hover:cursor-pointer"></Save>
+								<SaveAll @click="openSaveDialog" :size="24" class="hover:cursor-pointer"></SaveAll>
 								<Play @click="executeQuery" :size="24" class="hover:cursor-pointer"></Play>
 							</div>
 						</div>
@@ -477,7 +510,8 @@ function scaleChatBox() {
 										</svg>
 									</DropdownMenuTrigger>
 									<DropdownMenuContent>
-										<DropdownMenuItem class="cursor-pointer" @click="isRenameOpen = true; renameQueryID = q.id">
+										<DropdownMenuItem class="cursor-pointer"
+											@click="isRenameOpen = true; renameQueryID = q.id">
 											Rename
 										</DropdownMenuItem>
 										<DropdownMenuItem class="text-destructive focus:text-destructive cursor-pointer"

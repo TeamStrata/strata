@@ -564,7 +564,7 @@ func (d *DbManager) ExecuteCustomQuery(query string) ([]map[string]string, error
 func (d *DbManager) UpdateCustomQueryLiteral(queryId int, newLiteral string) error {
 	query := `
 		UPDATE queries
-		SET query_literal = $1
+		SET query_string = $1
 		WHERE query_id = $2
 	`
 	_, err := d.Connection.Exec(d.context, query, newLiteral, queryId)
