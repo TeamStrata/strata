@@ -68,8 +68,11 @@ func main() {
 	protected := server.Group("/api")
 	{
 		protected.Use(api.AuthHandler(activeUsers))
+
+		// Auth routes
 		protected.POST("/logout", api.LogoutHandler(activeUsers))
 		protected.POST("/auth", api.AuthHandler(activeUsers))
+		protected.GET("/isadmin/:uname", api.IsAdminHandler(activeUsers))
 
 		// Dashboard Components
 		/// Charts
