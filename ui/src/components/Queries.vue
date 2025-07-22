@@ -289,7 +289,7 @@ function scaleChatBox() {
 	<Dialog :open="isSaveOpen" @update:open="isSaveOpen = $event">
 		<DialogContent class="sm:max-w-[425px]">
 			<DialogHeader>
-				<DialogTitle>Save Query</DialogTitle>
+				<DialogTitle>Save As</DialogTitle>
 				<DialogDescription>
 					Click 'Confirm' to save changes.
 				</DialogDescription>
