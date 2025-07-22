@@ -1,4 +1,27 @@
 definitions:
+  api.RoleUpdateRequest:
+    description: Request body for updating role information
+    properties:
+      color:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      permissions:
+        items:
+          type: integer
+        type: array
+    type: object
+  database.Permission:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      scope:
+        $ref: '#/definitions/database.ScopeType'
+    type: object
   database.Query:
     properties:
       id:
@@ -16,16 +39,32 @@ definitions:
         type: integer
       name:
         type: string
+      permissions:
+        items:
+          $ref: '#/definitions/database.Permission'
+        type: array
       usercount:
         type: integer
     type: object
+  database.ScopeType:
+    enum:
+    - global
+    - dashboard
+    - ""
+    type: string
+    x-enum-varnames:
+    - GlobalScope
+    - DashboardScope
+    - EmptyScope
   database.User:
     properties:
+      id:
+        type: integer
       password:
         type: string
       role:
         items:
-          type: string
+          type: integer
         type: array
       username:
         type: string
@@ -73,7 +112,10 @@ paths:
         "200":
           description: OK
           schema:
-            type: string
+            properties:
+              isAdmin:
+                type: boolean
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -110,6 +152,59 @@ paths:
       summary: User logout
       tags:
       - Authentication
+  /permissions:
+    get:
+      description: Retrieves all permissions from the database regardless of scope.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved all permissions
+          schema:
+            items:
+              $ref: '#/definitions/database.Permission'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get all permissions
+      tags:
+      - Permissions
+  /permissions/{scope}:
+    get:
+      description: Retrieves all permissions filtered by a specific scope (e.g., global,
+        server, channel).
+      parameters:
+      - description: Permission scope
+        enum:
+        - global
+        - server
+        - channel
+        in: path
+        name: scope
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved scoped permissions
+          schema:
+            items:
+              $ref: '#/definitions/database.Permission'
+            type: array
+        "400":
+          description: Bad Request - Invalid or missing scope parameter
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get permissions by scope
+      tags:
+      - Permissions
   /ping:
     get:
       description: Responds with "pong" to check API status.
@@ -187,37 +282,6 @@ paths:
       summary: Get Single Query
       tags:
       - Queries
-    post:
-      consumes:
-      - application/json
-      description: Save a custom query to the database. Responds with the Query ID.
-      parameters:
-      - description: New query details
-        in: body
-        name: query
-        required: true
-        schema:
-          $ref: '#/definitions/database.Query'
-      - description: Query name or ID
-        in: query
-        name: qid
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: integer
-        "400":
-          description: Query Name Invalid
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Save Query
-      tags:
-      - Queries
   /query/{qid}/execute:
     get:
       description: Execute a custom query and return the custom rows and columns
@@ -244,9 +308,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Creates a new role in the database.
+      description: Creates a new role in the database with optional permissions.
       parameters:
-      - description: Role to be added
+      - description: Role to be created
         in: body
         name: role
         required: true
@@ -256,7 +320,11 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Role created successfully
+          schema:
+            type: string
+        "400":
+          description: Bad Request - Invalid JSON format
           schema:
             type: string
         "500":
@@ -268,18 +336,22 @@ paths:
       - Roles
   /role/{rid}:
     delete:
-      description: Deletes a role from the database.
+      description: Deletes a role from the database and removes all associated permissions.
       parameters:
-      - description: Id of role to delete
+      - description: Role ID
         in: path
         name: rid
         required: true
-        type: string
+        type: integer
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Role deleted successfully
+          schema:
+            type: string
+        "400":
+          description: Bad Request - Invalid role ID
           schema:
             type: string
         "500":
@@ -289,23 +361,32 @@ paths:
       summary: Delete a role
       tags:
       - Roles
-    post:
-      description: Creates a new role in the database.
+    patch:
+      consumes:
+      - application/json
+      description: Updates an existing role's name, color, and/or permissions. Only
+        provided fields will be updated.
       parameters:
-      - description: Role Id
+      - description: Role ID
         in: path
         name: rid
         required: true
-        type: string
+        type: integer
+      - description: Role update data
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/api.RoleUpdateRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Role updated successfully
           schema:
             type: string
         "400":
-          description: Bad Request
+          description: Bad Request - Invalid role ID or JSON format
           schema:
             type: string
         "500":
@@ -317,8 +398,7 @@ paths:
       - Roles
   /roles:
     get:
-      description: Retrieves a list of roles and the count of users assigned to each
-        role.
+      description: Retrieves a list of roles with their permissions and user counts.
       produces:
       - application/json
       responses:
@@ -352,11 +432,11 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: User created successfully
           schema:
             type: string
         "400":
-          description: Bad Request
+          description: Bad Request - Invalid JSON format
           schema:
             type: string
         "500":
@@ -366,6 +446,63 @@ paths:
       summary: User signup
       tags:
       - Authentication
+  /user/{uid}:
+    get:
+      description: Retrieves a single user from the database by their ID.
+      parameters:
+      - description: User ID
+        in: path
+        name: uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved user
+          schema:
+            $ref: '#/definitions/database.User'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get user by ID
+      tags:
+      - Users
+    patch:
+      consumes:
+      - application/json
+      description: Updates user data in the database. Password will be hashed if provided.
+      parameters:
+      - description: User ID
+        in: path
+        name: uid
+        required: true
+        type: integer
+      - description: Updated user data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/database.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User updated successfully
+          schema:
+            type: string
+        "400":
+          description: Bad Request - Invalid user ID or JSON format
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Update a user
+      tags:
+      - Users
   /user/{uname}:
     delete:
       description: Deletes a user from the database and removes their session from
@@ -373,14 +510,14 @@ paths:
       parameters:
       - description: User name
         in: path
-        name: name
+        name: uname
         required: true
         type: string
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: User deleted successfully
           schema:
             type: string
         "500":
@@ -408,14 +545,14 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Role removed successfully
           schema:
             type: string
         "500":
           description: Internal Server Error
           schema:
             type: string
-      summary: Delete user role
+      summary: Remove user role
       tags:
       - User Roles
     post:
@@ -435,7 +572,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Role assigned successfully
           schema:
             type: string
         "500":
@@ -458,7 +595,7 @@ paths:
               $ref: '#/definitions/database.User'
             type: array
         "204":
-          description: No Content
+          description: No Content - No users found
           schema:
             type: string
         "500":

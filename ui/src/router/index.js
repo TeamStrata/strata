@@ -37,7 +37,7 @@ const router = createRouter({
               path: 'users',
               meta: {
                 title: 'Members',
-                description: 'Manage your organizations members.',
+                description: 'Manage your organization\'s members.',
                 configurable: false,
               },
               component: () => import('../components/AdminUsers.vue')
@@ -46,13 +46,45 @@ const router = createRouter({
               path: 'roles',
               meta: {
                 title: 'Roles',
-                description: 'Manage your organizations roles.',
+                description: 'Manage your organization\'s roles.',
                 configurable: false,
               },
               component: () => import('../components/AdminRoles.vue')
+            },
+            {
+              path: 'settings',
+              meta: {
+                title: 'Settings',
+                description: 'Manage your platform settings.',
+                configurable: false,
+              },
+              component: () => import('../components/AdminSettings.vue')
             }
           ]
         },
+        {
+          path: '/dashboard/:id',
+          name: 'dashboard',
+          meta: {
+
+          },
+          component: () => import('../components/Dashboard.vue')
+        },
+        {
+          path: '/charts',
+          name: 'charts',
+          children: [
+            {
+              path: "list",
+              meta: {
+                title: 'Charts',
+                description: 'Manage your organization\'s charts.',
+                configurable: false,
+              },
+              component: () => import("../components/Charts.vue")
+            }
+          ]
+        }
       ]
     }
   ],

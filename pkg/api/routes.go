@@ -1,17 +1,26 @@
 package api
 
 import (
+	"context"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/TeamStrata/strata/pkg/auth"
 	"github.com/TeamStrata/strata/pkg/database"
 	"github.com/google/uuid"
 
+	"encoding/json"
+
 	"github.com/gin-gonic/gin"
 )
+
+type UserSessionData struct {
+	Name    string
+	IsAdmin bool
+}
 
 const uuidTag = "uuid"
 
@@ -23,12 +32,12 @@ const uuidTag = "uuid"
 // @Accept json
 // @Produce json
 // @Param login body database.User true "User credentials"
-// @Success 200 {string} string "OK"
+// @Success 200 {object} object{isAdmin=bool} "OK"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 401 {string} string "Unauthorized"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /login [post]
-func LoginHandler(d *database.DbManager, activeUsers map[string]string) gin.HandlerFunc {
+func LoginHandler(d *database.DbManager, activeUsers map[string]UserSessionData) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		login := database.User{}
 		err := c.ShouldBindJSON(&login)
@@ -49,7 +58,14 @@ func LoginHandler(d *database.DbManager, activeUsers map[string]string) gin.Hand
 			return
 		}
 
-		newId := addNewUUID(user.Name, activeUsers)
+		isAdmin, err := d.IsUserAdmin(user)
+		if err != nil {
+			errMsg := fmt.Sprintf("internal server error: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+
+		newId := addNewUUID(user.Name, isAdmin, activeUsers)
 		c.SetCookie(
 			uuidTag,
 			newId,
@@ -59,56 +75,11 @@ func LoginHandler(d *database.DbManager, activeUsers map[string]string) gin.Hand
 			false,
 			true,
 		)
-		c.Status(http.StatusOK)
-	}
-}
 
-// Create a new user, hash the password, store user in database
-//
-// @Summary User signup
-// @Description Creates a new user, hashes their password, stores them in the database, and sets a session cookie.
-// @Tags Authentication
-// @Accept json
-// @Produce json
-// @Param user body database.User true "New user details"
-// @Success 200 {string} string "OK"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /signup [post]
-func SignUpHandler(d *database.DbManager, activeUsers map[string]string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		user := database.User{}
-		err := c.ShouldBindJSON(&user)
-		if err != nil {
-			c.Status(http.StatusBadRequest)
-			return
+		body := map[string]bool{
+			"isAdmin": isAdmin,
 		}
-
-		hash, err := auth.HashPassword(user.Password)
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to hash provided password: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-
-		err = d.InsertUser(user.Name, hash)
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to add user to database: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-
-		newId := addNewUUID(user.Name, activeUsers)
-		c.SetCookie(
-			uuidTag,
-			newId,
-			int(24*time.Hour.Seconds()),
-			"/",
-			"localhost",
-			false,
-			true,
-		)
-		c.Status(http.StatusOK)
+		c.JSON(http.StatusOK, body)
 	}
 }
 
@@ -122,7 +93,7 @@ func SignUpHandler(d *database.DbManager, activeUsers map[string]string) gin.Han
 // @Failure 401 {string} string "Unauthorized"
 // @Failure 204 {string} string "No Content"
 // @Router /logout [post]
-func LogoutHandler(activeUsers map[string]string) gin.HandlerFunc {
+func LogoutHandler(activeUsers map[string]UserSessionData) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := c.Cookie(uuidTag)
 		if err != nil {
@@ -151,7 +122,7 @@ func LogoutHandler(activeUsers map[string]string) gin.HandlerFunc {
 // @Failure 401 {string} string "Unauthorized"
 // @Failure 204 {string} string "No Content"
 // @Router /auth [get]
-func AuthHandler(activeUsers map[string]string) gin.HandlerFunc {
+func AuthHandler(activeUsers map[string]UserSessionData) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		uuid, err := c.Cookie(uuidTag)
 		if err != nil {
@@ -172,315 +143,6 @@ func AuthHandler(activeUsers map[string]string) gin.HandlerFunc {
 	}
 }
 
-// Respond with JSON representation of all users
-//
-// @Summary Get all users
-// @Description Retrieves a list of all users from the database.
-// @Tags Users
-// @Produce json
-// @Success 200 {array} database.User "Successfully retrieved users"
-// @Failure 500 {string} string "Internal Server Error"
-// @Failure 204 {string} string "No Content"
-// @Router /users [get]
-func GetUsersHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		users, err := d.GetAllUsers()
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to get users: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-
-		if len(users) <= 0 {
-			c.Status(http.StatusNoContent)
-			return
-		}
-
-		c.JSON(http.StatusOK, users)
-	}
-}
-
-// Respond with JSON representation of all users
-//
-// @Summary Get all users
-// @Description Retrieves a list of all users from the database.
-// @Tags Users
-// @Produce json
-// @Success 200 {array} database.User "Successfully retrieved users"
-// @Failure 500 {string} string "Internal Server Error"
-// @Failure 204 {string} string "No Content"
-// @Router /users [get]
-func GetUserHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		user_id_str := c.Param("uid")
-		user, err := d.GetSingleUser(user_id_str)
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to get user: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-
-		c.JSON(http.StatusOK, user)
-		c.Done()
-	}
-}
-
-// Delete a user that matches the name parameter
-//
-// @Summary Delete user by name
-// @Description Deletes a user from the database and removes their session from active users.
-// @Tags Users
-// @Produce json
-// @Param name path string true "User name"
-// @Success 200 {string} string "OK"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /user/{uname} [delete]
-func DeleteUserHandler(d *database.DbManager, activeUsers map[string]string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		name := c.Param("uname")
-
-		for id, tmpName := range activeUsers {
-			if tmpName == name {
-				delete(activeUsers, id)
-				break
-			}
-		}
-
-		err := d.DeleteUser(name)
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to delete user: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-
-		c.Status(http.StatusOK)
-	}
-}
-
-// Update an existing user using the 'uid' route parameter.
-//
-// @Summary Update a user
-// @Description Alters the user data in the database.
-// @Tags Users
-// @Produce json
-// @Param uid path string true "User Id"
-// @Success 200 {string} string "OK"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /user/{uid} [patch]
-func UpdateUserHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-
-		// handle route params
-		uid, err := strconv.Atoi(c.Param("uid"))
-
-		if err != nil {
-			c.String(http.StatusBadRequest, "uid not specified in request")
-		}
-
-		// handle body
-		var newUserData database.User
-
-		err = c.ShouldBindJSON(&newUserData)
-		if err != nil {
-			msg := fmt.Sprintf("Error reading body: %s", err.Error())
-			c.String(http.StatusBadRequest, msg)
-		}
-
-		password_hash := ""
-		if newUserData.Password != "" {
-			password_hash, err = auth.HashPassword(newUserData.Password)
-		}
-
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to hash provided password: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-
-		err = d.UpdateUser(uid, newUserData.Name, password_hash)
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to update user '%d': %s", uid, err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-		}
-	}
-}
-
-// Add a role to a user
-//
-// @Summary Add user role
-// @Description Assigns a specific role to a user.
-// @Tags User Roles
-// @Produce json
-// @Param uname path string true "User name"
-// @Param rname path string true "Role name"
-// @Success 200 {string} string "OK"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /user/{uname}/role/{rname} [post]
-func AddUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		userName := c.Param("uname")
-		roleName := c.Param("rname")
-
-		err := d.AddUserRole(userName, roleName)
-		if err != nil {
-			// This errMsg needs to be more descriptive based on the actual error.
-			// For now, I'll leave it as a generic message.
-			errMsg := fmt.Sprintf("unable to add user role: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-
-		c.Status(http.StatusOK)
-	}
-}
-
-// Delete a role from a user
-//
-// @Summary Delete user role
-// @Description Removes a specific role from a user.
-// @Tags User Roles
-// @Produce json
-// @Param uname path string true "User name"
-// @Param rname path string true "Role name"
-// @Success 200 {string} string "OK"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /user/{uname}/role/{rname} [delete]
-func DeleteUserRoleHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		userName := c.Param("uname")
-		roleName := c.Param("rname")
-
-		err := d.DeleteUserRole(userName, roleName)
-		if err != nil {
-			// This errMsg needs to be more descriptive based on the actual error.
-			// For now, I'll leave it as a generic message.
-			errMsg := fmt.Sprintf("unable to delete user role: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-
-		c.Status(http.StatusOK)
-	}
-}
-
-// @Summary Get roles
-// @Description Retrieves a list of roles and the count of users assigned to each role.
-// @Tags Roles
-// @Produce json
-// @Success 200 {object} []database.Role "Successfully retrieved roles with user counts"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /roles [get]
-func GetRolesHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		roles, err := d.GetRoles()
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to get roles: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-
-		c.JSON(http.StatusOK, roles)
-	}
-}
-
-// Add a new role to the database using the 'rname' route parameter.
-//
-// @Summary Add a new role
-// @Description Creates a new role in the database.
-// @Tags Roles
-// @Accept json
-// @Produce json
-// @Param role body database.Role true "Role to be added"
-// @Success 200 {string} string "OK"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /role [post]
-func AddRoleHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var newRole database.Role
-		err := c.ShouldBindJSON(&newRole)
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to bind role to JSON: %s", err.Error())
-			c.String(http.StatusBadRequest, errMsg)
-			return
-		}
-
-		_, err = d.AddRole(newRole)
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to add role: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-
-		c.Status(http.StatusOK)
-	}
-}
-
-// Update an existing role using the 'rid' route parameter.
-//
-// @Summary Update a role
-// @Description Creates a new role in the database.
-// @Tags Roles
-// @Produce json
-// @Param rid path string true "Role Id"
-// @Success 200 {string} string "OK"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /role/{rid} [post]
-func UpdateRoleHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		roleIdStr := c.Param("rid")
-		roleId, err := strconv.Atoi(roleIdStr)
-		if err != nil {
-			errMsg := fmt.Sprintf("role id not provided as route parameter: %s", err.Error())
-			c.String(http.StatusBadRequest, errMsg)
-		}
-
-		// Bind JSON request body
-		var roleUpdate database.Role
-		err = c.ShouldBindJSON(&roleUpdate)
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to bind request JSON body: %s", err.Error())
-			c.String(http.StatusBadRequest, errMsg)
-		}
-
-		err = d.UpdateRole(roleId, roleUpdate.Name, roleUpdate.Color)
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to update role '%d': %s", roleId, err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-		}
-	}
-}
-
-// Delete a role, using `rid` route parameter.
-//
-// @Summary Delete a role
-// @Description Deletes a role from the database.
-// @Tags Roles
-// @Produce json
-// @Param rid path string true "Id of role to delete"
-// @Success 200 {string} string "OK"
-// @Failure 500 {string} string "Internal Server Error"
-// @Router /role/{rid} [delete]
-func DeleteRoleHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		roleId, err := strconv.Atoi(c.Param("rid"))
-		if err != nil {
-			c.String(http.StatusBadRequest, "unable to convert role id to int")
-			return
-		}
-
-		err = d.DeleteRole(roleId)
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to delete role: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-
-		c.Status(http.StatusOK)
-	}
-}
-
 // Example endpoint that returns "pong" in the response body JSON
 //
 // @Summary Ping test
@@ -496,12 +158,92 @@ func PingHandler(c *gin.Context) {
 }
 
 // Generate UUID if user does not already have one
-func addNewUUID(username string, users map[string]string) string {
+func addNewUUID(username string, isAdmin bool, users map[string]UserSessionData) string {
 	newId := uuid.NewString()
 	for _, ok := users[newId]; ok; {
 		newId = uuid.NewString()
 	}
 
-	users[newId] = username
+	users[newId] = UserSessionData{
+		Name:    username,
+		IsAdmin: isAdmin,
+	}
+
 	return newId
+}
+
+func GetAllSettingsHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		settings, err := d.ExecuteCustomQuery("SELECT skey, svalue FROM settings;")
+		if err != nil {
+			errMsg := fmt.Sprintf("Unable to get all settings: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+
+		// Convert the resulting object to JSON
+		data, jerr := json.Marshal(settings)
+		if jerr != nil {
+			c.Data(500, "text/plain", []byte(jerr.Error()))
+			c.Done()
+			return
+		}
+
+		c.Data(200, "application/json", data)
+		c.Done()
+	}
+}
+
+func GetSettingHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		key := c.Param("key")
+
+		settings, err := d.GetSetting(key)
+		if err != nil {
+			errMsg := fmt.Sprintf("unable to get settings: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+
+		c.JSON(http.StatusOK, settings)
+	}
+}
+
+func UpdateSettingHandler(d *database.DbManager, cdb **database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		key := c.Param("key")
+
+		bodyBytes, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			errMsg := fmt.Sprintf("unable to read request body: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+
+		err = d.SetSetting(key, string(bodyBytes))
+		if err != nil {
+			errMsg := fmt.Sprintf("unable to update settings: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+
+		log.Printf("Before: '%p'\n", *cdb)
+
+		// Disconnect from the client database, then reconnect to this new database
+		if *cdb != nil {
+			(*cdb).Connection.Close()
+			*cdb = nil
+		}
+
+		// Attempt to connect to new database so you don't have to restart the server
+		*cdb, err = database.NewDbManager(string(bodyBytes), context.Background())
+		if err != nil {
+			errMsg := fmt.Sprintf("Unable to connect to new database: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+		log.Printf("After: '%p'\n", *cdb)
+
+		c.Status(http.StatusOK)
+	}
 }

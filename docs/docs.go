@@ -75,7 +75,12 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "properties": {
+                                "isAdmin": {
+                                    "type": "boolean"
+                                }
+                            }
                         }
                     },
                     "400": {
@@ -124,6 +129,84 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/permissions": {
+            "get": {
+                "description": "Retrieves all permissions from the database regardless of scope.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Permissions"
+                ],
+                "summary": "Get all permissions",
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved all permissions",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/database.Permission"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/permissions/{scope}": {
+            "get": {
+                "description": "Retrieves all permissions filtered by a specific scope (e.g., global, server, channel).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Permissions"
+                ],
+                "summary": "Get permissions by scope",
+                "parameters": [
+                    {
+                        "enum": [
+                            "global",
+                            "server",
+                            "channel"
+                        ],
+                        "type": "string",
+                        "description": "Permission scope",
+                        "name": "scope",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved scoped permissions",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/database.Permission"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Invalid or missing scope parameter",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "string"
                         }
@@ -219,53 +302,6 @@ const docTemplate = `{
                     }
                 }
             },
-            "post": {
-                "description": "Save a custom query to the database. Responds with the Query ID.",
-                "consumes": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Queries"
-                ],
-                "summary": "Save Query",
-                "parameters": [
-                    {
-                        "description": "New query details",
-                        "name": "query",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/database.Query"
-                        }
-                    },
-                    {
-                        "type": "string",
-                        "description": "Query name or ID",
-                        "name": "qid",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    "400": {
-                        "description": "Query Name Invalid",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
             "delete": {
                 "description": "Delete a custom query from the database.",
                 "tags": [
@@ -332,7 +368,7 @@ const docTemplate = `{
         },
         "/role": {
             "post": {
-                "description": "Creates a new role in the database.",
+                "description": "Creates a new role in the database with optional permissions.",
                 "consumes": [
                     "application/json"
                 ],
@@ -345,7 +381,7 @@ const docTemplate = `{
                 "summary": "Add a new role",
                 "parameters": [
                     {
-                        "description": "Role to be added",
+                        "description": "Role to be created",
                         "name": "role",
                         "in": "body",
                         "required": true,
@@ -356,7 +392,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Role created successfully",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Invalid JSON format",
                         "schema": {
                             "type": "string"
                         }
@@ -371,19 +413,19 @@ const docTemplate = `{
             }
         },
         "/role/{rid}": {
-            "post": {
-                "description": "Creates a new role in the database.",
+            "delete": {
+                "description": "Deletes a role from the database and removes all associated permissions.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Roles"
                 ],
-                "summary": "Update a role",
+                "summary": "Delete a role",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Role Id",
+                        "type": "integer",
+                        "description": "Role ID",
                         "name": "rid",
                         "in": "path",
                         "required": true
@@ -391,13 +433,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Role deleted successfully",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad Request - Invalid role ID",
                         "schema": {
                             "type": "string"
                         }
@@ -410,27 +452,45 @@ const docTemplate = `{
                     }
                 }
             },
-            "delete": {
-                "description": "Deletes a role from the database.",
+            "patch": {
+                "description": "Updates an existing role's name, color, and/or permissions. Only provided fields will be updated.",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Roles"
                 ],
-                "summary": "Delete a role",
+                "summary": "Update a role",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Id of role to delete",
+                        "type": "integer",
+                        "description": "Role ID",
                         "name": "rid",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "Role update data",
+                        "name": "role",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.RoleUpdateRequest"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Role updated successfully",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Invalid role ID or JSON format",
                         "schema": {
                             "type": "string"
                         }
@@ -446,7 +506,7 @@ const docTemplate = `{
         },
         "/roles": {
             "get": {
-                "description": "Retrieves a list of roles and the count of users assigned to each role.",
+                "description": "Retrieves a list of roles with their permissions and user counts.",
                 "produces": [
                     "application/json"
                 ],
@@ -499,13 +559,99 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "User created successfully",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad Request - Invalid JSON format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/{uid}": {
+            "get": {
+                "description": "Retrieves a single user from the database by their ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get user by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "uid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved user",
+                        "schema": {
+                            "$ref": "#/definitions/database.User"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "description": "Updates user data in the database. Password will be hashed if provided.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Update a user",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "uid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated user data",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/database.User"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User updated successfully",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Invalid user ID or JSON format",
                         "schema": {
                             "type": "string"
                         }
@@ -533,14 +679,14 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "User name",
-                        "name": "name",
+                        "name": "uname",
                         "in": "path",
                         "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "User deleted successfully",
                         "schema": {
                             "type": "string"
                         }
@@ -582,7 +728,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Role assigned successfully",
                         "schema": {
                             "type": "string"
                         }
@@ -603,7 +749,7 @@ const docTemplate = `{
                 "tags": [
                     "User Roles"
                 ],
-                "summary": "Delete user role",
+                "summary": "Remove user role",
                 "parameters": [
                     {
                         "type": "string",
@@ -622,7 +768,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Role removed successfully",
                         "schema": {
                             "type": "string"
                         }
@@ -657,7 +803,7 @@ const docTemplate = `{
                         }
                     },
                     "204": {
-                        "description": "No Content",
+                        "description": "No Content - No users found",
                         "schema": {
                             "type": "string"
                         }
@@ -673,6 +819,41 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "api.RoleUpdateRequest": {
+            "description": "Request body for updating role information",
+            "type": "object",
+            "properties": {
+                "color": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "database.Permission": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "scope": {
+                    "$ref": "#/definitions/database.ScopeType"
+                }
+            }
+        },
         "database.Query": {
             "type": "object",
             "properties": {
@@ -699,21 +880,43 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/database.Permission"
+                    }
+                },
                 "usercount": {
                     "type": "integer"
                 }
             }
         },
+        "database.ScopeType": {
+            "type": "string",
+            "enum": [
+                "global",
+                "dashboard",
+                ""
+            ],
+            "x-enum-varnames": [
+                "GlobalScope",
+                "DashboardScope",
+                "EmptyScope"
+            ]
+        },
         "database.User": {
             "type": "object",
             "properties": {
+                "id": {
+                    "type": "integer"
+                },
                 "password": {
                     "type": "string"
                 },
                 "role": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "type": "integer"
                     }
                 },
                 "username": {

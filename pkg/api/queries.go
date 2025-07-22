@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"strconv"
+	"log"
 
 	"github.com/TeamStrata/strata/pkg/database"
 	"github.com/gin-gonic/gin"
@@ -78,9 +79,11 @@ func ReadQueryLiteralHandler(d *database.DbManager) gin.HandlerFunc {
 // @Failure 500 {string} string "Internal Server Error"
 // @Param qid query string type "Query name or ID"
 // @Router /query/{qid}/execute [get]
-func ExecuteQueryHandler(d *database.DbManager) gin.HandlerFunc {
+func ExecuteQueryHandler(d *database.DbManager, cd **database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query_id_str := c.Param("qid")
+
+		log.Printf("Ptr at execute: '%p'\n", *cd)
 
 		_, query_string, serr := d.GetCustomQuery(query_id_str)
 		if serr != nil {
@@ -90,7 +93,7 @@ func ExecuteQueryHandler(d *database.DbManager) gin.HandlerFunc {
 		}
 
 		// Perform the custom query
-		rows, qerr := d.ExecuteCustomQuery(query_string)
+		rows, qerr := (*cd).ExecuteCustomQuery(query_string)
 		if qerr != nil {
 			c.Data(500, "text/plain", []byte(qerr.Error()))
 			c.Done()

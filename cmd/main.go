@@ -39,8 +39,17 @@ func main() {
 		log.Fatalf("error initializing DB manager: %s", err.Error())
 	}
 
-	// Initialize map for active users and uuids
-	activeUsers := make(map[string]string)
+	// Create the client database which will be used for custom queries
+	cdb_str, cerr := db.GetSetting("cdb")
+	cdb, cerr := database.NewDbManager(cdb_str, context.Background())
+	if cerr != nil {
+		log.Printf("error initializing client DB manager: %s", cerr.Error())
+	}
+
+	// Map for active users and uuids
+	// key: uuid
+	// value: username
+	activeUsers := make(map[string]api.UserSessionData)
 
 	// Frontend
 	server.Static("/assets", "ui/dist/assets")
@@ -53,25 +62,8 @@ func main() {
 	protected := server.Group("/api")
 	{
 		protected.Use(api.AuthHandler(activeUsers))
-		protected.POST("/signup", api.SignUpHandler(db, activeUsers))
 		protected.POST("/logout", api.LogoutHandler(activeUsers))
 		protected.POST("/auth", api.AuthHandler(activeUsers))
-
-		// Users
-		protected.GET("/users", api.GetUsersHandler(db))
-		protected.GET("/user/:uid", api.GetUserHandler(db))
-		protected.DELETE("/user/:uname", api.DeleteUserHandler(db, activeUsers))
-		protected.PATCH("/user/:uid", api.UpdateUserHandler(db))
-
-		// User roles
-		protected.DELETE("/user/:uname/role/:rname", api.DeleteUserRoleHandler(db))
-		protected.POST("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
-
-		// Roles
-		protected.GET("/roles", api.GetRolesHandler(db))
-		protected.POST("/role", api.AddRoleHandler(db))
-		protected.PATCH("/role/:rid", api.UpdateRoleHandler(db))
-		protected.DELETE("/role/:rid", api.DeleteRoleHandler(db))
 
 		// Dashboard Components
 		/// Charts
@@ -79,11 +71,13 @@ func main() {
 		protected.GET("/chart/:cid", api.GetChartHandler(db))
 		protected.POST("/chart", api.CreateChartHandler(db))
 		protected.DELETE("/chart/:cid", api.DeleteChartHandler(db))
+		protected.PATCH("/chart/:cid", api.UpdateChartHandler(db))
 		/// Chart Series
 		protected.GET("/chart/:cid/series", api.GetChartSeriesListHandler(db))
 		protected.GET("/chart/:cid/series/:sid", api.GetChartSingleSeriesHandler(db))
 		protected.POST("/chart/:cid/series", api.AddChartSeriesHandler(db))
 		protected.DELETE("/chart/:cid/series/:sid", api.DeleteChartSingleSeriesHandler(db))
+		protected.PATCH("/chart/:cid/series/:sid", api.UpdateChartSeriesHandler(db))
 		protected.DELETE("/chart/:cid/series", api.DeleteAllChartSeriesHandler(db))
 		/// Dashboard itself
 		protected.GET("/dashboards", api.GetDashboardListHandler(db))
@@ -108,6 +102,36 @@ func main() {
 
 		// Misc Endpoints
 		protected.GET("/ping", api.PingHandler)
+
+		admin := protected.Group("/admin")
+		{
+			// Account creation
+			admin.POST("/signup", api.SignUpHandler(db, activeUsers))
+
+			// Users
+			admin.GET("/users", api.GetUsersHandler(db))
+			admin.GET("/user/:uid", api.GetUserHandler(db))
+			admin.DELETE("/user/:uname", api.DeleteUserHandler(db, activeUsers))
+			admin.PATCH("/user/:uid", api.UpdateUserHandler(db))
+
+			// User roles
+			admin.DELETE("/user/:uname/role/:rname", api.DeleteUserRoleHandler(db))
+			admin.POST("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
+
+			// Roles
+			admin.GET("/roles", api.GetRolesHandler(db))
+			admin.POST("/role", api.AddRoleHandler(db))
+			admin.PATCH("/role/:rid", api.UpdateRoleHandler(db))
+			admin.DELETE("/role/:rid", api.DeleteRoleHandler(db))
+
+			// Permissions
+			admin.Use(api.AuthHandler(activeUsers))
+			admin.GET("/permissions", api.GetPermissionsHandler(db))
+			admin.GET("/permissions/:scope", api.GetScopedPermissionsHandler(db))
+			admin.GET("/settings", api.GetAllSettingsHandler(db))
+			admin.GET("/settings/:key", api.GetSettingHandler(db))
+			admin.PATCH("/settings/:key", api.UpdateSettingHandler(db, &cdb))
+		}
 	}
 
 	err = server.Run(":8080")

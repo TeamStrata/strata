@@ -1,36 +1,29 @@
 <script setup>
-import { ref } from "vue";
-import Toast, { ToastTypes } from "./Toast.vue";
+import { computed, ref } from "vue";
+
 import { apiFetch } from "@/api/request";
-import Modal from "./Modal.vue";
-import RoleMultiSelect from "./RoleMultiSelect.vue";
 import { Button } from '@/components/ui/button';
 import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuGroup,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuPortal,
-	DropdownMenuSeparator,
-	DropdownMenuShortcut,
-	DropdownMenuSub,
-	DropdownMenuSubContent,
-	DropdownMenuSubTrigger,
-	DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
 	Dialog,
+	DialogClose,
 	DialogContent,
 	DialogDescription,
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-	DialogClose,
 } from '@/components/ui/dialog';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuItem,
+	DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { computed } from "vue";
+
+import RoleMultiSelect from "./RoleMultiSelect.vue";
+import Toast, { ToastTypes } from "./Toast.vue";
 import Card from "./ui/card/Card.vue";
 
 
@@ -57,7 +50,7 @@ function addUser(user) {
 	}
 
 	// submit user and pass to form
-	apiFetch('/signup', 'POST', JSON.stringify(body))
+	apiFetch('/admin/signup', 'POST', JSON.stringify(body))
 		.then((response) => {
 			if (!response.ok) {
 				toastRef.value?.showToast(
@@ -83,7 +76,7 @@ function addUser(user) {
 
 function deleteUser(username) {
 
-	apiFetch(`/user/${username}`, "DELETE")
+	apiFetch(`/admin/user/${username}`, "DELETE")
 		.then((res) => {
 			if (!res.ok) {
 				toastRef.value?.showToast(
@@ -108,11 +101,11 @@ function deleteUser(username) {
 }
 
 function loadUsers() {
-	apiFetch('/users', 'GET')
+	apiFetch('/admin/users', 'GET')
 		.then(async (response) => {
 			// Handle error
 			if (!response.ok) {
-				toasRef.value?.showToast(
+				toastRef.value?.showToast(
 					"There was an error when loading users",
 					ToastTypes.FAIL,
 				);
@@ -127,7 +120,7 @@ function loadUsers() {
 }
 
 function loadRoles() {
-	apiFetch('/roles', 'GET').then(async res => {
+	apiFetch('/admin/roles', 'GET').then(async res => {
 		let val = await res.json();
 		roleList.value = val;
 
@@ -138,7 +131,7 @@ function loadRoles() {
 }
 
 function addUserRole(uid, rid) {
-	apiFetch(`/user/${uid}/role/${rid}`, 'POST').then((res) => {
+	apiFetch(`/admin/user/${uid}/role/${rid}`, 'POST').then((res) => {
 		if (res.ok) {
 			loadUsers()
 		} else {
@@ -148,7 +141,7 @@ function addUserRole(uid, rid) {
 }
 
 function removeUserRole(uid, rid) {
-	apiFetch(`/user/${uid}/role/${rid}`, 'DELETE').then((res) => {
+	apiFetch(`/admin/user/${uid}/role/${rid}`, 'DELETE').then((res) => {
 
 		if (res.ok) {
 			loadUsers()
@@ -177,7 +170,7 @@ function submitEdit() {
 		body.password = tempUser.value.password
 	}
 
-	let route = "/user/" + body.id;
+	let route = "/admin/user/" + body.id;
 	apiFetch(route, "PATCH", JSON.stringify(body))
 		.then((response) => {
 			if (!response.ok) {

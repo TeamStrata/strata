@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"slices"
@@ -12,6 +13,38 @@ import (
 )
 
 const nilId = -1
+
+type DbManager struct {
+	conStr     string
+	Connection *pgxpool.Pool
+	context    context.Context
+}
+
+type User struct {
+	Id       int    `json:"id,omitempty"`
+	Name     string `json:"username"`
+	Password string `json:"password,omitempty"`
+	Roles    []int  `json:"role"`
+}
+
+type Role struct {
+	Id          int          `json:"id,omitempty"`
+	Name        string       `json:"name"`
+	Color       string       `json:"color"`
+	Permissions []Permission `json:"permissions,omitempty"`
+	UserCount   int          `json:"usercount,omitempty"`
+}
+
+type Query struct {
+	Id      int    `json:"id"`
+	Name    string `json:"name"`
+	Literal string `json:"literal"`
+}
+
+type Settings struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
 
 // Parse the 'key'. If it parses to an integer, use the 'table'.'intColumn' to compare against 'key'. Otherwise use the 'table'.'stringColumn' to compare against 'key'
 func GetSearchSuffix(key string, table string, stringColumn string, intColumn string) string {
@@ -35,32 +68,6 @@ func GetUserSearchSuffix(user_name string) string {
 
 func GetQuerySearchSuffix(query_name string) string {
 	return GetSearchSuffix(query_name, "queries", "query_name", "query_id")
-}
-
-type DbManager struct {
-	conStr     string
-	Connection *pgxpool.Pool
-	context    context.Context
-}
-
-type User struct {
-	Id       int    `json:"id,omitempty"`
-	Name     string `json:"username"`
-	Password string `json:"password,omitempty"`
-	Roles    []int  `json:"role"`
-}
-
-type Role struct {
-	Id        int    `json:"id,omitempty"`
-	Name      string `json:"name"`
-	Color     string `json:"color"`
-	UserCount int    `json:"usercount,omitempty"`
-}
-
-type Query struct {
-	Id      int    `json:"id"`
-	Name    string `json:"name"`
-	Literal string `json:"literal"`
 }
 
 func NewDbManager(connectionString string, ctx context.Context) (*DbManager, error) {
@@ -238,6 +245,31 @@ func (d *DbManager) DeleteUser(username string) error {
 	return err
 }
 
+// Check if a user has the admin role.
+func (d *DbManager) IsUserAdmin(user User) (bool, error) {
+	query :=
+		`SELECT
+			1
+		FROM
+			userroles
+			INNER JOIN users ON userroles.user_id = users.user_id
+			INNER JOIN roles ON userroles.role_id = roles.role_id
+		WHERE users.user_id = $1 AND roles.role_name = 'admin'
+		LIMIT 1`
+
+	var exists int
+	err := d.Connection.QueryRow(d.context, query, user.Id).Scan(&exists)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		} else {
+			return false, err
+		}
+	}
+
+	return true, nil
+}
+
 // Update a user, expects pre-hashed password (do not give this plaintext pls)
 func (d *DbManager) UpdateUser(userid int, name string, password string) error {
 
@@ -314,11 +346,25 @@ func (d *DbManager) DeleteUserRole(userID string, roleID string) error {
 // Get count of users per role
 func (d *DbManager) GetRoles() ([]Role, error) {
 	query :=
-		`SELECT r.role_id, r.role_name, r.role_color, COUNT(ur.role_id)
+		`SELECT
+			r.role_id,
+			r.role_name,
+			r.role_color, 
+			COUNT(DISTINCT ur.role_id) AS user_count,
+			ARRAY_AGG(DISTINCT p.permission_id) FILTER (WHERE p.permission_id IS NOT NULL) AS permission_ids,
+			ARRAY_AGG(DISTINCT p.permission_name) FILTER (WHERE p.permission_name IS NOT NULL) AS permission_names
 		FROM roles r
-		LEFT JOIN userroles ur ON r.role_id = ur.role_id
+		LEFT JOIN
+			userroles ur ON r.role_id = ur.role_id
+		LEFT JOIN
+			rolepermissions rp ON r.role_id = rp.role_id
+		LEFT JOIN
+			permissions p ON rp.permission_id = p.permission_id
 		WHERE r.role_name != 'default'
-		GROUP BY r.role_id, r.role_name, r.role_color`
+		GROUP BY
+			r.role_id,
+			r.role_name,
+			r.role_color`
 
 	rows, err := d.Connection.Query(d.context, query)
 	if err != nil {
@@ -329,15 +375,32 @@ func (d *DbManager) GetRoles() ([]Role, error) {
 
 	roles := []Role{}
 	for rows.Next() {
-		newRole := Role{}
-		colorField := pgtype.Text{}
-		err = rows.Scan(&newRole.Id, &newRole.Name, &colorField, &newRole.UserCount)
+		var newRole Role
+		var colorField pgtype.Text
+		var permIds []int32
+		var permNames []string
+		err = rows.Scan(
+			&newRole.Id,
+			&newRole.Name,
+			&colorField,
+			&newRole.UserCount,
+			&permIds,
+			&permNames,
+		)
 		if err != nil {
 			errMsg := fmt.Sprintf("error scanning row: %s", err.Error())
 			return nil, errors.New(errMsg)
 		}
 		if colorField.Valid {
 			newRole.Color = colorField.String
+		}
+
+		newRole.Permissions = make([]Permission, len(permIds))
+		for i := range permIds {
+			newRole.Permissions[i] = Permission{
+				Id:   int(permIds[i]),
+				Name: permNames[i],
+			}
 		}
 
 		roles = append(roles, newRole)
@@ -365,37 +428,86 @@ func (d *DbManager) AddRole(role Role) (int, error) {
 }
 
 // Update a role.
-func (d *DbManager) UpdateRole(roleId int, name string, color string) error {
-	if name == "" && color == "" {
+func (d *DbManager) UpdateRole(role Role) error {
+	hasBasicUpdates := role.Name != "" || role.Color != ""
+	hasPermissionUpdates := len(role.Permissions) > 0
+
+	if !hasBasicUpdates && !hasPermissionUpdates {
 		return nil
 	}
 
-	query := "UPDATE roles SET"
-	argCount := 1
-	var args []any
-
-	if name != "" {
-		query += " role_name = $" + strconv.Itoa(argCount)
-		args = append(args, name)
-		argCount++
-	}
-
-	if color != "" {
-		if argCount > 1 {
-			query += ","
-		}
-		query += " role_color = $" + strconv.Itoa(argCount)
-		args = append(args, color)
-		argCount++
-	}
-
-	query += " WHERE role_id = $" + strconv.Itoa(argCount)
-	args = append(args, roleId)
-
-	_, err := d.Connection.Exec(d.context, query, args...)
+	// Start a transaction since we might need multiple operations
+	tx, err := d.Connection.Begin(d.context)
 	if err != nil {
-		errMsg := fmt.Sprintf("unable to update role '%d': %s", roleId, err.Error())
-		return errors.New(errMsg)
+		return fmt.Errorf("unable to start transaction: %w", err)
+	}
+	defer tx.Rollback(d.context)
+
+	// Handle basic role info updates
+	if hasBasicUpdates {
+		query := "UPDATE roles SET"
+		argCount := 1
+		var args []any
+
+		if role.Name != "" {
+			query += " role_name = $" + strconv.Itoa(argCount)
+			args = append(args, role.Name)
+			argCount++
+		}
+
+		if role.Color != "" {
+			if argCount > 1 {
+				query += ","
+			}
+			query += " role_color = $" + strconv.Itoa(argCount)
+			args = append(args, role.Color)
+			argCount++
+		}
+
+		query += " WHERE role_id = $" + strconv.Itoa(argCount)
+		args = append(args, role.Id)
+
+		_, err = tx.Exec(d.context, query, args...)
+		if err != nil {
+			return fmt.Errorf("unable to update role basic info '%d': %w", role.Id, err)
+		}
+	}
+
+	// Handle permissions updates
+	if hasPermissionUpdates {
+		// First, delete existing role permissions
+		deleteQuery := "DELETE FROM rolepermissions WHERE role_id = $1"
+		_, err = tx.Exec(d.context, deleteQuery, role.Id)
+		if err != nil {
+			return fmt.Errorf("unable to delete existing permissions for role '%d': %w", role.Id, err)
+		}
+
+		// Then, insert new permissions
+		if len(role.Permissions) > 0 {
+			insertQuery := "INSERT INTO rolepermissions (role_id, permission_id) VALUES "
+			var insertArgs []any
+			argCount := 1
+
+			for i, permission := range role.Permissions {
+				if i > 0 {
+					insertQuery += ", "
+				}
+				insertQuery += fmt.Sprintf("($%d, $%d)", argCount, argCount+1)
+				insertArgs = append(insertArgs, role.Id, permission.Id)
+				argCount += 2
+			}
+
+			_, err = tx.Exec(d.context, insertQuery, insertArgs...)
+			if err != nil {
+				return fmt.Errorf("unable to insert new permissions for role '%d': %w", role.Id, err)
+			}
+		}
+	}
+
+	// Commit the transaction
+	err = tx.Commit(d.context)
+	if err != nil {
+		return fmt.Errorf("unable to commit transaction: %w", err)
 	}
 
 	return nil
@@ -512,6 +624,10 @@ func (d *DbManager) ListCustomQueries() ([]Query, error) {
 }
 
 func (d *DbManager) ExecuteCustomQuery(query string) ([]map[string]string, error) {
+	if d == nil {
+		return nil, errors.New("this service has not been connected to a data-only database.\nUse POST /settings/cdb to set the postgres connection string")
+	}
+
 	var retRows []map[string]string
 
 	// Get Rows
@@ -584,5 +700,30 @@ func (d *DbManager) UpdateCustomQueryName(queryId int, newName string) error {
 	if err != nil {
 		return fmt.Errorf("unable to update query '%d': %s", queryId, err.Error())
 	}
+	return nil
+}
+
+// Get key-value pair from settings table in database
+func (d *DbManager) GetSetting(key string) (string, error) {
+	query := "SELECT svalue FROM settings WHERE skey = $1;"
+	var value string
+
+	err := d.Connection.QueryRow(d.context, query, key).Scan(&value)
+	if err != nil {
+		return "", fmt.Errorf("error getting setting '%s': %w", key, err)
+	}
+
+	return value, nil
+}
+
+// Set or update a key-value pair in the settings table in the database
+func (d *DbManager) SetSetting(key string, value string) error {
+	query := "UPDATE settings SET svalue = $2 WHERE skey = $1;"
+
+	_, err := d.Connection.Exec(d.context, query, key, value)
+	if err != nil {
+		return fmt.Errorf("error setting key '%s' to value '%s': %w", key, value, err)
+	}
+
 	return nil
 }
