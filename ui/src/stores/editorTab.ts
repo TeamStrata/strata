@@ -74,5 +74,24 @@ export const useEditorTabStore = defineStore('editorTabs', () => {
     return getTabById(id).isSaved
   }
 
-  return { allTabs, getTabById, openQuery, closeQuery, isSaved, createNewQueryTab, currentTab }
+  function reassignTabId(oldId: number, newId: number) {
+    const tab = getTabById(oldId);
+    console.log(tab);
+
+    if (tab) {
+      tab.id = newId;
+      console.log(tab);
+      map[newId] = tab; // Update the map with the new ID
+      delete map[oldId]; // Remove the old ID from the map
+    }
+  }
+
+  function saveCurrentTab() {
+    const tab = getTabById(currentTab.value);
+    if (tab) {
+      tab.savedLiteral = tab.currentLiteral;
+    }
+  }
+
+  return { allTabs, getTabById, openQuery, closeQuery, isSaved, createNewQueryTab, currentTab, reassignTabId, saveCurrentTab }
 })

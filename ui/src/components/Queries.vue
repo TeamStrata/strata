@@ -78,7 +78,7 @@ function openSaveDialog() {
 
 function addQuery() {
 	// submit user and pass to form
-	apiFetch(`/query/${newQueryName.value}`, "POST", code.value, "application/sql")
+	apiFetch(`/query/${newQueryName.value}`, "POST", tabManager.getTabById(tabManager.currentTab).currentLiteral, "application/sql")
 		.then(async (response) => {
 			if (!response.ok) {
 				toastRef.value?.showToast(
@@ -93,8 +93,12 @@ function addQuery() {
 				ToastTypes.SUCCESS,
 			);
 
-			// Wait for VUE DOM to update, then apply syntax highlighting
-			// nextTick(hljs.highlightAll);
+			loadQueries();
+			const oldId = tabManager.currentTab;
+			const newId = parseInt(await response.text());
+			tabManager.reassignTabId(oldId, newId);
+			focusTab(newId);
+			tabManager.saveCurrentTab();
 		})
 		.catch((error) => {
 			console.error("Error:", error);
@@ -207,7 +211,6 @@ function closeTab(id) {
 watch(queries, (newQueries) => {
 	//get all active tabs
 	const allTabs = tabManager.allTabs.filter(tab => tab.id >= 0);
-	console.log("Updating tab names with queries:", newQueries, "for tabs:", allTabs);
 	//for each tab in all tabs, write the name of the query to the tab
 	allTabs.forEach(tab => {
 		const query = newQueries.find(q => q.id === tab.id);
@@ -221,7 +224,6 @@ watch(queries, (newQueries) => {
 });
 
 const { pause, resume } = watch(code, (newVal, oldVal) => {
-	console.log("code changed:", oldVal, "=>", newVal);
 	tabManager.getTabById(activeTab.value).currentLiteral = newVal;
 });
 
