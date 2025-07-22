@@ -20,28 +20,14 @@ const router = createRouter({
       component: HomeView,
       children: [
         {
-          path: 'query',
-          name: 'query',
-          children: [
-            {
-              path: 'list',
-              meta: {
-                title: 'Queries',
-                description: 'Build and manage SQL queries.',
-                configurable: false,
-              },
-              component: () => import('../components/Queries.vue')
-            },
-            {
-              path: 'run/:id',
-              meta: {
-                title: 'Queries',
-                description: 'Build and manage SQL queries.',
-                configurable: false,
-              },
-              component: () => import('../components/QueryExecute.vue')
-            }
-          ]
+          path: 'queries',
+          name: 'queries',
+          component: () => import('../components/Queries.vue'),
+          meta: {
+            title: 'Queries',
+            description: 'Build and manage your organizations queries.',
+            configurable: false,
+          },
         },
         {
           path: 'admin',

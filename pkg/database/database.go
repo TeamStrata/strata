@@ -676,6 +676,33 @@ func (d *DbManager) ExecuteCustomQuery(query string) ([]map[string]string, error
 	return retRows, nil
 }
 
+// Update a custom query in the database
+func (d *DbManager) UpdateCustomQueryLiteral(queryId int, newLiteral string) error {
+	query := `
+		UPDATE queries
+		SET query_string = $1
+		WHERE query_id = $2
+	`
+	_, err := d.Connection.Exec(d.context, query, newLiteral, queryId)
+	if err != nil {
+		return fmt.Errorf("unable to update query '%d': %s", queryId, err.Error())
+	}
+	return nil
+}
+
+func (d *DbManager) UpdateCustomQueryName(queryId int, newName string) error {
+	query := `
+		UPDATE queries
+		SET query_name = $1
+		WHERE query_id = $2
+	`
+	_, err := d.Connection.Exec(d.context, query, newName, queryId)
+	if err != nil {
+		return fmt.Errorf("unable to update query '%d': %s", queryId, err.Error())
+	}
+	return nil
+}
+
 // Get key-value pair from settings table in database
 func (d *DbManager) GetSetting(key string) (string, error) {
 	query := "SELECT svalue FROM settings WHERE skey = $1;"

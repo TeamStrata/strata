@@ -34,7 +34,7 @@ const pageInfo = computed(() => {
 
 <template>
   <!-- main separator -->
-  <div>
+  <div class="h-screen w-screen overflow-clip">
     <!-- NEW Sidebar -->
     <SidebarProvider>
       <Navbar></Navbar>
@@ -57,7 +57,7 @@ const pageInfo = computed(() => {
         </div>
         <Separator></Separator>
         <!-- main content area -->
-        <div class="p-5">
+        <div class="h-full w-full" :class="route.name == 'queries' ? 'p-0' : 'p-5'">
           <RouterView></RouterView>
         </div>
       </SidebarInset>
