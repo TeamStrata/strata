@@ -14,7 +14,7 @@ import DropdownMenuItem from "./ui/dropdown-menu/DropdownMenuItem.vue";
 import { Codemirror } from "vue-codemirror";
 import { sql } from "@codemirror/lang-sql";
 import Separator from "./ui/separator/Separator.vue";
-import { Play, Save, SaveAll } from "lucide-vue-next";
+import { Play, Save, SaveAll, MessageSquare, Rows4, Rows3 } from "lucide-vue-next";
 import Dialog from "./ui/dialog/Dialog.vue";
 import DialogHeader from "./ui/dialog/DialogHeader.vue";
 import DialogContent from "./ui/dialog/DialogContent.vue";
@@ -275,9 +275,12 @@ function renameQuery() {
 	});
 }
 
+const explorerWindow = ref(null);
+
 //chat stuff
 const chatMessage = ref('');
 const chatBox = ref(null);
+const chatWindow = ref(null);
 
 function scaleChatBox() {
 	chatBox.value.style.height = 'auto'
@@ -342,7 +345,7 @@ function scaleChatBox() {
 	<Toast ref="toastRef" />
 	<ResizablePanelGroup id="demo-group-1" direction="horizontal" class="h-full">
 		<ResizablePanel id="demo-panel-1" :default-size="20" :max-size="35" :min-size="15" collapsible
-			:collapsed-size="0">
+			:collapsed-size="0" ref="chatWindow">
 			<div class="h-full flex flex-col">
 				<div class="p-2 flex justify-between bg-accent">
 					<p>AI Chat</p>
@@ -394,7 +397,7 @@ function scaleChatBox() {
 								</div>
 								<div class="ml-2 p-1 cursor-pointer hover:bg-neutral-200 rounded-sm"
 									@click="() => { focusTab(tabManager.createNewQueryTab()) }">
-									<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+									<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
 										fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
 										stroke-linejoin="round" class="lucide lucide-plus-icon lucide-plus">
 										<path d="M5 12h14" />
@@ -403,9 +406,25 @@ function scaleChatBox() {
 								</div>
 							</div>
 							<div class="flex gap-2 px-3 items-center">
-								<Save @click="quickSave" :size="24" class="hover:cursor-pointer"></Save>
-								<SaveAll @click="openSaveDialog" :size="24" class="hover:cursor-pointer"></SaveAll>
-								<Play @click="executeQuery" :size="24" class="hover:cursor-pointer"></Play>
+								<Separator class="mx-2" orientation="vertical"></Separator>
+								<div class="p-1 cursor-pointer hover:bg-neutral-200 rounded-sm"
+									@click="chatWindow?.isCollapsed() ? chatWindow?.expand() : chatWindow?.collapse()">
+									<MessageSquare :size="24"></MessageSquare>
+								</div>
+								<div class="p-1 cursor-pointer hover:bg-neutral-200 rounded-sm"
+									@click="explorerWindow?.isCollapsed() ? explorerWindow?.expand() : explorerWindow?.collapse()">
+									<Rows3 :size="24" class="hover:cursor-pointer"></Rows3>
+								</div>
+								<Separator class="mx-2" orientation="vertical"></Separator>
+								<div class="p-1 cursor-pointer hover:bg-neutral-200 rounded-sm" @click="quickSave">
+									<Save :size="24" class="hover:cursor-pointer"></Save>
+								</div>
+								<div class="p-1 cursor-pointer hover:bg-neutral-200 rounded-sm" @click="openSaveDialog">
+									<SaveAll :size="24" class="hover:cursor-pointer"></SaveAll>
+								</div>
+								<div class="p-1 cursor-pointer hover:bg-neutral-200 rounded-sm" @click="executeQuery">
+									<Play :size="24" class="hover:cursor-pointer"></Play>
+								</div>
 							</div>
 						</div>
 						<Separator></Separator>
@@ -466,7 +485,7 @@ function scaleChatBox() {
 		</ResizablePanel>
 		<ResizableHandle id="demo-handle-5" />
 		<ResizablePanel id="demo-panel-5" :default-size="20" :max-size="35" :min-size="15" collapsible
-			:collapsed-size="0">
+			:collapsed-size="0" ref="explorerWindow">
 			<div>
 				<div class="p-2 flex justify-between bg-accent">
 					<p>Query Explorer</p>
