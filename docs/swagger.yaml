@@ -72,6 +72,83 @@ definitions:
 info:
   contact: {}
 paths:
+  /api/admin/dashboard/{did}/role/{rid}/permission/{pid}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a permission from a role associated with a given dashboard.
+      parameters:
+      - description: Dashboard ID
+        in: path
+        name: did
+        required: true
+        type: integer
+      - description: Role ID
+        in: path
+        name: rid
+        required: true
+        type: integer
+      - description: Permission ID
+        in: path
+        name: pid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete a permission from a role for a specific dashboard
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      description: Adds a permission to a role associated with a given dashboard.
+      parameters:
+      - description: Dashboard ID
+        in: path
+        name: did
+        required: true
+        type: integer
+      - description: Role ID
+        in: path
+        name: rid
+        required: true
+        type: integer
+      - description: Permission ID
+        in: path
+        name: pid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Add a permission to a role for a specific dashboard
+      tags:
+      - Admin
   /auth:
     get:
       description: Checks if the session UUID cookie is set and corresponds to an
