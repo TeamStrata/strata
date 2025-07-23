@@ -63,6 +63,7 @@ function quickSave() {
 				);
 
 				tabManager.getTabById(tabManager.currentTab).savedLiteral = code.value;
+				loadQueries();
 			})
 			.catch((error) => {
 				console.error("Error:", error);
