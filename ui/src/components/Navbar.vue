@@ -39,6 +39,30 @@ const dashboards = ref([]);
 const createDashboardDialog = ref(false);
 const newDashboard = ref({});
 
+function checkIsAdmin() {
+    const route = '/isadmin/' + user.username;
+    apiFetch(route)
+    .then(async (response) => {
+        if (!response.ok) {
+            toastRef.value?.showToast(
+                "There was an issue verifying user privileges.",
+                ToastTypes.FAIL,
+            );
+            throw new Error("Unable to verify if user is an admin or not");
+        } else {
+            let json = await response.json();
+            user.isAdmin = json.isAdmin;
+        }
+    })
+    .catch((err) => {
+        console.error(err);
+    });
+}
+
+if (!user.isAdmin) {
+    checkIsAdmin();
+}
+
 function addDashboard() {
     const route = '/dashboard';
     newDashboard.value.content = 'placeholder content';

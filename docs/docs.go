@@ -129,6 +129,50 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/isadmin/{uname}": {
+            "get": {
+                "description": "Returns a boolean indicating if the specified user is an admin.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Check admin status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username",
+                        "name": "uname",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "isAdmin",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "User Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/auth": {
             "get": {
                 "description": "Checks if the session UUID cookie is set and corresponds to an active user.",

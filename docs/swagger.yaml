@@ -149,6 +149,35 @@ paths:
       summary: Add a permission to a role for a specific dashboard
       tags:
       - Admin
+  /api/isadmin/{uname}:
+    get:
+      description: Returns a boolean indicating if the specified user is an admin.
+      parameters:
+      - description: Username
+        in: path
+        name: uname
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: isAdmin
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: User Not Found
+          schema:
+            type: string
+      summary: Check admin status
+      tags:
+      - Authentication
   /auth:
     get:
       description: Checks if the session UUID cookie is set and corresponds to an

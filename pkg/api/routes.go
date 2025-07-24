@@ -143,6 +143,33 @@ func AuthHandler(activeUsers map[string]UserSessionData) gin.HandlerFunc {
 	}
 }
 
+// Check if a user is an admin
+//
+// @Summary      Check admin status
+// @Description  Returns a boolean indicating if the specified user is an admin.
+// @Tags         Authentication
+// @Produce      json
+// @Param        uname path string true "Username"
+// @Success      200 {object} map[string]bool "isAdmin"
+// @Failure      400 {string} string "Bad Request"
+// @Failure      404 {string} string "User Not Found"
+// @Router       /api/isadmin/{uname} [get]
+func IsAdminHandler(activeUsers map[string]UserSessionData) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userName := c.Param("uname")
+		if userName == "" {
+			c.String(http.StatusBadRequest, "expected a `:uname` route parameter")
+		}
+
+		for _, user := range activeUsers {
+			if user.Name == userName {
+				respBody := gin.H{"isAdmin": user.IsAdmin}
+				c.JSON(http.StatusOK, respBody)
+			}
+		}
+	}
+}
+
 // Example endpoint that returns "pong" in the response body JSON
 //
 // @Summary Ping test
