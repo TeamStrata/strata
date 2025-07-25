@@ -99,9 +99,9 @@ func main() {
 
 		// Query Endpoints
 		protected.GET("/queries", api.GetQueryList(db))
-		protected.POST("/query/executeLiteral", api.ExecuteQueryLiteralHandler(db)) // Execute a saved query (custom or standard saved queries)
+		protected.POST("/query/executeLiteral", api.ExecuteQueryLiteralHandler(&cdb)) // Execute a saved query (custom or standard saved queries)
 		protected.GET("/query/:qid", api.ReadQueryLiteralHandler(db))               // Return the query SQL string
-		protected.GET("/query/:qid/execute", api.ExecuteQueryHandler(db))           // Execute a saved query (custom or standard saved queries)
+		protected.GET("/query/:qid/execute", api.ExecuteQueryHandler(db, &cdb))           // Execute a saved query (custom or standard saved queries)
 		protected.POST("/query/:qid", api.SaveQueryHandler(db))
 		protected.DELETE("/query/:qid", api.DeleteQueryHandler(db))
 		protected.PATCH("/query/:qid", api.UpdateQueryHandler(db)) // Update a custom query in the database
