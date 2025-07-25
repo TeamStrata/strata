@@ -78,7 +78,7 @@ func ReadQueryLiteralHandler(d *database.DbManager) gin.HandlerFunc {
 // @Failure 500 {string} string "Internal Server Error"
 // @Param qid query string type "Query name or ID"
 // @Router /query/{qid}/execute [get]
-func ExecuteQueryHandler(d *database.DbManager) gin.HandlerFunc {
+func ExecuteQueryHandler(d *database.DbManager, cdb **database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query_id_str := c.Param("qid")
 
@@ -90,7 +90,7 @@ func ExecuteQueryHandler(d *database.DbManager) gin.HandlerFunc {
 		}
 
 		// Perform the custom query
-		rows, qerr := d.ExecuteCustomQuery(query_string)
+		rows, qerr := (*cdb).ExecuteCustomQuery(query_string)
 		if qerr != nil {
 			c.Data(500, "text/plain", []byte(qerr.Error()))
 			c.Done()
@@ -110,7 +110,7 @@ func ExecuteQueryHandler(d *database.DbManager) gin.HandlerFunc {
 	}
 }
 
-func ExecuteQueryLiteralHandler(d *database.DbManager) gin.HandlerFunc {
+func ExecuteQueryLiteralHandler(d **database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Read the SQL string from the request body
 		sqlBytes, err := io.ReadAll(c.Request.Body)
@@ -121,7 +121,7 @@ func ExecuteQueryLiteralHandler(d *database.DbManager) gin.HandlerFunc {
 		}
 		sqlString := string(sqlBytes)
 
-		rows, qerr := d.ExecuteCustomQuery(sqlString)
+		rows, qerr := (*d).ExecuteCustomQuery(sqlString)
 		if qerr != nil {
 			c.Data(500, "text/plain", []byte(qerr.Error()))
 			c.Done()
