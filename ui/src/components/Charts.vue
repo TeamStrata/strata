@@ -359,16 +359,17 @@ const isLoadOpen = ref(false);
       </div>
 
       <!-- Series Sections (Horizontally Scrollable) -->
-      <div class="flex flex-col w-[300px] gap-4 pb-4">
+      <div class="flex flex-col w-[300px] gap-4 pb-4 overflow-clip">
         <div v-for="(section, index) in seriesSections" :key="index"
           class="min-w-[300px] shrink-0 border border-gray-300 p-4 rounded-lg bg-gray-50 relative">
-          <h2 class="text-md font-semibold text-gray-700 mb-2">Series {{ index + 1 }}</h2>
-
-          <!-- Remove Button -->
-          <button @click="removeChartSection(index)"
-            class="absolute top-2 right-2 text-red-500 hover:text-red-700 text-sm">
-            ✕
-          </button>
+          <div class="flex justify-between items-center mb-2">
+            <h2 class="text-md font-semibold text-gray-700">Series {{ index + 1 }}</h2>
+            <!-- Remove Button -->
+            <button @click="removeChartSection(index)"
+              class="text-red-500 hover:text-red-700 cursor-pointer text-sm">
+              ✕
+            </button>
+          </div>
 
           <!-- Query -->
           <div class="mb-2">
