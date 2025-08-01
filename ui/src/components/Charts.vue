@@ -13,6 +13,7 @@ import DialogHeader from './ui/dialog/DialogHeader.vue';
 import DialogTitle from './ui/dialog/DialogTitle.vue';
 
 import Toast, { ToastTypes } from "./Toast.vue";
+import Separator from './ui/separator/Separator.vue';
 
 const toastRef = ref(null);
 const chartTypes = ['Line', 'Area', 'Column', 'Bar', 'Scatter']
@@ -170,7 +171,7 @@ const saveChart = async () => {
   }
 
   try {
-    if(!payload.title) {
+    if (!payload.title) {
       toastRef.value?.showToast('Missing chart title', ToastTypes.FAIL)
       throw new Error('Missing chart title')
     }
@@ -324,9 +325,11 @@ const isLoadOpen = ref(false);
     </DialogContent>
   </Dialog>
 
+
   <div class="flex h-full w-full">
-    <div class="h-full">
-      <!-- subheader controls (save/load) -->
+    <!-- left control panel -->
+    <div class="w-[350px] h-[calc(100vh-70px)] flex flex-col py-2 px-4 gap-4 min-h-0">
+      <!-- save/load controls -->
       <div class="flex gap-1 justify-end">
         <div class="p-1 cursor-pointer hover:bg-neutral-200 rounded-sm">
           <File></File>
@@ -339,34 +342,34 @@ const isLoadOpen = ref(false);
         </div>
       </div>
 
-      <div class="mb-4">
+      <!-- name and stuff -->
+      <div>
         <Label class="mb-1">Chart Title</Label>
         <Input v-model="chartTitle" placeholder="Enter chart title" />
       </div>
 
-
-      <!-- Chart Type Selection -->
-      <div class="mb-4">
-        <label class="text-gray-600 font-medium">Chart Type:</label>
+      <!-- type selection -->
+      <div>
+        <Label class="mb-1">Chart Type:</Label>
         <select v-model="selectedChart" class="w-full p-2 border border-gray-300 rounded">
           <option v-for="type in chartTypes" :key="type">{{ type }}</option>
         </select>
       </div>
 
-      <div class="flex justify-between items-center mb-2">
+      <!-- series management -->
+      <div class="flex justify-between items-center">
         <p class="leading-7 [&:not(:first-child)]:mt-6">Series</p>
         <Plus @click="addSeriesSection" class="cursor-pointer"></Plus>
       </div>
 
-      <!-- Series Sections (Horizontally Scrollable) -->
-      <div class="flex flex-col w-[300px] gap-4 pb-4 overflow-clip">
+      <!-- series scrollable container -->
+      <div class="flex-1 overflow-y-scroll gap-4 flex flex-col">
         <div v-for="(section, index) in seriesSections" :key="index"
           class="min-w-[300px] shrink-0 border border-gray-300 p-4 rounded-lg bg-gray-50 relative">
           <div class="flex justify-between items-center mb-2">
             <h2 class="text-md font-semibold text-gray-700">Series {{ index + 1 }}</h2>
             <!-- Remove Button -->
-            <button @click="removeChartSection(index)"
-              class="text-red-500 hover:text-red-700 cursor-pointer text-sm">
+            <button @click="removeChartSection(index)" class="text-red-500 hover:text-red-700 cursor-pointer text-sm">
               ✕
             </button>
           </div>
@@ -403,10 +406,11 @@ const isLoadOpen = ref(false);
             Generate
           </button>
         </div>
+
       </div>
 
     </div>
-
+    <Separator orientation="vertical"></Separator>
     <!-- Render Chart -->
     <div class="flex-1 ml-4 my-auto" v-if="chartComponent && seriesSections.length">
       <div v-if="chartComponent && seriesSections.some(s => s.chartData?.length)">
