@@ -69,6 +69,12 @@ func CreateChartHandler(d *database.DbManager) gin.HandlerFunc {
 			return
 		}
 
+		// Validate chart data
+		if chart.Title == "" || chart.Type == "" {
+			c.Status(http.StatusBadRequest)
+			return
+		}
+
 		// Inserting custom query
 		id, err := d.InsertChart(chart)
 		if err != nil {

@@ -170,6 +170,19 @@ const saveChart = async () => {
   }
 
   try {
+    if(!payload.title) {
+      toastRef.value?.showToast('Missing chart title', ToastTypes.FAIL)
+      throw new Error('Missing chart title')
+    }
+
+    if (seriesSections.length < 1) {
+      toastRef.value?.showToast(
+        'At least one series is required',
+        ToastTypes.FAIL
+      )
+      throw new Error('At least one series is required')
+    }
+
     const response = await apiFetch('/chart', 'POST', JSON.stringify(payload), 'application/sql')
     if (!response.ok) throw new Error('Failed to save chart')
 
