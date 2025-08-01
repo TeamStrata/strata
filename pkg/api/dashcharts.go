@@ -94,7 +94,7 @@ func DeleteChartHandler(d *database.DbManager) gin.HandlerFunc {
 
 		err = d.DeleteChart(chart_id)
 		if err != nil {
-			c.Data(500, "text/plain", []byte("Could not delete this chart!"))
+			c.Data(500, "text/plain", []byte(err.Error()))
 			c.Done()
 			return
 		}
@@ -139,19 +139,19 @@ func GetChartSeriesListHandler(d *database.DbManager) gin.HandlerFunc {
 		chart_id_str := c.Param("cid")
 		chart_id, err := strconv.Atoi(chart_id_str)
 		if err != nil {
-      		c.Data(500, "text/plain", []byte(err.Error()))
+			c.Data(500, "text/plain", []byte(err.Error()))
 			c.Done()
 			return
 		}
 
 		series, err := d.ListChartSeries(chart_id)
 		if err != nil {
-      		c.Data(500, "text/plain", []byte(err.Error()))
+			c.Data(500, "text/plain", []byte(err.Error()))
 			c.Done()
 			return
 		}
-    
-    	c.JSON(200, series)
+
+		c.JSON(200, series)
 	}
 }
 
