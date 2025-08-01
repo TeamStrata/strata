@@ -266,6 +266,17 @@ const fetchSavedChartTitles = async () => {
   }
 }
 
+async function deleteChart(cid) {
+  apiFetch(`/chart/${cid}`, 'DELETE').then(res => {
+    if (res.ok) {
+      toastRef.value?.showToast('Chart deleted successfully', ToastTypes.SUCCESS)
+      fetchSavedChartTitles()
+    } else {
+      toastRef.value?.showToast('Failed to delete chart', ToastTypes.FAIL)
+    }
+  })
+}
+
 const isLoadOpen = ref(false);
 </script>
 
@@ -279,21 +290,29 @@ const isLoadOpen = ref(false);
       <DialogHeader>
         <DialogTitle>Load Chart</DialogTitle>
       </DialogHeader>
-      <div class="flex flex-col">
-        <div class="flex items-center justify-between group hover:bg-muted p-2 cursor-pointer"
-          v-for="chart in savedChartTitles" @click="selectedChartTitle = chart; loadChartFromDB(); isLoadOpen = false">
-          <p>{{ chart }}</p>
-          <div class="invisible group-hover:visible">
-            <X></X>
+      <div>
+        <div class="flex items-center justify-between font-semibold text-gray-700 px-2 py-1 border-b mb-2">
+          <span class="w-1/3">Title</span>
+          <span class="w-1/3 text-right">Type</span>
+          <span class="w-8"></span>
+        </div>
+        <div class="flex flex-col">
+          <div class="flex items-center justify-between group hover:bg-muted p-2 cursor-pointer"
+            v-for="chart in savedChartTitles"
+            @click="selectedChartTitle = chart; loadChartFromDB(); isLoadOpen = false">
+            <p class="w-1/3 truncate">{{ chart.title }}</p>
+            <p class="w-1/3 text-right">{{ chart.type }}</p>
+            <div class="w-8 invisible group-hover:visible flex justify-end" @click="deleteChart(chart.id)">
+              <X></X>
+            </div>
           </div>
         </div>
       </div>
     </DialogContent>
   </Dialog>
 
-  <!-- brutal temp solution to overflow -->
-  <div class="flex w-full">
-    <div>
+  <div class="flex h-full w-full">
+    <div class="h-full">
       <!-- subheader controls (save/load) -->
       <div class="flex gap-1 justify-end">
         <div class="p-1 cursor-pointer hover:bg-neutral-200 rounded-sm">
@@ -321,13 +340,13 @@ const isLoadOpen = ref(false);
         </select>
       </div>
 
-      <div class="flex justify-between items-center">
+      <div class="flex justify-between items-center mb-2">
         <p class="leading-7 [&:not(:first-child)]:mt-6">Series</p>
         <Plus @click="addSeriesSection" class="cursor-pointer"></Plus>
       </div>
 
       <!-- Series Sections (Horizontally Scrollable) -->
-      <div class="flex flex-col gap-4 overflow-y-auto pb-4">
+      <div class="flex flex-col gap-4 pb-4">
         <div v-for="(section, index) in seriesSections" :key="index"
           class="min-w-[300px] shrink-0 border border-gray-300 p-4 rounded-lg bg-gray-50 relative">
           <h2 class="text-md font-semibold text-gray-700 mb-2">Series {{ index + 1 }}</h2>
