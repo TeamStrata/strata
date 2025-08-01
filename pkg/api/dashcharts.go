@@ -398,28 +398,32 @@ func ListDashboardChartsHandler(d *database.DbManager) gin.HandlerFunc {
 
 func AppendChartToDashboardHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		dash_id_str := c.Param("did")
-		dash_id, err := strconv.Atoi(dash_id_str)
+		dash_id, err := strconv.Atoi(c.Param("did"))
 		if err != nil {
-			c.Data(400, "text/plain", []byte("The dashboard ID must be an integer!"))
-			c.Done()
+			c.String(400, "The dashboard ID must be an integer!")
 			return
 		}
-		chart_id_str := c.Param("cid")
-		chart_id, err := strconv.Atoi(chart_id_str)
+		chart_id, err := strconv.Atoi(c.Param("cid"))
 		if err != nil {
-			c.Data(400, "text/plain", []byte("The chart ID must be an integer!"))
-			c.Done()
+			c.String(400, "The chart ID must be an integer!")
 			return
 		}
-		err = d.AppendChartToDashboard(dash_id, chart_id)
+
+		var body struct {
+			SizeX int `json:"size_x"`
+			SizeY int `json:"size_y"`
+		}
+		if err := c.BindJSON(&body); err != nil {
+			c.String(400, "Invalid JSON payload")
+			return
+		}
+
+		err = d.AppendChartToDashboard(dash_id, chart_id, body.SizeX, body.SizeY)
 		if err != nil {
-			c.Data(500, "text/plain", []byte("Internal server error"))
-			c.Done()
+			c.String(500, "Internal server error")
 			return
 		}
 		c.Status(200)
-		c.Done()
 	}
 }
 

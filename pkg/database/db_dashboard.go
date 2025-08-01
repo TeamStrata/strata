@@ -228,12 +228,17 @@ func (d *DbManager) ListDashboardCharts(dashID int) ([]DashboardGraphs, error) {
 	return charts, nil
 }
 
-// Append a chart to a dashboard
-func (d *DbManager) AppendChartToDashboard(dashID, chartID int) error {
-	query := "INSERT INTO dashbordGraphs (dashboard_id, chart_id, size_x, size_y, chart_order) VALUES ($1, $2, 1, 1, (SELECT COALESCE(MAX(chart_order), 0) + 1 FROM dashbordGraphs WHERE dashboard_id = $1));"
-	_, err := d.Connection.Exec(d.context, query, dashID, chartID)
+func (d *DbManager) AppendChartToDashboard(dashID, chartID, sizeX, sizeY int) error {
+	query := `
+		INSERT INTO dashbordGraphs 
+			(dashboard_id, chart_id, size_x, size_y, chart_order)
+		VALUES 
+			($1, $2, $3, $4, (SELECT COALESCE(MAX(chart_order), 0) + 1 FROM dashbordGraphs WHERE dashboard_id = $1));
+	`
+	_, err := d.Connection.Exec(d.context, query, dashID, chartID, sizeX, sizeY)
 	return err
 }
+
 
 // Remove a chart from a dashboard
 func (d *DbManager) RemoveChartFromDashboard(dashID, chartID int) error {

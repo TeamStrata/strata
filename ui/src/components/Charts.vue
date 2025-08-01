@@ -3,6 +3,7 @@ import { ref, reactive } from 'vue'
 import { watch } from 'vue'
 import { computed, defineAsyncComponent } from 'vue'
 import { apiFetch } from '@/api/request'
+import Swal from 'sweetalert2';
 
 const toastRef = ref(null);
 const chartTypes = ['Line', 'Area', 'Column', 'Bar', 'Scatter']
@@ -184,7 +185,13 @@ const saveChart = async () => {
       const seriesResponse = await apiFetch(`/chart/${c.chart_id}/series`, 'POST', JSON.stringify(c), 'application/json')
       if (!seriesResponse.ok) throw new Error('Failed to save series')
       else
-        alert('Chart and series saved successfully')
+        Swal.fire({
+  title: 'Success!',
+  text: 'Chart and series saved successfully.',
+  icon: 'success',
+  timer: 2000,
+  showConfirmButton: false
+});
     })
 
     

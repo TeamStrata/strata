@@ -1,5 +1,5 @@
 <template>
-  <div class="chart-widget" :style="style">
+  <div class="chart-widget" :style="style" ref="widgetRef">
     <div class="header">
       <h3>{{ chartData.title }}</h3>
       <button @click="$emit('close')">✖</button>
@@ -19,13 +19,25 @@ const props = defineProps({
   chartData: {
     type: Object,
     required: true
-  }
+  },
+  width: { type: Number, default: 300 },
+  height: { type: Number, default: 300 }
 });
 
+
+const widgetWidth = ref(props.chartData.width || 800);
+const widgetHeight = ref(props.chartData.height || 600);
+
+const emit = defineEmits(['close', 'update:size', 'update']);
+
 const chartCanvas = ref(null);
+const widgetRef = ref(null);
 let chartInstance = null;
+let resizeObserver = null;
 
 const style = {
+  width: widgetWidth.value + 'px',
+  height: widgetHeight.value + 'px',
   resize: 'both',
   overflow: 'auto',
   border: '1px solid #ccc',
@@ -76,14 +88,16 @@ const fetchSeriesAndRender = async () => {
       const data = await result.json();
 
       return {
-        label: `${series.name} (${series.query_id})`,
+        label: `${series.x_col_name}`,
+        type: chartTypeRaw === 'area' ? 'line' : undefined,
         data: data.map(row => ({
           x: row[series.x_col_name],
           y: row[series.y_col_name]
         })),
-        backgroundColor: getRandomColor(),
+        backgroundColor: chartTypeRaw === 'area' ? getRandomColor(0.3) : getRandomColor(),
         borderColor: getRandomColor(),
         fill: chartTypeRaw === 'area',
+        tension: chartTypeRaw === 'area' ? 0.4 : 0,
         pointRadius: chartTypeRaw === 'scatter' ? 3 : 0,
         showLine: chartTypeRaw !== 'scatter'
       };
@@ -108,7 +122,11 @@ const fetchSeriesAndRender = async () => {
         parsing: false,
         scales: {
           x: {
-            type: ['line', 'area', 'scatter', 'column'].includes(chartTypeRaw) ? 'linear' : 'category',
+            type: (chartTypeRaw === 'area'||chartTypeRaw === 'bar') && typeof filteredDatasets[0]?.data?.[0]?.x === 'string'
+              ? 'category'
+              : ['line', 'area', 'scatter', 'bar', 'column'].includes(chartTypeRaw)
+                ? 'linear'
+                : 'category',
             suggestedMin: allX.length ? Math.min(...allX) - 1 : 0,
             suggestedMax: allX.length ? Math.max(...allX) + 1 : 5,
             title: {
@@ -151,18 +169,47 @@ const fetchSeriesAndRender = async () => {
     console.error('Error rendering chart', err);
   }
 };
+const chartContainer = ref(null);
+
+const observeSize = () => {
+  const observer = new ResizeObserver(entries => {
+    for (const entry of entries) {
+      const { width, height } = entry.contentRect;
+      widgetWidth.value = Math.round(width);
+      widgetHeight.value = Math.round(height);
+
+      // You can still emit if you want to notify parent
+      emit('update:size', {
+        id: props.chartData.id,
+        width: widgetWidth.value,
+        height: widgetHeight.value,
+      });
+    }
+  });
+  if (chartContainer.value) observer.observe(chartContainer.value);
+};
+
 
 onMounted(() => {
   fetchSeriesAndRender();
+  observeSize();
 });
-
-watch(() => props.chartData, () => {
-  fetchSeriesAndRender();
-}, { deep: true });
-
+  
+watch(() => [widgetWidth.value, widgetHeight.value], () => {
+  emit('update', {
+    id: props.chartData.id,
+    width: widgetWidth.value,
+    height: widgetHeight.value,
+    x: props.chartData.x,
+    y: props.chartData.y
+  });
+});
 onBeforeUnmount(() => {
   if (chartInstance) {
     chartInstance.destroy();
+  }
+  if (resizeObserver && widgetRef.value) {
+    resizeObserver.unobserve(widgetRef.value);
   }
 });
 </script>
