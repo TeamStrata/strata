@@ -359,7 +359,7 @@ const isLoadOpen = ref(false);
       </div>
 
       <!-- Series Sections (Horizontally Scrollable) -->
-      <div class="flex flex-col gap-4 pb-4">
+      <div class="flex flex-col w-[300px] gap-4 pb-4">
         <div v-for="(section, index) in seriesSections" :key="index"
           class="min-w-[300px] shrink-0 border border-gray-300 p-4 rounded-lg bg-gray-50 relative">
           <h2 class="text-md font-semibold text-gray-700 mb-2">Series {{ index + 1 }}</h2>
