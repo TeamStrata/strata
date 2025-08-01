@@ -231,9 +231,19 @@ func (d *DbManager) ListDashboardCharts(dashID int) ([]DashboardGraphs, error) {
 func (d *DbManager) AppendChartToDashboard(dashID, chartID, sizeX, sizeY int) error {
 	query := `
 		INSERT INTO dashbordGraphs 
-			(dashboard_id, chart_id, size_x, size_y, chart_order)
-		VALUES 
-			($1, $2, $3, $4, (SELECT COALESCE(MAX(chart_order), 0) + 1 FROM dashbordGraphs WHERE dashboard_id = $1));
+    (dashboard_id, chart_id, size_x, size_y, chart_order)
+VALUES 
+    ($1, $2, $3, $4, 
+     COALESCE(
+       (SELECT chart_order FROM dashbordGraphs WHERE dashboard_id = $1 AND chart_id = $2),
+       (SELECT COALESCE(MAX(chart_order), 0) + 1 FROM dashbordGraphs WHERE dashboard_id = $1)
+     )
+)
+ON CONFLICT (dashboard_id, chart_id)
+DO UPDATE SET 
+    size_x = EXCLUDED.size_x,
+    size_y = EXCLUDED.size_y,
+    chart_order = EXCLUDED.chart_order;
 	`
 	_, err := d.Connection.Exec(d.context, query, dashID, chartID, sizeX, sizeY)
 	return err

@@ -420,7 +420,7 @@ func AppendChartToDashboardHandler(d *database.DbManager) gin.HandlerFunc {
 
 		err = d.AppendChartToDashboard(dash_id, chart_id, body.SizeX, body.SizeY)
 		if err != nil {
-			c.String(500, "Internal server error")
+			c.String(500, err.Error())
 			return
 		}
 		c.Status(200)

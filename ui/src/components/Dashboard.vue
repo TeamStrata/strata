@@ -24,6 +24,7 @@
         :chart-data="chart"
         :width="chart.size_x"
         :height="chart.size_y"
+        :id="`chart-widget-${chart.id}`"
         @close="removeChart(chart.id)"
         @update:size="(event) => onSizeUpdate(chart.id, event)"
       />
@@ -43,9 +44,9 @@ import { apiFetch } from '@/api/request';
 import { useRoute } from 'vue-router';
 import Toast, { ToastTypes } from './Toast.vue';
 import ChartWidget from './ui/ChartWidget/ChartWidget.vue';
-
+import Swal from 'sweetalert2';
 const route = useRoute();
-const dashboardId = route.params.id;
+const dashboardId = ref(route.params.id);
 
 const charts = ref([]);
 const selectedCharts = ref([]);
@@ -74,58 +75,72 @@ const fetchSavedChartTitles = async () => {
 
 const saveDashboardCharts = async () => {
   try {
-    // Step 1: Get existing chart objects in the dashboard
-    const existingRes = await apiFetch(`/dashboard/${dashboardId}/charts`, 'GET');
+    // Fetch existing charts from backend
+    const existingRes = await apiFetch(`/dashboard/${dashboardId.value}/charts`, 'GET');
     if (!existingRes.ok) throw new Error('Failed to fetch charts from dashboard');
 
     const existingCharts = await existingRes.json();
 
-    // Map chart ID to size_x and size_y for comparison
+    // Map chart_id to size, cast to Number to ensure matching works
     const existingChartMap = new Map(
       Array.isArray(existingCharts)
         ? existingCharts
             .filter(chart => chart?.chart_id != null)
             .map(chart => [
-              String(chart.chart_id),
+              Number(chart.chart_id), // ✅ Ensure consistent type
               { size_x: chart.size_x, size_y: chart.size_y }
             ])
         : []
     );
 
-    // Step 2: Loop through selectedCharts and save or update accordingly
     for (let index = 0; index < selectedCharts.value.length; index++) {
       const chart = selectedCharts.value[index];
       if (!chart?.id) continue;
 
-      const chartIdStr = String(chart.id);
-      const chartSize = {
-        size_x: chart.size_x || 300,
-        size_y: chart.size_y || 300
-      };
+      const chartIdNum = Number(chart.id); // ✅ Normalize ID for map lookup
 
-      const existing = existingChartMap.get(chartIdStr);
+      // 🟡 Get actual rendered size from the DOM
+      const widgetEl = document.getElementById(`chart-widget-${chart.id}`);
+      let size_x = chart.size_x || 300;
+      let size_y = chart.size_y || 300;
 
-      // If exists but size changed, or if it doesn't exist at all, update it
+      if (widgetEl) {
+        const rect = widgetEl.getBoundingClientRect();
+        size_x = Math.round(rect.width);
+        size_y = Math.round(rect.height);
+      }
+
+      const existing = existingChartMap.get(chartIdNum);
+
       const shouldUpdate =
         !existing ||
-        existing.size_x !== chartSize.size_x ||
-        existing.size_y !== chartSize.size_y;
+        existing.size_x !== size_x ||
+        existing.size_y !== size_y;
+
+      // Debug logs
+      console.log(`Chart ID ${chart.id}:`);
+      console.log(`  Existing:`, existing);
+      console.log(`  New Size: ${size_x}x${size_y}`);
+      console.log(`  shouldUpdate:`, shouldUpdate);
 
       if (!shouldUpdate) {
         console.log(`Chart ID ${chart.id} already exists with same size. Skipping...`);
         continue;
       }
 
+      // Payload for PATCH
       const payload = {
         chart_order: chart.chart_order || index + 1,
         id: chart.id,
-        ...chartSize,
+        size_x,
+        size_y,
         title: chart.title || "",
         type: chart.type || ""
       };
 
+      // Save or update chart
       const response = await apiFetch(
-        `/dashboard/${dashboardId}/chart/${chart.id}`,
+        `/dashboard/${dashboardId.value}/chart/${chart.id}`,
         'PATCH',
         JSON.stringify(payload)
       );
@@ -148,7 +163,7 @@ const saveDashboardCharts = async () => {
 
 const loadDashboardGraphs = async () => {
   try {
-    const response = await apiFetch(`/dashboard/${dashboardId}/charts`);
+    const response = await apiFetch(`/dashboard/${dashboardId.value}/charts`);
 
     if (response.status === 404) {
       return; 
@@ -167,6 +182,8 @@ const loadDashboardGraphs = async () => {
           selectedCharts.value.push(chart);
         }
       }
+    } else {
+      selectedCharts.value=[];
     }
   } catch (err) {
     if (err?.response?.status !== 404) {
@@ -175,8 +192,6 @@ const loadDashboardGraphs = async () => {
     console.error(err);
   }
 };
-
-import Swal from 'sweetalert2';
 
 const removeChart = async (chartId) => {
   const result = await Swal.fire({
@@ -196,7 +211,7 @@ const removeChart = async (chartId) => {
     selectedCharts.value = selectedCharts.value.filter(chart => chart.id !== chartId);
 
     // Delete from backend
-    const res = await apiFetch(`/dashboard/${dashboardId}/chart/${chartId}`, 'DELETE');
+    const res = await apiFetch(`/dashboard/${dashboardId.value}/chart/${chartId}`, 'DELETE');
     if (!res.ok) {
       toastRef.value?.showToast(`Failed to remove chart ${chartId} from dashboard`, ToastTypes.FAIL);
     } else {
@@ -221,6 +236,15 @@ const loadChartFromDB = () => {
   });
   selectedChartTitle.value = "";
 };
+
+import { watch } from 'vue';
+
+watch(() => route.params.id,
+(newVal, old) => {
+  dashboardId.value = newVal;
+  loadDashboardGraphs();
+  fetchSavedChartTitles();
+});
 
 onMounted(async () => {
   await loadDashboardGraphs();

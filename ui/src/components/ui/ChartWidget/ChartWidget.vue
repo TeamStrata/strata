@@ -25,8 +25,8 @@ const props = defineProps({
 });
 
 
-const widgetWidth = ref(props.chartData.width || 800);
-const widgetHeight = ref(props.chartData.height || 600);
+const widgetWidth = ref(props.width || 800);
+const widgetHeight = ref(props.height || 600);
 
 const emit = defineEmits(['close', 'update:size', 'update']);
 
