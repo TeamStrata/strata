@@ -1,20 +1,26 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
-	"context"
-	"log"
 
 	"github.com/TeamStrata/strata/pkg/auth"
 	"github.com/TeamStrata/strata/pkg/database"
 	"github.com/google/uuid"
 
-	"github.com/gin-gonic/gin"
 	"encoding/json"
+
+	"github.com/gin-gonic/gin"
 )
+
+type UserSessionData struct {
+	Name    string
+	IsAdmin bool
+}
 
 const uuidTag = "uuid"
 
@@ -26,12 +32,12 @@ const uuidTag = "uuid"
 // @Accept json
 // @Produce json
 // @Param login body database.User true "User credentials"
-// @Success 200 {string} string "OK"
+// @Success 200 {object} object{isAdmin=bool} "OK"
 // @Failure 400 {string} string "Bad Request"
 // @Failure 401 {string} string "Unauthorized"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /login [post]
-func LoginHandler(d *database.DbManager, activeUsers map[string]string) gin.HandlerFunc {
+func LoginHandler(d *database.DbManager, activeUsers map[string]UserSessionData) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		login := database.User{}
 		err := c.ShouldBindJSON(&login)
@@ -52,7 +58,14 @@ func LoginHandler(d *database.DbManager, activeUsers map[string]string) gin.Hand
 			return
 		}
 
-		newId := addNewUUID(user.Name, activeUsers)
+		isAdmin, err := d.IsUserAdmin(user)
+		if err != nil {
+			errMsg := fmt.Sprintf("internal server error: %s", err.Error())
+			c.String(http.StatusInternalServerError, errMsg)
+			return
+		}
+
+		newId := addNewUUID(user.Name, isAdmin, activeUsers)
 		c.SetCookie(
 			uuidTag,
 			newId,
@@ -62,7 +75,11 @@ func LoginHandler(d *database.DbManager, activeUsers map[string]string) gin.Hand
 			false,
 			true,
 		)
-		c.Status(http.StatusOK)
+
+		body := map[string]bool{
+			"isAdmin": isAdmin,
+		}
+		c.JSON(http.StatusOK, body)
 	}
 }
 
@@ -76,7 +93,7 @@ func LoginHandler(d *database.DbManager, activeUsers map[string]string) gin.Hand
 // @Failure 401 {string} string "Unauthorized"
 // @Failure 204 {string} string "No Content"
 // @Router /logout [post]
-func LogoutHandler(activeUsers map[string]string) gin.HandlerFunc {
+func LogoutHandler(activeUsers map[string]UserSessionData) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := c.Cookie(uuidTag)
 		if err != nil {
@@ -105,7 +122,7 @@ func LogoutHandler(activeUsers map[string]string) gin.HandlerFunc {
 // @Failure 401 {string} string "Unauthorized"
 // @Failure 204 {string} string "No Content"
 // @Router /auth [get]
-func AuthHandler(activeUsers map[string]string) gin.HandlerFunc {
+func AuthHandler(activeUsers map[string]UserSessionData) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		uuid, err := c.Cookie(uuidTag)
 		if err != nil {
@@ -126,6 +143,33 @@ func AuthHandler(activeUsers map[string]string) gin.HandlerFunc {
 	}
 }
 
+// Check if a user is an admin
+//
+// @Summary      Check admin status
+// @Description  Returns a boolean indicating if the specified user is an admin.
+// @Tags         Authentication
+// @Produce      json
+// @Param        uname path string true "Username"
+// @Success      200 {object} map[string]bool "isAdmin"
+// @Failure      400 {string} string "Bad Request"
+// @Failure      404 {string} string "User Not Found"
+// @Router       /api/isadmin/{uname} [get]
+func IsAdminHandler(activeUsers map[string]UserSessionData) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userName := c.Param("uname")
+		if userName == "" {
+			c.String(http.StatusBadRequest, "expected a `:uname` route parameter")
+		}
+
+		for _, user := range activeUsers {
+			if user.Name == userName {
+				respBody := gin.H{"isAdmin": user.IsAdmin}
+				c.JSON(http.StatusOK, respBody)
+			}
+		}
+	}
+}
+
 // Example endpoint that returns "pong" in the response body JSON
 //
 // @Summary Ping test
@@ -141,17 +185,21 @@ func PingHandler(c *gin.Context) {
 }
 
 // Generate UUID if user does not already have one
-func addNewUUID(username string, users map[string]string) string {
+func addNewUUID(username string, isAdmin bool, users map[string]UserSessionData) string {
 	newId := uuid.NewString()
 	for _, ok := users[newId]; ok; {
 		newId = uuid.NewString()
 	}
 
-	users[newId] = username
+	users[newId] = UserSessionData{
+		Name:    username,
+		IsAdmin: isAdmin,
+	}
+
 	return newId
 }
 
-func GetAllSettingsHandler(d* database.DbManager) gin.HandlerFunc {
+func GetAllSettingsHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		settings, err := d.ExecuteCustomQuery("SELECT skey, svalue FROM settings;")
 		if err != nil {
@@ -173,7 +221,7 @@ func GetAllSettingsHandler(d* database.DbManager) gin.HandlerFunc {
 	}
 }
 
-func GetSettingHandler(d* database.DbManager) gin.HandlerFunc {
+func GetSettingHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		key := c.Param("key")
 
@@ -188,7 +236,7 @@ func GetSettingHandler(d* database.DbManager) gin.HandlerFunc {
 	}
 }
 
-func UpdateSettingHandler(d* database.DbManager, cdb** database.DbManager) gin.HandlerFunc {
+func UpdateSettingHandler(d *database.DbManager, cdb **database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		key := c.Param("key")
 

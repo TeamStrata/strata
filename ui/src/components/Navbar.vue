@@ -39,6 +39,30 @@ const dashboards = ref([]);
 const createDashboardDialog = ref(false);
 const newDashboard = ref({});
 
+function checkIsAdmin() {
+    const route = '/isadmin/' + user.username;
+    apiFetch(route)
+    .then(async (response) => {
+        if (!response.ok) {
+            toastRef.value?.showToast(
+                "There was an issue verifying user privileges.",
+                ToastTypes.FAIL,
+            );
+            throw new Error("Unable to verify if user is an admin or not");
+        } else {
+            let json = await response.json();
+            user.isAdmin = json.isAdmin;
+        }
+    })
+    .catch((err) => {
+        console.error(err);
+    });
+}
+
+if (!user.isAdmin) {
+    checkIsAdmin();
+}
+
 function addDashboard() {
     const route = '/dashboard';
     newDashboard.value.content = 'placeholder content';
@@ -94,7 +118,7 @@ loadDashboards();
             <img src="@/assets/StrataFullx256.png" alt="STRATA" class="mx-auto w-5/6 pt-2"></img>
         </SidebarHeader>
         <SidebarContent>
-            <SidebarGroup>
+            <SidebarGroup v-if="user.isAdmin">
                 <SidebarGroupLabel>Administration</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
@@ -152,7 +176,7 @@ loadDashboards();
                     <SidebarMenu>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild>
-                                <RouterLink to="/query/list">
+                                <RouterLink to="/queries">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
                                         <path fill="none" stroke="currentColor" stroke-linecap="round"
                                             stroke-linejoin="round" stroke-width="2"

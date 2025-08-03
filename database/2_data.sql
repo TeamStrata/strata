@@ -66,7 +66,10 @@ BEGIN
 
 		-- Assign the 'admin' role the 'admin_privileges` permission.
 		INSERT INTO rolePermissions (role_id, permission_id)
-		VALUES (2, 1);
+		VALUES
+			(2, 1),
+			(2, 2),
+			(2, 3);
 	END IF;
 END
 $do$

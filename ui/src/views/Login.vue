@@ -15,13 +15,22 @@ async function login() {
         username: user.value,
         password: pass.value
     }
-    await apiFetch('/login', 'POST', JSON.stringify(body), false).then(res => {
+    await apiFetch('/login', 'POST', JSON.stringify(body), false).then(async res => {
         if (res.status == 200) {
             store.username = user.value;
             router.push("/");
+            let resBody = await res.json();
+            if (resBody.isAdmin) {
+                store.isAdmin = true;
+            } else {
+                store.isAdmin = false;
+            }
         } else {
             error = true;
+            throw new Error("error: expected 200, received " + res.status)
         }
+    }).catch(err => {
+        console.log(err);
     })
 
 }

@@ -66,7 +66,7 @@ function submitEdit() {
         body.permissions = selectedPermissions.value;
     }
 
-    let route = "/role/" + body.id; 
+    let route = "/admin/role/" + body.id; 
     apiFetch(route, "PATCH", JSON.stringify(body))
         .then((response) => {
             if (!response.ok) {
@@ -115,7 +115,7 @@ function submitCreate() {
         body.permissions = selectedPermissions.value;
     }
 
-    apiFetch("/role", "POST", JSON.stringify(body))
+    apiFetch("/admin/role", "POST", JSON.stringify(body))
         .then((response) => {
             if (!response.ok) {
                 toastRef.value?.showToast(
@@ -146,7 +146,7 @@ function showDelete(id) {
 
 // Send DELETE role request to backend API
 function submitDelete() {
-    const route = "/role/" + tempRole.value.id;
+    const route = "/admin/role/" + tempRole.value.id;
     apiFetch(route, "DELETE")
         .then((response) => {
             if (!response.ok) {
@@ -171,7 +171,7 @@ function submitDelete() {
 
 // Get all global permissions
 function loadPermissions() {
-    const route = "/permissions/global";
+    const route = "/admin/permissions/global";
     apiFetch(route)
     .then(async (response) => {
         if (!response.ok) {
@@ -222,7 +222,7 @@ function togglePermission(permissionId, checked) {
 
 // Fetch roles from backend API
 function loadRoles() {
-    apiFetch("/roles")
+    apiFetch("/admin/roles")
         .then(async (response) => {
             if (!response.ok) {
                 toastRef.value?.showToast(

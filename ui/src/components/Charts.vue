@@ -267,8 +267,8 @@ const fetchSavedChartTitles = async () => {
 
 <template>
   <Toast ref="toastRef" />
-
-  <div class="max-w-full mx-auto mt-10 p-6 bg-white shadow-md rounded-lg">
+  <!-- brutal temp solution to overflow -->
+  <div class="max-w-full max-h-[calc(100vh-80px)] overflow-y-auto mx-auto p-6 bg-white shadow-md rounded-lg">
     <h1 class="text-2xl font-bold mb-6 text-gray-800">Chart Viewer</h1>
 
     <!-- Chart Type Selection -->

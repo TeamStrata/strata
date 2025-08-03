@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io"
 	"strconv"
-	"log"
 
 	"github.com/TeamStrata/strata/pkg/database"
 	"github.com/gin-gonic/gin"
@@ -79,11 +78,9 @@ func ReadQueryLiteralHandler(d *database.DbManager) gin.HandlerFunc {
 // @Failure 500 {string} string "Internal Server Error"
 // @Param qid query string type "Query name or ID"
 // @Router /query/{qid}/execute [get]
-func ExecuteQueryHandler(d *database.DbManager, cd **database.DbManager) gin.HandlerFunc {
+func ExecuteQueryHandler(d *database.DbManager, cdb **database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query_id_str := c.Param("qid")
-
-		log.Printf("Ptr at execute: '%p'\n", *cd)
 
 		_, query_string, serr := d.GetCustomQuery(query_id_str)
 		if serr != nil {
@@ -93,7 +90,7 @@ func ExecuteQueryHandler(d *database.DbManager, cd **database.DbManager) gin.Han
 		}
 
 		// Perform the custom query
-		rows, qerr := (*cd).ExecuteCustomQuery(query_string)
+		rows, qerr := (*cdb).ExecuteCustomQuery(query_string)
 		if qerr != nil {
 			c.Data(500, "text/plain", []byte(qerr.Error()))
 			c.Done()
@@ -101,6 +98,36 @@ func ExecuteQueryHandler(d *database.DbManager, cd **database.DbManager) gin.Han
 		}
 
 		// Convert the resulting object to JSON
+		data, jerr := json.Marshal(rows)
+		if jerr != nil {
+			c.Data(500, "text/plain", []byte(jerr.Error()))
+			c.Done()
+			return
+		}
+
+		c.Data(200, "application/json", data)
+		c.Done()
+	}
+}
+
+func ExecuteQueryLiteralHandler(d **database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Read the SQL string from the request body
+		sqlBytes, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
+			return
+		}
+		sqlString := string(sqlBytes)
+
+		rows, qerr := (*d).ExecuteCustomQuery(sqlString)
+		if qerr != nil {
+			c.Data(500, "text/plain", []byte(qerr.Error()))
+			c.Done()
+			return
+		}
+
 		data, jerr := json.Marshal(rows)
 		if jerr != nil {
 			c.Data(500, "text/plain", []byte(jerr.Error()))
@@ -177,6 +204,59 @@ func DeleteQueryHandler(d *database.DbManager) gin.HandlerFunc {
 			c.Data(500, "text/plain", []byte(q_err.Error()))
 			c.Done()
 			return
+		}
+
+		c.Status(200)
+		c.Done()
+	}
+}
+
+func UpdateQueryHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		query_id, err := strconv.Atoi(c.Param("qid"))
+		if err != nil {
+			c.Data(400, "text/plain", []byte("Invalid query ID"))
+			c.Done()
+			return
+		}
+
+		data, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
+			return
+		}
+
+		var req struct {
+			Name    *string `json:"name"`
+			Literal *string `json:"literal"`
+		}
+		if err := json.Unmarshal(data, &req); err != nil {
+			c.Data(400, "text/plain", []byte("Invalid JSON"))
+			c.Done()
+			return
+		}
+
+		// If the request does not contain any fields, return an error
+		if req.Name == nil && req.Literal == nil {
+			c.Data(400, "text/plain", []byte("At least one field must be provided"))
+			c.Done()
+			return
+		}
+
+		if req.Name != nil {
+			if err := d.UpdateCustomQueryName(query_id, *req.Name); err != nil {
+				c.Data(500, "text/plain", []byte(err.Error()))
+				c.Done()
+				return
+			}
+		}
+		if req.Literal != nil {
+			if err := d.UpdateCustomQueryLiteral(query_id, *req.Literal); err != nil {
+				c.Data(500, "text/plain", []byte(err.Error()))
+				c.Done()
+				return
+			}
 		}
 
 		c.Status(200)
