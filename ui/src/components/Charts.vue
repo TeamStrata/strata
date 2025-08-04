@@ -14,6 +14,7 @@ import DialogTitle from './ui/dialog/DialogTitle.vue';
 
 import Toast, { ToastTypes } from "./Toast.vue";
 import Separator from './ui/separator/Separator.vue';
+import Swal from 'sweetalert2';
 
 const toastRef = ref(null);
 const chartTypes = ['Line', 'Area', 'Column', 'Bar', 'Scatter']
@@ -208,7 +209,13 @@ const saveChart = async () => {
       const seriesResponse = await apiFetch(`/chart/${c.chart_id}/series`, 'POST', JSON.stringify(c), 'application/json')
       if (!seriesResponse.ok) throw new Error('Failed to save series')
       else
-        alert('Chart and series saved successfully')
+        Swal.fire({
+  title: 'Success!',
+  text: 'Chart and series saved successfully.',
+  icon: 'success',
+  timer: 2000,
+  showConfirmButton: false
+});
     })
 
 

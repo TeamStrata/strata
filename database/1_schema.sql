@@ -90,7 +90,7 @@ BEGIN
 	);
 
 	-- Dashboard Graphs
-	CREATE TABLE IF NOT EXISTS dashbordGraphs (
+	CREATE TABLE IF NOT EXISTS dashboardGraphs (
 		dashboard_id INTEGER NOT NULL references dashboards(dashboard_id),
 		chart_id INTEGER NOT NULL references chart(chart_id),
 		size_x INTEGER NOT NULL,
