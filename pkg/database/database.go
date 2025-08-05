@@ -429,13 +429,6 @@ func (d *DbManager) AddRole(role Role) (int, error) {
 
 // Update a role.
 func (d *DbManager) UpdateRole(role Role) error {
-	hasBasicUpdates := role.Name != "" || role.Color != ""
-	hasPermissionUpdates := len(role.Permissions) > 0
-
-	if !hasBasicUpdates && !hasPermissionUpdates {
-		return nil
-	}
-
 	// Start a transaction since we might need multiple operations
 	tx, err := d.Connection.Begin(d.context)
 	if err != nil {
@@ -444,6 +437,7 @@ func (d *DbManager) UpdateRole(role Role) error {
 	defer tx.Rollback(d.context)
 
 	// Handle basic role info updates
+	hasBasicUpdates := role.Name != "" || role.Color != ""
 	if hasBasicUpdates {
 		query := "UPDATE roles SET"
 		argCount := 1
@@ -474,35 +468,35 @@ func (d *DbManager) UpdateRole(role Role) error {
 	}
 
 	// Handle permissions updates
-	if hasPermissionUpdates {
-		// First, delete existing role permissions
-		deleteQuery := "DELETE FROM rolepermissions WHERE role_id = $1"
-		_, err = tx.Exec(d.context, deleteQuery, role.Id)
-		if err != nil {
-			return fmt.Errorf("unable to delete existing permissions for role '%d': %w", role.Id, err)
+	// if hasPermissionUpdates {
+	// First, delete existing role permissions
+	deleteQuery := "DELETE FROM rolepermissions WHERE role_id = $1"
+	_, err = tx.Exec(d.context, deleteQuery, role.Id)
+	if err != nil {
+		return fmt.Errorf("unable to delete existing permissions for role '%d': %w", role.Id, err)
+	}
+
+	// Then, insert new permissions
+	if len(role.Permissions) > 0 {
+		insertQuery := "INSERT INTO rolepermissions (role_id, permission_id) VALUES "
+		var insertArgs []any
+		argCount := 1
+
+		for i, permission := range role.Permissions {
+			if i > 0 {
+				insertQuery += ", "
+			}
+			insertQuery += fmt.Sprintf("($%d, $%d)", argCount, argCount+1)
+			insertArgs = append(insertArgs, role.Id, permission.Id)
+			argCount += 2
 		}
 
-		// Then, insert new permissions
-		if len(role.Permissions) > 0 {
-			insertQuery := "INSERT INTO rolepermissions (role_id, permission_id) VALUES "
-			var insertArgs []any
-			argCount := 1
-
-			for i, permission := range role.Permissions {
-				if i > 0 {
-					insertQuery += ", "
-				}
-				insertQuery += fmt.Sprintf("($%d, $%d)", argCount, argCount+1)
-				insertArgs = append(insertArgs, role.Id, permission.Id)
-				argCount += 2
-			}
-
-			_, err = tx.Exec(d.context, insertQuery, insertArgs...)
-			if err != nil {
-				return fmt.Errorf("unable to insert new permissions for role '%d': %w", role.Id, err)
-			}
+		_, err = tx.Exec(d.context, insertQuery, insertArgs...)
+		if err != nil {
+			return fmt.Errorf("unable to insert new permissions for role '%d': %w", role.Id, err)
 		}
 	}
+	// }
 
 	// Commit the transaction
 	err = tx.Commit(d.context)
