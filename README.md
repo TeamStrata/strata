@@ -18,7 +18,7 @@ docker compose down
 ## Ollama Setup
 After starting the docker containers, the strata\_ollama contaner is uninitialized. The ollama container hosts an HTTP server on port 11434, which allows access to the AI model over a JSON REST API. A `Modelfile` has been provided in the root of this project, which can be installed using the command:
 ```sh
-strata exec -it strata_ollama ollama create stratabot -f /root/.ollama/Modelfile
+docker exec -it strata_ollama ollama create stratabot -f /root/.ollama/Modelfile
 ```
 
 ### Executing commands in a Running Docker Container
