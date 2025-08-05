@@ -4,7 +4,6 @@ import { apiFetch } from '@/api/request';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-
 import {
     Dialog,
     DialogClose,
@@ -16,9 +15,9 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 import CardDotted from './CardDotted.vue';
-import { Checkbox } from './ui/checkbox';
 import Toast, { ToastTypes } from './Toast.vue';
 
 // Component refs
@@ -38,12 +37,13 @@ const selectedPermissions = ref([]);
 
 // Show the edit role dialog
 function showEdit(id) {
-    console.log(id)
     const roleToEdit = roles.value.find(item => { return item.id == id });
     tempRole.value = JSON.parse(JSON.stringify(roleToEdit));
     originalRole = JSON.parse(JSON.stringify(roleToEdit));
+
     selectedPermissions.value = roleToEdit.permissions ? 
         roleToEdit.permissions.map(p => p.id) : [];
+
     editModal.value = true;
 }
 
@@ -253,52 +253,97 @@ loadRoles();
 
     <Dialog :open="editModal" @update:open="editModal = $event">
         <DialogContent class="sm:max-w-[425px]">
-            <DialogHeader>
-                <DialogTitle>Edit Role</DialogTitle>
-                <DialogDescription>
-                    Click 'Confirm' to save changes.
-                </DialogDescription>
-            </DialogHeader>
-            <div class="grid gap-4 py-4">
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label for="name-input" class="text-right">Name</Label>
-                    <Input id="name-input" type="text" v-model="tempRole.name" class="col-span-3" />
-                </div>
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label for="color-input" class="text-right">Color</Label>
-                    <Input id="color-input" type="text" v-model="tempRole.color" class="col-span-3 h-10 w-full" />
-                </div>
-                <div class="space-y-2">
-                    <Label class="text-right pt-1">Permissions</Label>
-                    <div class="space-y-2 max-h-40">
-                        <div 
+            <div class="transition-all ease-in-out overflow-hidden">
+            <Transition name="fade-slide" mode="out-in">
+                <component 
+                    :is="deleteModal ? 'div' : 'div'" 
+                    :key="deleteModal ? 'delete' : 'edit'"
+                    class="transition-all duration-300"
+                >
+                <!-- Edit Mode -->
+                <div v-if="!deleteModal" key="edit">
+                    <DialogHeader>
+                    <DialogTitle>Edit Role</DialogTitle>
+                    <DialogDescription>
+                        Click 'Confirm' to save changes.
+                    </DialogDescription>
+                    </DialogHeader>
+                    <div class="grid gap-4 py-4">
+                    <div class="grid grid-cols-4 items-center gap-4">
+                        <Label for="name-input" class="text-right">Name</Label>
+                        <Input 
+                        id="name-input" 
+                        type="text" 
+                        v-model="tempRole.name" 
+                        class="col-span-3" 
+                        />
+                    </div>
+                    <div class="grid grid-cols-4 items-center gap-4">
+                        <Label for="color-input" class="text-right">Color</Label>
+                        <Input 
+                        id="color-input" 
+                        type="text" 
+                        v-model="tempRole.color" 
+                        class="col-span-3 h-10 w-full" 
+                        />
+                    </div>
+                    <div class="space-y-2">
+                        <Label class="text-right pt-1">Permissions</Label>
+                        <div class="space-y-2 max-h-40">
+                            <div 
                             v-for="permission in permissions" 
                             :key="permission.id"
                             class="flex items-center justify-between space-x-2 py-1 pl-2"
-                        >
+                            >
                             <Label 
                                 :for="`permission-${permission.id}`" 
                                 class="text-sm font-normal cursor-pointer"
                             >
                                 {{ permission.label }}
                             </Label>
-                            <Checkbox 
+                            <Switch 
                                 :id="`permission-${permission.id}`"
                                 :model-value="isPermissionSelected(permission.id)"
                                 @update:model-value="togglePermission(permission.id, $event)"
                             />
+                            </div>
+                        </div>
                         </div>
                     </div>
+                    <DialogFooter>
+                    <div class="flex justify-between items-center w-full">
+                        <Button type="button" variant="outline" @click="showDelete(tempRole.id)">Delete</Button>
+                        <div class="flex gap-2">
+                        <DialogClose as-child>
+                            <Button type="button" variant="outline" @click="deleteModal=false">
+                                Cancel
+                            </Button>
+                        </DialogClose>
+                        <Button type="submit" @click="submitEdit">Confirm</Button>
+                        </div>
+                    </div>
+                    </DialogFooter>
                 </div>
-            </div>
-            <DialogFooter>
-                <DialogClose as-child>
-                    <Button type="button" variant="outline">
+
+                <!-- Delete Mode -->
+                <div v-else key="delete">
+                    <DialogHeader>
+                    <DialogTitle>Delete Role?</DialogTitle>
+                    <DialogDescription>
+                        This action cannot be undone. This will permanently
+                        delete the role.
+                    </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter class="flex justify-between space-x-4">
+                    <Button type="button" variant="outline" @click="deleteModal = false">
                         Cancel
                     </Button>
-                </DialogClose>
-                <Button type="submit" @click="submitEdit">Confirm</Button>
-            </DialogFooter>
+                    <Button type="button" variant="destructive" @click="editModal=false; submitDelete()">Confirm</Button>
+                    </DialogFooter>
+                </div>
+                </component>
+            </Transition>
+            </div>
         </DialogContent>
     </Dialog>
 
@@ -329,24 +374,6 @@ loadRoles();
         </DialogContent>
     </Dialog>
 
-    <Dialog :open="deleteModal" @update:open="deleteModal = $event">
-        <DialogContent class="sm:max-w-[425px]">
-            <DialogHeader>
-                <DialogTitle>Delete Role?</DialogTitle>
-                <DialogDescription>
-                    This action cannot be undone. This will permanently
-                    delete the role.
-                </DialogDescription>
-            </DialogHeader>
-            <DialogFooter class="flex justify-between space-x-4">
-                <DialogClose as-child>
-                    <Button type="button" variant="outline">Cancel</Button>
-                </DialogClose>
-                <Button type="submit" @click="submitDelete">Confirm</Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
-
     <!-- list header -->
     <div class="flex flex-row justify-between items-center mb-6">
         <h1 class="text-2xl font-semibold text-gray-800">Roles</h1>
@@ -358,17 +385,15 @@ loadRoles();
         </div>
     </div>
 
-    <ul class="grid grid-cols-1 lg:grid-cols-2 auto-rows-fr gap-4 items-start">
+    <ul class="grid grid-cols-[repeat(auto-fit,400px)] gap-4 justify-center">
         <li v-for="r in roles" :key="r.id" class="h-full">
             <Card class="h-full">
                 <CardHeader class="flex items-center justify-between">
                     <CardTitle class="text-lg">{{ r.name }}</CardTitle>
                     <Badge :style="{ backgroundColor: '#' + r.color }">{{ '#' + r.color }}</Badge>
-                    <!-- <Badge>{{ '#' + r.color }}</Badge> -->
                 </CardHeader>
-                <CardFooter class="flex justify-between gap-x-4">
-                    <Button class="flex-1" variant="outline" @click="showEdit(r.id)">Edit</Button>
-                    <Button class="flex-1" @click="showDelete(r.id)">Delete</Button>
+                <CardFooter class="justify-end gap-x-4">
+                    <Button class="" variant="outline" @click="showEdit(r.id)">Edit</Button>
                 </CardFooter>
             </Card>
         </li>
@@ -386,3 +411,20 @@ loadRoles();
         </li>
     </ul>
 </template>
+
+<style lang="css">
+    .fade-slide-enter-active,
+    .fade-slide-leave-active {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .fade-slide-enter-from {
+    opacity: 0;
+    transform: translateY(2px) scale(0.95);
+    }
+
+    .fade-slide-leave-to {
+    opacity: 0;
+    transform: translateY(-2px) scale(0.95);
+    }
+</style>
