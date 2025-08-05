@@ -17,7 +17,6 @@ export async function apiFetch(route, verb = 'GET', body = false, content = "app
         },
         body: body ? body : null
     })
-    console.log(res.status)
 
     if (res.status == 401) {
         // Go back to login
