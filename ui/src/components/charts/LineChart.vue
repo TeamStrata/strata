@@ -36,7 +36,7 @@ const props = defineProps({
 const chartData = computed(() => {
   return {
     datasets: props.series.map((section, idx) => ({
-      label: section.yColumn || `Series ${idx + 1}`,
+      label: section.name || `Series ${idx + 1}`,
       data: section.chartData.map(item => ({
         x: item?.[section.xColumn],
         y: item?.[section.yColumn],

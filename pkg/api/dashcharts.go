@@ -70,7 +70,7 @@ func CreateChartHandler(d *database.DbManager) gin.HandlerFunc {
 		}
 
 		// Validate chart data
-		if chart.Title == "" || chart.Type == "" {
+		if chart.Title == "" || chart.Type == "" || chart.Xname == "" || chart.Yname == "" {
 			c.Status(http.StatusBadRequest)
 			return
 		}
@@ -192,20 +192,12 @@ func GetChartSingleSeriesHandler(d *database.DbManager) gin.HandlerFunc {
 
 func AddChartSeriesHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		chart_id_str := c.Param("cid")
-		chart_id, err := strconv.Atoi(chart_id_str)
-		if err != nil {
-			c.Data(400, "text/plain", []byte("The chart ID must be an integer!"))
-			c.Done()
-			return
-		}
 
-		var series database.ChartSeries
+		var series []database.ChartSeries
 		if err := c.ShouldBindJSON(&series); err != nil {
 			c.Data(http.StatusBadRequest, "text/plain", []byte("ShouldBindJSON Error"))
 			return
 		}
-		series.ChartID = chart_id
 
 		id, err := d.InsertChartSeries(series)
 		if err != nil {

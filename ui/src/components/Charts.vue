@@ -5,7 +5,7 @@ import { computed, defineAsyncComponent } from 'vue'
 import { apiFetch } from '@/api/request'
 import Input from './ui/input/Input.vue';
 import Label from './ui/label/Label.vue';
-import { File, FolderOpen, Plus, Save, X } from 'lucide-vue-next';
+import { Check, File, FolderOpen, Pencil, Plus, Save, X } from 'lucide-vue-next';
 
 import Dialog from './ui/dialog/Dialog.vue';
 import DialogContent from './ui/dialog/DialogContent.vue';
@@ -28,6 +28,8 @@ const chartTitle = ref('')
 const savedChartTitles = ref([])
 const selectedChartTitle = ref('')
 const isChartLoaded = ref(false)
+const xAxisTitle = ref('')
+const yAxisTitle = ref('')
 
 const seriesSections = reactive([])
 const series = ref([
@@ -100,6 +102,7 @@ const addSeriesSection = () => {
     yColumn: '',
     chartData: [],
     columns: [],
+    name: "Series " + (seriesSections.length + 1)
   })
   watch(
     () => section.query,
@@ -169,6 +172,8 @@ const saveChart = async () => {
   const payload = {
     title: chartTitle.value,
     type: selectedChart.value.toLowerCase(),
+    x_axis: xAxisTitle.value,
+    y_axis: yAxisTitle.value
   }
 
   try {
@@ -185,7 +190,7 @@ const saveChart = async () => {
       throw new Error('At least one series is required')
     }
 
-    const response = await apiFetch('/chart', 'POST', JSON.stringify(payload), 'application/sql')
+    const response = await apiFetch('/chart', 'POST', JSON.stringify(payload), 'application/json')
     if (!response.ok) throw new Error('Failed to save chart')
 
     const data = await response.json()
@@ -201,22 +206,21 @@ const saveChart = async () => {
       query_id: section.query?.id,
       x_col_name: section.xColumn,
       y_col_name: section.yColumn,
+      name: section.name,
     }))
 
     console.log("Posting chartSeries links:");
-    seriesPayload.forEach(async c => {
-      console.log(c);
-      const seriesResponse = await apiFetch(`/chart/${c.chart_id}/series`, 'POST', JSON.stringify(c), 'application/json')
-      if (!seriesResponse.ok) throw new Error('Failed to save series')
-      else
-        Swal.fire({
-  title: 'Success!',
-  text: 'Chart and series saved successfully.',
-  icon: 'success',
-  timer: 2000,
-  showConfirmButton: false
-});
-    })
+    const seriesResponse = await apiFetch(`/chart/${chartId}/series`, 'POST', JSON.stringify(seriesPayload), 'application/json')
+    if (!seriesResponse.ok) throw new Error('Failed to save series')
+    else
+      Swal.fire({
+        title: 'Success!',
+        text: 'Chart and series saved successfully.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
+
 
 
 
@@ -240,6 +244,8 @@ const loadChartFromDB = async () => {
 
     chartTitle.value = chartData.title;
     selectedChart.value = capitalizeFirstLetter(chartData.type);
+    xAxisTitle.value = chartData.x_axis || '';
+    yAxisTitle.value = chartData.y_axis || '';
 
     // Fetch the series separately (assuming /chart/:id/series endpoint)
     const seriesRes = await apiFetch(`/chart/${selectedChartTitle.value.id}/series`);
@@ -257,6 +263,7 @@ const loadChartFromDB = async () => {
         const chartData = await result.json();
 
         return {
+          name: seriesItem.name,
           id: seriesItem.id,
           query,
           xColumn: seriesItem.x_col_name,
@@ -363,6 +370,14 @@ const isLoadOpen = ref(false);
         </select>
       </div>
 
+      <!-- axis naming -->
+      <div>
+        <Label class="mb-1">X Axis Name</Label>
+        <Input placeholder="Enter X Axis name" v-model="xAxisTitle" />
+        <Label class="mb-1 mt-4">Y Axis Name</Label>
+        <Input placeholder="Enter Y Axis name" v-model="yAxisTitle" />
+      </div>
+
       <!-- series management -->
       <div class="flex justify-between items-center">
         <p class="leading-7 [&:not(:first-child)]:mt-6">Series</p>
@@ -374,7 +389,15 @@ const isLoadOpen = ref(false);
         <div v-for="(section, index) in seriesSections" :key="index"
           class="min-w-[300px] shrink-0 border border-gray-300 p-4 rounded-lg bg-gray-50 relative">
           <div class="flex justify-between items-center mb-2">
-            <h2 class="text-md font-semibold text-gray-700">Series {{ index + 1 }}</h2>
+            <div class="flex items-center gap-2" v-if="section.isEditingName ?? true"
+              @click="section.isEditingName = false">
+              <h2 class="text-md font-semibold text-gray-700">{{ section.name }}</h2>
+              <Pencil size="16" class="text-neutral-600"></Pencil>
+            </div>
+            <div v-else class="flex items-center gap-2">
+              <Input placeholder="Enter series name" v-model="section.name" />
+              <Check size="16" class="cursor-pointer" @click="section.isEditingName = true"></Check>
+            </div>
             <!-- Remove Button -->
             <button @click="removeChartSection(index)" class="text-red-500 hover:text-red-700 cursor-pointer text-sm">
               ✕
