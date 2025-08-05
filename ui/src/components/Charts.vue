@@ -242,6 +242,8 @@ const loadChartFromDB = async () => {
     if (!chartRes.ok) throw new Error('Failed to load chart');
     const chartData = await chartRes.json();
 
+    resetChart();
+
     chartTitle.value = chartData.title;
     selectedChart.value = capitalizeFirstLetter(chartData.type);
     xAxisTitle.value = chartData.x_axis || '';
