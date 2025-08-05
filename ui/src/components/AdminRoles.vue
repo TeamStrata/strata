@@ -394,10 +394,10 @@ loadRoles();
         </div>
     </div>
 
-    <ul class="grid grid-cols-[repeat(auto-fit,400px)] gap-4 justify-center">
-        <li v-for="r in roles" :key="r.id" class="h-full">
-            <Card class="h-full">
-                <CardHeader class="flex items-center justify-between">
+    <ul class="grid grid-cols-[repeat(auto-fit,400px)] gap-4 justify-center grid-auto-rows-fr">
+        <li v-for="r in roles" :key="r.id">
+            <Card class="h-full min-h-35">
+                <CardHeader class="flex items-center justify-between ">
                     <CardTitle class="text-lg">{{ r.name }}</CardTitle>
                     <Badge :style="{ backgroundColor: '#' + r.color }">{{ '#' + r.color }}</Badge>
                 </CardHeader>
@@ -406,9 +406,9 @@ loadRoles();
                 </CardFooter>
             </Card>
         </li>
-        <li class="h-full cursor-pointer" @click="showCreate">
+        <li class=" cursor-pointer" @click="showCreate">
             <CardDotted
-                class="flex flex-col items-center justify-center text-neutral-500 h-full hover:text-purple-800 hover:outline-purple-800 transition-colors duration-300">
+                class="flex flex-col items-center justify-center h-full min-h-35 text-neutral-500 hover:text-purple-800 hover:outline-purple-800 transition-colors duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 50 50">
                     <path fill="currentColor"
                         d="M25 42c-9.4 0-17-7.6-17-17S15.6 8 25 8s17 7.6 17 17s-7.6 17-17 17m0-32c-8.3 0-15 6.7-15 15s6.7 15 15 15s15-6.7 15-15s-6.7-15-15-15" />
@@ -424,7 +424,7 @@ loadRoles();
 <style lang="css">
     .fade-slide-enter-active,
     .fade-slide-leave-active {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .fade-slide-enter-from {
