@@ -444,7 +444,7 @@ const isLoadOpen = ref(false);
     <!-- Render Chart -->
     <div class="flex-1 ml-4 my-auto" v-if="chartComponent && seriesSections.length">
       <div v-if="chartComponent && seriesSections.some(s => s.chartData?.length)">
-        <component :is="chartComponent" :series="seriesSections.filter(s => s.chartData?.length)" />
+        <component :is="chartComponent" :series="seriesSections.filter(s => s.chartData?.length)" :xAxisTitle="xAxisTitle" :yAxisTitle="yAxisTitle" />
       </div>
     </div>
   </div>
