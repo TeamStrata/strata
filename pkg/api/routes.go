@@ -18,6 +18,7 @@ import (
 )
 
 type UserSessionData struct {
+	Id      int
 	Name    string
 	IsAdmin bool
 }
@@ -65,7 +66,7 @@ func LoginHandler(d *database.DbManager, activeUsers map[string]UserSessionData)
 			return
 		}
 
-		newId := addNewUUID(user.Name, isAdmin, activeUsers)
+		newId := addNewUUID(user.Id, user.Name, isAdmin, activeUsers)
 		c.SetCookie(
 			uuidTag,
 			newId,
@@ -124,7 +125,7 @@ func LogoutHandler(activeUsers map[string]UserSessionData) gin.HandlerFunc {
 // @Router /auth [get]
 func AuthHandler(activeUsers map[string]UserSessionData) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		uuid, err := c.Cookie(uuidTag)
+		userUUID, err := c.Cookie(uuidTag)
 		if err != nil {
 			errMsg := fmt.Sprintf("expected a uuid cookie: %s", err.Error())
 			c.String(http.StatusBadRequest, errMsg)
@@ -132,7 +133,7 @@ func AuthHandler(activeUsers map[string]UserSessionData) gin.HandlerFunc {
 			return
 		}
 
-		_, exists := activeUsers[uuid]
+		_, exists := activeUsers[userUUID]
 		if !exists {
 			c.String(http.StatusUnauthorized, "uuid not valid")
 			c.Abort()
@@ -185,18 +186,24 @@ func PingHandler(c *gin.Context) {
 }
 
 // Generate UUID if user does not already have one
-func addNewUUID(username string, isAdmin bool, users map[string]UserSessionData) string {
-	newId := uuid.NewString()
-	for _, ok := users[newId]; ok; {
-		newId = uuid.NewString()
+func addNewUUID(userId int, username string, isAdmin bool, users map[string]UserSessionData) string {
+	for sessionUUID, session := range users {
+		if userId == session.Id {
+			return sessionUUID
+		}
 	}
 
-	users[newId] = UserSessionData{
+	newUUId := uuid.NewString()
+	for _, ok := users[newUUId]; ok; {
+		newUUId = uuid.NewString()
+	}
+
+	users[newUUId] = UserSessionData{
 		Name:    username,
 		IsAdmin: isAdmin,
 	}
 
-	return newId
+	return newUUId
 }
 
 func GetAllSettingsHandler(d *database.DbManager) gin.HandlerFunc {
