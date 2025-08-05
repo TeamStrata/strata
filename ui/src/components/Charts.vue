@@ -305,6 +305,16 @@ async function deleteChart(cid) {
   })
 }
 
+function resetChart() {
+  chartTitle.value = ''
+  selectedChart.value = chartTypes[0]
+  xAxisTitle.value = ''
+  yAxisTitle.value = ''
+  seriesSections.splice(0, seriesSections.length)
+  isCreatingNewChart.value = true
+  isChartLoaded.value = false
+}
+
 const isLoadOpen = ref(false);
 </script>
 
@@ -345,7 +355,7 @@ const isLoadOpen = ref(false);
     <div class="w-[350px] h-[calc(100vh-70px)] flex flex-col py-2 px-4 gap-4 min-h-0">
       <!-- save/load controls -->
       <div class="flex gap-1 justify-end">
-        <div class="p-1 cursor-pointer hover:bg-neutral-200 rounded-sm">
+        <div class="p-1 cursor-pointer hover:bg-neutral-200 rounded-sm" @click="resetChart">
           <File></File>
         </div>
         <div class="p-1 cursor-pointer hover:bg-neutral-200 rounded-sm" @click="isLoadOpen = true">
