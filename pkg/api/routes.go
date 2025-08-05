@@ -200,9 +200,16 @@ func StrataBotHandler(d *database.DbManager) gin.HandlerFunc {
             return
         }
 
+		ollama_model, err := d.GetSetting("ollama_model")
+        if err != nil {
+            log.Printf("model lookup error: %v", err)
+            c.String(http.StatusInternalServerError, "error retrieving model")
+            return
+        }
+
         // 2. Build chat payload
         payload := map[string]interface{}{
-            "model":    "stratabot",
+            "model":    ollama_model,
             "messages": incoming.Messages,
             "stream":   false,
         }
@@ -316,22 +323,21 @@ func UpdateSettingHandler(d *database.DbManager, cdb **database.DbManager) gin.H
 			return
 		}
 
-		log.Printf("Before: '%p'\n", *cdb)
+		if key == "cdb" {
+			// Disconnect from the client database, then reconnect to this new database
+			if *cdb != nil {
+				(*cdb).Connection.Close()
+				*cdb = nil
+			}
 
-		// Disconnect from the client database, then reconnect to this new database
-		if *cdb != nil {
-			(*cdb).Connection.Close()
-			*cdb = nil
+			// Attempt to connect to new database so you don't have to restart the server
+			*cdb, err = database.NewDbManager(string(bodyBytes), context.Background())
+			if err != nil {
+				errMsg := fmt.Sprintf("Unable to connect to new database: %s", err.Error())
+				c.String(http.StatusInternalServerError, errMsg)
+				return
+			}
 		}
-
-		// Attempt to connect to new database so you don't have to restart the server
-		*cdb, err = database.NewDbManager(string(bodyBytes), context.Background())
-		if err != nil {
-			errMsg := fmt.Sprintf("Unable to connect to new database: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-		log.Printf("After: '%p'\n", *cdb)
 
 		c.Status(http.StatusOK)
 	}

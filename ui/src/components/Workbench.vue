@@ -14,6 +14,36 @@ export default {
     const error = ref('')
     const loading = ref(false)
     const messages = ref([]);
+    const schema = ref('');
+
+    // Fetch the schema
+    apiFetch("/cdb-schema").then(async res => {
+      if (res.ok) {
+        schema.value = await res.text();
+
+        messages.value.push({"role": "system", "content": `
+\`\`\`SYSTEM INSTRUCTIONS\`\`\`
+Your task is to convert a question into a SQL query, given a Postgres database schema.
+Adhere to these rules:
+- **Deliberately go through the question and database schema word by word** to appropriately answer the question
+- **Use Table Aliases** to prevent ambiguity. For example, \`SELECT table1.col1, table2.col1 FROM table1 JOIN table2 ON table1.id = table2.id\`.
+- When creating a ratio, always cast the numerator as float
+- The assistant's response MUST be programmatic. The response must be pure SQL, or HTML for a table if the user requests a list of tables, parameters, etc. The response MUST NOT contain any prefix or suffix, and must be pure SQL or HTML.
+### Response:
+SELECT * FROM ...
+- The request MUST not contain any additional text, comments, or explanations. The response MUST be a valid SQL query that can be executed on the database schema provided above. The assistant MUST NOT add any prefix or suffix into their responses, such as '###', 'Response:', or anything else. Only the SQL wrapped in \`\`\` tags is acceptable.
+- When thinking, thoughts are placed in the XML tag <thought>...</thought>. The final result as an SQL string is placed in <final>...</final>
+
+\`\`\`ASSISTANT INSTRUCTIONS FOR THE FUTURE - DO NOT INCLUDE THIS IN THE FINAL RESPONSE\`\`\`
+Generate a SQL query that answers the question \`{question}\`.
+This query will run on a database whose schema is represented by this string:
+\`\`\`sql
+${schema.value}
+\`\`\`sql
+`})
+
+      }
+    })
 
     const API_URL = '/stratabot'
     const sendQuery = async () => {
@@ -73,11 +103,11 @@ export default {
     
     <div class="p-2 flex-2 max-h-[calc(100vh-180px)] overflow-y-scroll overflow-x-hidden">
       <div v-for="(message, index) in messages" :key="index" class="text-sm flex flex-col items-start">
-        <p class="block p-1 font-black" :class="message.role == 'user' ? 'self-end' : message.role == 'assistant' ? 'self-start' : 'self-center'">
+        <p v-if="message.role != 'system'" class="block p-1 font-black" :class="message.role == 'user' ? 'self-end' : 'self-start'">
           {{message.role == 'user' ? "You:" : "StrataBot:"}}
         </p>
 
-        <div class="w-fit rounded-sm p-2 max-w-4/5"
+        <div v-if="message.role != 'system'"  class="w-fit rounded-sm p-2 max-w-4/5"
         :class="message.role == 'user' ? 'bg-blue-300 self-end' : message.role == 'assistant' ? 'bg-purple-300 self-start' : 'bg-red-400'">
           <p class="block">{{message.content}}</p>
         </div>
