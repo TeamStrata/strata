@@ -313,6 +313,7 @@ loadRoles();
                                 :id="`permission-${permission.id}`"
                                 :model-value="isPermissionSelected(permission.id)"
                                 @update:model-value="togglePermission(permission.id, $event)"
+                                class="cursor-pointer"
                             />
                             </div>
                         </div>
