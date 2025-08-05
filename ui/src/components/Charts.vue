@@ -15,6 +15,7 @@ import DialogTitle from './ui/dialog/DialogTitle.vue';
 import Toast, { ToastTypes } from "./Toast.vue";
 import Separator from './ui/separator/Separator.vue';
 import Swal from 'sweetalert2';
+import DialogDescription from './ui/dialog/DialogDescription.vue';
 
 const toastRef = ref(null);
 const chartTypes = ['Line', 'Area', 'Column', 'Bar', 'Scatter']
@@ -329,7 +330,9 @@ const isLoadOpen = ref(false);
     <DialogContent>
       <DialogHeader>
         <DialogTitle>Load Chart</DialogTitle>
+        <DialogDescription>Load a chart from your saved charts</DialogDescription>
       </DialogHeader>
+
       <div>
         <div class="flex items-center justify-between font-semibold text-gray-700 px-2 py-1 border-b mb-2">
           <span class="w-1/3">Title</span>
@@ -456,7 +459,8 @@ const isLoadOpen = ref(false);
     <!-- Render Chart -->
     <div class="flex-1 ml-4 my-auto" v-if="chartComponent && seriesSections.length">
       <div v-if="chartComponent && seriesSections.some(s => s.chartData?.length)">
-        <component :is="chartComponent" :series="seriesSections.filter(s => s.chartData?.length)" :xAxisTitle="xAxisTitle" :yAxisTitle="yAxisTitle" />
+        <component :is="chartComponent" :series="seriesSections.filter(s => s.chartData?.length)"
+          :xAxisTitle="xAxisTitle" :yAxisTitle="yAxisTitle" />
       </div>
     </div>
   </div>
