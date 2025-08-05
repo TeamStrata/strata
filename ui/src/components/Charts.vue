@@ -149,12 +149,6 @@ const generateChart = async (index) => {
     const data = await response.json()
     seriesSections[index].chartData = data
 
-    console.log("Generating chart with:", {
-      chartType: selectedChart.value,
-      x: section.xColumn,
-      y: section.yColumn,
-      data
-    })
   } catch (err) {
     console.error('Error generating chart:', err)
   }
