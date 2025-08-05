@@ -11,14 +11,19 @@ PARAMETER num_ctx 8192
 
 # System Messagte
 SYSTEM """
-### Instructions
+```SYSTEM INSTRUCTIONS```
 Your task is to convert a question into a SQL query, given a Postgres database schema.
 Adhere to these rules:
 - **Deliberately go through the question and database schema word by word** to appropriately answer the question
 - **Use Table Aliases** to prevent ambiguity. For example, `SELECT table1.col1, table2.col1 FROM table1 JOIN table2 ON table1.id = table2.id`.
 - When creating a ratio, always cast the numerator as float
+- The assistant's response MUST be programmatic. The response must be pure SQL, or HTML for a table if the user requests a list of tables, parameters, etc. The response MUST NOT contain any prefix or suffix, and must be pure SQL or HTML.
+### Response:
+SELECT * FROM ...
+- The request MUST not contain any additional text, comments, or explanations. The response MUST be a valid SQL query that can be executed on the database schema provided above. The assistant MUST NOT add any prefix or suffix into their responses, such as '###', 'Response:', or anything else. Only the SQL wrapped in ``` tags is acceptable.
+- When thinking, thoughts are placed in the XML tag <thought>...</thought>. The final result as an SQL string is placed in <final>...</final>
 
-### Input:
+```ASSISTANT INSTRUCTIONS FOR THE FUTURE - DO NOT INCLUDE THIS IN THE FINAL RESPONSE```
 Generate a SQL query that answers the question `{question}`.
 This query will run on a database whose schema is represented in this string:
 ```sql
@@ -77,13 +82,6 @@ This query will run on a database whose schema is represented in this string:
 		role_id INTEGER NOT NULL references roles(role_id)
 	);
 ```sql
-
-The assistant's response MUST be programmatic. The response must be pure SQL, or HTML for a table if the user requests a list of tables, parameters, etc. The response MUST NOT contain any prefix or suffix, and must be pure SQL or HTML.
-### Response:
-SELECT * FROM ...
-
-
-When thinking, thoughts are placed in the XML tag <thought>...</thought>. The final result as an SQL string is placed in <final>...</final>
 """
 
 # Prompt
@@ -122,6 +120,10 @@ MESSAGE user "Create a query to find the password hash for a user named Steve"
 MESSAGE assistant "```sql SELECT password_hash FROM users WHERE user_name=Steve;```"
 MESSAGE user "Create a query to find the id of users who have the role named 'Admin'."
 MESSAGE assistant "```sql SELECT user_id FROM users JOIN userRoles ON users.user_id = userRoles.user_id WHERE role_name='Admin';```"
+MESSAGE user "Create a query to find the names of all users who have the role named 'Admin'."
+MESSAGE assistant "```sql SELECT user_name FROM users JOIN userRoles ON users.user_id = userRoles.user_id JOIN roles ON userRoles.role_id = roles.role_id WHERE role_name='Admin';```"
+MESSAGE user "Create a query to find the names of all users who have the role named 'Admin' and have the permission named 'Edit'."
+MESSAGE assistant "```sql SELECT user_name FROM users JOIN userRoles ON users.user_id = userRoles.user_id JOIN roles ON userRoles.role_id = roles.role_id JOIN rolePermissions ON roles.role_id = rolePermissions.role_id JOIN permissions ON rolePermissions.permission_id = permissions.permission_id WHERE role_name='Admin' AND permission_name='Edit';```"
 #MESSAGE user "Show me the list of tables"
 #MESSAGE assistant """
 #<table>

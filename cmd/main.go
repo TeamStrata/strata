@@ -111,6 +111,7 @@ func main() {
 
 		// Misc Endpoints
 		protected.GET("/ping", api.PingHandler)
+		protected.POST("/stratabot", api.StrataBotHandler(db))
 
 		admin := protected.Group("/admin")
 		{

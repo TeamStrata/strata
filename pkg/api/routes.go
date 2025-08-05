@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"bytes"
 
 	"github.com/TeamStrata/strata/pkg/auth"
 	"github.com/TeamStrata/strata/pkg/database"
@@ -182,6 +183,64 @@ func PingHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "pong",
 	})
+}
+
+func StrataBotHandler(d *database.DbManager) gin.HandlerFunc
+	return func(c *gin.Context) {
+		// Send a post request to the ollama contianer at /api/generate to generate a response
+		var reqBody struct {
+			Model  string `json:"model"`
+			Prompt string `json:"prompt"`
+			Stream bool   `json:"stream"`
+		}
+
+		// Read the raw prompt from the request body
+		bodyBytes, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			log.Printf("Error reading request body: %s", err.Error())
+			c.String(http.StatusBadRequest, "Error reading prompt")
+			return
+		}
+
+		reqBody.Model = "stratabot"
+		reqBody.Prompt = string(bodyBytes)
+		reqBody.Stream = false
+
+		jsonBody, err := json.Marshal(reqBody)
+		if err != nil {
+			log.Printf("Error marshaling JSON: %s", err.Error())
+			c.String(http.StatusInternalServerError, "Error preparing request for StrataBot")
+			return
+		}
+
+		ollama_host, err := d.GetSetting("ollama_host")
+		if err != nil {
+			log.Printf("Error getting Ollama host address from settings: %s", err.Error())
+			c.String(http.StatusInternalServerError, "Error retrieving Ollama Host address")
+			return
+		}
+
+		// Generate HTTP request and get 'response' field of the JSON response data.
+		response, err := http.Post("http://"+ollama_host+"/api/chat", "application/json", bytes.NewReader(jsonBody))
+		if err != nil {
+			log.Printf("Error sending request to StrataBot: %s", err.Error())
+			c.String(http.StatusInternalServerError, "Error communicating with StrataBot")
+			return
+		}
+
+		defer response.Body.Close()		
+		
+		var respData struct {
+			Response string `json:"response"`
+		}
+		if err := json.NewDecoder(response.Body).Decode(&respData); err != nil {
+			log.Printf("Error decoding StrataBot response: %s", err.Error())
+			c.String(http.StatusInternalServerError, "Error decoding StrataBot response")
+			return
+		}
+
+		c.String(http.StatusOK, respData.Response)
+	}
 }
 
 // Generate UUID if user does not already have one

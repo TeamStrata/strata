@@ -45,7 +45,8 @@ BEGIN
 
 
 		INSERT INTO settings (skey, svalue)
-		VALUES ('cdb', 'postgresql://strata:atarts@strata_psql:5432/strata')
+		VALUES ('cdb', 'postgresql://strata:atarts@strata_psql:5432/strata'),
+		('ollama_host', 'strata_ollama:11434')
 		ON CONFLICT DO NOTHING;
 
 		-- Dashboards
