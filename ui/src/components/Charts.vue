@@ -128,6 +128,7 @@ const addSeriesSection = () => {
   )
 
   seriesSections.push(section)
+  generateChart(seriesSections.length - 1)
 }
 
 
@@ -422,7 +423,7 @@ const isLoadOpen = ref(false);
           <!-- Query -->
           <div class="mb-2">
             <label class="block text-gray-600 text-sm mb-1">Saved Query:</label>
-            <select v-model="section.query" class="w-full p-1 border border-gray-300 rounded text-sm">
+            <select v-model="section.query" class="w-full p-1 border border-gray-300 rounded text-sm" @change="generateChart(index)">
               <option v-for="query in savedQueries" :key="query.id" :value="query">
                 {{ query.name || query.id }}
               </option>
@@ -444,12 +445,6 @@ const isLoadOpen = ref(false);
               <option v-for="col in section.columns" :key="col">{{ col }}</option>
             </select>
           </div>
-
-          <!-- Generate Button -->
-          <button @click="generateChart(index)"
-            class="mt-2 w-full bg-blue-500 hover:bg-blue-600 text-white text-sm py-1 rounded">
-            Generate
-          </button>
         </div>
 
       </div>
