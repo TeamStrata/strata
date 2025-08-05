@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -726,4 +727,154 @@ func (d *DbManager) SetSetting(key string, value string) error {
 	}
 
 	return nil
+}
+
+
+func (d *DbManager) DumpSchema() (string, error) {
+    var sb strings.Builder
+    schema := "public"
+
+    // 1) Tables + Columns + Defaults + NOT NULL
+    tblRows, err := d.Connection.Query(d.context, `
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = $1
+          AND table_type = 'BASE TABLE'
+        ORDER BY table_name;
+    `, schema)
+    if err != nil {
+        return "", fmt.Errorf("query tables: %w", err)
+    }
+    defer tblRows.Close()
+
+    for tblRows.Next() {
+        var tbl string
+        if err := tblRows.Scan(&tbl); err != nil {
+            return "", err
+        }
+
+        // Build column definitions for this table
+        colRows, err := d.Connection.Query(d.context, `
+            SELECT
+                column_name,
+                data_type,
+                CASE WHEN is_nullable = 'NO' THEN ' NOT NULL' ELSE '' END,
+                COALESCE(column_default, '')
+            FROM information_schema.columns
+            WHERE table_schema = $1
+              AND table_name   = $2
+            ORDER BY ordinal_position;
+        `, schema, tbl)
+        if err != nil {
+            return "", fmt.Errorf("query columns for %s: %w", tbl, err)
+        }
+
+        cols := []string{}
+        for colRows.Next() {
+            var name, typ, notNull, def string
+            colRows.Scan(&name, &typ, &notNull, &def)
+            colDef := fmt.Sprintf("    %s %s%s", name, typ, notNull)
+            if def != "" {
+                colDef += " DEFAULT " + def
+            }
+            cols = append(cols, colDef)
+        }
+        colRows.Close()
+
+        sb.WriteString(fmt.Sprintf("CREATE TABLE %s.%s (\n", schema, tbl))
+        sb.WriteString(strings.Join(cols, ",\n"))
+        sb.WriteString("\n);\n\n")
+    }
+
+    // 2) Indexes
+    idxRows, err := d.Connection.Query(d.context, `
+        SELECT indexdef || ';'
+        FROM pg_indexes
+        WHERE schemaname = $1
+        ORDER BY tablename, indexname;
+    `, schema)
+    if err != nil {
+        return "", fmt.Errorf("query indexes: %w", err)
+    }
+    defer idxRows.Close()
+
+    for idxRows.Next() {
+        var idxDDL string
+        idxRows.Scan(&idxDDL)
+        sb.WriteString(idxDDL)
+        sb.WriteString("\n")
+    }
+    sb.WriteString("\n")
+
+    // 4) Views
+	viewRows, err := d.Connection.Query(d.context, `
+		SELECT
+		table_name,
+		pg_get_viewdef(
+			quote_ident(table_schema) || '.' || quote_ident(table_name),
+			true
+		) AS viewdef
+		FROM information_schema.views
+		WHERE table_schema = $1
+		ORDER BY table_name;
+	`, schema)
+	if err != nil {
+		return "", fmt.Errorf("query views: %w", err)
+	}
+	defer viewRows.Close()
+
+	for viewRows.Next() {
+		var name, def string
+		viewRows.Scan(&name, &def)
+		sb.WriteString(fmt.Sprintf(
+			"CREATE VIEW %s.%s AS\n%s;\n\n",
+			schema, name, def,
+		))
+	}
+
+    // 5) Functions
+    funcRows, err := d.Connection.Query(d.context, `
+        SELECT pg_get_functiondef(p.oid)
+        FROM pg_proc p
+        JOIN pg_namespace n ON p.pronamespace = n.oid
+        WHERE n.nspname = $1
+        ORDER BY p.proname;
+    `, schema)
+    if err != nil {
+        return "", fmt.Errorf("query functions: %w", err)
+    }
+    defer funcRows.Close()
+
+    for funcRows.Next() {
+        var ddl string
+        funcRows.Scan(&ddl)
+        sb.WriteString(ddl)
+        sb.WriteString("\n")
+    }
+    sb.WriteString("\n")
+
+    // 6) Constraints (PK, FK, UNIQUE, CHECK)
+    constrRows, err := d.Connection.Query(d.context, `
+        SELECT
+          conrelid::regclass::text AS tbl,
+          conname,
+          pg_get_constraintdef(c.oid)
+        FROM pg_constraint c
+        JOIN pg_namespace n ON c.connamespace = n.oid
+        WHERE n.nspname = $1
+          AND contype IN ('p','f','u','c')
+        ORDER BY conname;
+    `, schema)
+    if err != nil {
+        return "", fmt.Errorf("query constraints: %w", err)
+    }
+    defer constrRows.Close()
+
+    for constrRows.Next() {
+        var tbl, cname, cdef string
+        constrRows.Scan(&tbl, &cname, &cdef)
+        sb.WriteString(fmt.Sprintf("ALTER TABLE ONLY %s ADD CONSTRAINT %s %s;\n", tbl, cname, cdef))
+    }
+
+    return sb.String(), nil
 }

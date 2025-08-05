@@ -111,7 +111,10 @@ func main() {
 
 		// Misc Endpoints
 		protected.GET("/ping", api.PingHandler)
+
+		// AI
 		protected.POST("/stratabot", api.StrataBotHandler(db))
+		protected.GET("/cdb-schema", api.SchemaDump(&cdb))
 
 		admin := protected.Group("/admin")
 		{

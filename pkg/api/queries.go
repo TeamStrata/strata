@@ -263,3 +263,22 @@ func UpdateQueryHandler(d *database.DbManager) gin.HandlerFunc {
 		c.Done()
 	}
 }
+
+// @Summary Retrieve the database schema to be provided to the AI LLM
+// @Tags Queries Schema
+// @Produce string
+// @Success 200 {string} string "OK"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/cdb-schema [get]
+func SchemaDump(cdb **database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		str, err := (*cdb).DumpSchema()
+		if err != nil {
+			c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
+			return
+		}
+
+		c.Data(200, "text/plain", []byte(str))
+	}
+}
