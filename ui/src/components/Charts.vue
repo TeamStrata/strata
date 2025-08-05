@@ -319,6 +319,17 @@ function resetChart() {
   isChartLoaded.value = false
 }
 
+const vFocus = {
+  mounted(el) {
+    el.focus()
+  }
+}
+
+defineExpose()
+
+function quickPause(func) {
+  setTimeout(func, 100)
+}
 const isLoadOpen = ref(false);
 </script>
 
@@ -405,14 +416,17 @@ const isLoadOpen = ref(false);
         <div v-for="(section, index) in seriesSections" :key="index"
           class="min-w-[300px] shrink-0 border border-gray-300 p-4 rounded-lg bg-gray-50 relative">
           <div class="flex justify-between items-center mb-2">
-            <div class="flex items-center gap-2" v-if="section.isEditingName ?? true"
-              @click="section.isEditingName = false">
+            <div class="flex items-center gap-2" v-if="!section.isEditingName ?? false"
+              @click="section.isEditingName = true; section.editName = section.name;">
               <h2 class="text-md font-semibold text-gray-700">{{ section.name }}</h2>
               <Pencil size="16" class="text-neutral-600"></Pencil>
             </div>
             <div v-else class="flex items-center gap-2">
-              <Input placeholder="Enter series name" v-model="section.name" />
-              <Check size="16" class="cursor-pointer" @click="section.isEditingName = true"></Check>
+              <Input :id="`edit-series-name-${index}`" placeholder="Enter series name" v-model="section.editName"
+                v-focus @keydown.enter="section.isEditingName = false; section.name = section.editName"
+                @blur="quickPause(() => { section.isEditingName = false });" />
+              <Check size="16" class="cursor-pointer"
+                @click.stop="section.isEditingName = false; section.name = section.editName"></Check>
             </div>
             <!-- Remove Button -->
             <button @click="removeChartSection(index)" class="text-red-500 hover:text-red-700 cursor-pointer text-sm">
@@ -423,7 +437,8 @@ const isLoadOpen = ref(false);
           <!-- Query -->
           <div class="mb-2">
             <label class="block text-gray-600 text-sm mb-1">Saved Query:</label>
-            <select v-model="section.query" class="w-full p-1 border border-gray-300 rounded text-sm" @change="generateChart(index)">
+            <select v-model="section.query" class="w-full p-1 border border-gray-300 rounded text-sm"
+              @change="generateChart(index)">
               <option v-for="query in savedQueries" :key="query.id" :value="query">
                 {{ query.name || query.id }}
               </option>
