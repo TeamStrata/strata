@@ -1,5 +1,5 @@
 <script>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import Separator from "./ui/separator/Separator.vue";
 import { apiFetch } from "@/api/request";
 
@@ -22,15 +22,12 @@ export default {
         schema.value = await res.text();
 
         messages.value.push({"role": "system", "content": `
-\`\`\`SYSTEM INSTRUCTIONS\`\`\`
 Your task is to convert a question into a SQL query, given a Postgres database schema.
 Adhere to these rules:
 - **Deliberately go through the question and database schema word by word** to appropriately answer the question
 - **Use Table Aliases** to prevent ambiguity. For example, \`SELECT table1.col1, table2.col1 FROM table1 JOIN table2 ON table1.id = table2.id\`.
 - When creating a ratio, always cast the numerator as float
 - The assistant's response MUST be programmatic. The response must be pure SQL, or HTML for a table if the user requests a list of tables, parameters, etc. The response MUST NOT contain any prefix or suffix, and must be pure SQL or HTML.
-### Response:
-SELECT * FROM ...
 - The request MUST not contain any additional text, comments, or explanations. The response MUST be a valid SQL query that can be executed on the database schema provided above. The assistant MUST NOT add any prefix or suffix into their responses, such as '###', 'Response:', or anything else. Only the SQL wrapped in \`\`\` tags is acceptable.
 - When thinking, thoughts are placed in the XML tag <thought>...</thought>. The final result as an SQL string is placed in <final>...</final>
 
@@ -41,9 +38,10 @@ This query will run on a database whose schema is represented by this string:
 ${schema.value}
 \`\`\`sql
 `})
-
-      }
-    })
+      } else {
+        throw new Error(`Error ${res.status}: ${res.statusText}`);
+    }
+    });
 
     const API_URL = '/stratabot'
     const sendQuery = async () => {
