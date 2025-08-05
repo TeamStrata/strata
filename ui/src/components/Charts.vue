@@ -133,17 +133,7 @@ const addSeriesSection = () => {
 
 
 const removeChartSection = (index) => {
-  let spliced = seriesSections.splice(index, 1)
-  spliced.forEach(s => {
-    apiFetch(`/chart/${selectedChartTitle.value.id}/series/${s.id}`, 'DELETE')
-      .then(response => {
-        if (!response.ok) throw new Error('Failed to delete chart section')
-        console.log(`Section ${s.id} removed successfully`)
-      })
-      .catch(err => {
-        console.error(`Error removing section ${s.id}:`, err)
-      })
-  })
+  seriesSections.splice(index, 1)
 }
 
 const chartData = ref([])
