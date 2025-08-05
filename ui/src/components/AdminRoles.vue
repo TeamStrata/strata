@@ -220,6 +220,14 @@ function togglePermission(permissionId, checked) {
     }
 }
 
+// Handle state change between the edit and delete dialogs.
+const handleEditDialogClose = (open) => {
+  editModal.value = open;
+  if (!open) {
+    deleteModal.value = false;
+  }
+};
+
 // Fetch roles from backend API
 function loadRoles() {
     apiFetch("/admin/roles")
@@ -251,7 +259,7 @@ loadRoles();
 <template>
     <Toast ref="toastRef" />
 
-    <Dialog :open="editModal" @update:open="editModal = $event">
+    <Dialog :open="editModal" @update:open="handleEditDialogClose">
         <DialogContent class="sm:max-w-[425px]">
             <div class="transition-all ease-in-out overflow-hidden">
             <Transition name="fade-slide" mode="out-in">
