@@ -346,7 +346,7 @@ const isLoadOpen = ref(false);
             @click="selectedChartTitle = chart; loadChartFromDB(); isLoadOpen = false">
             <p class="w-1/3 truncate">{{ chart.title }}</p>
             <p class="w-1/3 text-right">{{ chart.type }}</p>
-            <div class="w-8 invisible group-hover:visible flex justify-end" @click="deleteChart(chart.id)">
+            <div class="w-8 invisible group-hover:visible flex justify-end" @click.stop="deleteChart(chart.id)">
               <X></X>
             </div>
           </div>
