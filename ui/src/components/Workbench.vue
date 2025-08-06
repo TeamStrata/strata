@@ -19,12 +19,13 @@ const md = MarkdownIt({
   highlight: function (str, lang) {
     if (lang && hljs.getLanguage(lang)) {
       try {
-        return hljs.highlight(str, { language: "sql" }).value;
+        return hljs.highlight(str, { language: lang }).value;
       } catch (__) {}
     }
 
     return ''; // use external default escaping
   }
+
 })
 // Fetch the schema
 apiFetch("/cdb-schema").then(async res => {
@@ -45,6 +46,7 @@ If the user does not start with a question or actionable message, respond with a
 Respond to the user in a friendly way, but minimize any extra words. Answer their inquirty directly and consisely.
 Generate a SQL query that answers the question \`{question}\`.
 If the users asks for an explanation, explain the solution consisely to accompany any code you generate.
+If you are providing a code block, ensure you give it a short introduction first.
 This query will run on a database whose schema is represented by this string:
 \`\`\`sql
 ${schema.value}
@@ -126,30 +128,19 @@ function handleEnter(e) {
 
 <template>
 
-  <div class="h-full flex flex-col">
+  <div class="h-full flex flex-col max-h-[calc(100dvh-4rem)]">
     <div class="p-2 flex justify-between bg-accent">
       <p>AI Chat</p>
     </div>
 
     <Separator></Separator>
 
-    <div class="p-2 flex-1 overflow-y-scroll overflow-x-hidden">
+    <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-2">
       <div v-for="(message, index) in messages" :key="index" class="flex flex-col items-start mx-2 *:my-3">
         <p v-if="message.role == 'user'" class="self-end p-2 px-3 bg-accent rounded-md whitespace-pre-wrap">{{
           message.content }}</p>
         <p v-if="message.role == 'assistant'" v-html="message.pretty"
-          class="prose prose-pre:bg-accent prose-pre:p-0 prose-pre:border-1 prose-pre:text-black"></p>
-
-
-        <!-- <p v-if="message.role != 'system'" class="block p-1 font-black"
-          :class="message.role == 'user' ? 'self-end' : 'self-start'">
-          {{ message.role == 'user' ? "You:" : "StrataBot:" }}
-        </p>
-
-        <div v-if="message.role != 'system'" class="w-fit rounded-sm p-2 max-w-4/5"
-          :class="message.role == 'user' ? 'bg-blue-300 self-end' : message.role == 'assistant' ? 'bg-purple-300 self-start' : 'bg-red-400'">
-          <p class="block">{{ message.content }}</p>
-        </div> -->
+          class="prose  prose-pre:bg-accent prose-pre:p-0 prose-pre:border-1 prose-pre:text-black"></p>
       </div>
     </div>
 
