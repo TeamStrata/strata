@@ -105,7 +105,7 @@ func Test_DeleteUser(t *testing.T) {
 		Name:     "testDelete",
 		Password: "testDelete",
 	}
-	err = db.InsertUser(testUser.Name, testUser.Password)
+	_, err = db.InsertUser(testUser.Name, testUser.Password)
 	if err != nil {
 		t.Fatalf("error inserting test user into database: %s", err.Error())
 	}
@@ -133,7 +133,7 @@ func Test_AddUserRole(t *testing.T) {
 		Name:     "testAddRole",
 		Password: password_hash,
 	}
-	err = db.InsertUser(testUser.Name, testUser.Password)
+	_, err = db.InsertUser(testUser.Name, testUser.Password)
 	if err != nil {
 		t.Fatalf("error inserting test user into database: %s", err.Error())
 	}
@@ -164,7 +164,7 @@ func Test_DeleteUserRole(t *testing.T) {
 		Name:     "testDeleteRole",
 		Password: password_hash,
 	}
-	err = db.InsertUser(testUser.Name, testUser.Password)
+	_, err = db.InsertUser(testUser.Name, testUser.Password)
 	if err != nil {
 		t.Fatalf("error inserting test user into database: %s", err.Error())
 	}

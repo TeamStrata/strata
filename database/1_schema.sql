@@ -70,16 +70,19 @@ BEGIN
 	CREATE TABLE IF NOT EXISTS chart (
 		chart_id SERIAL PRIMARY KEY,
 		chart_title TEXT NOT NULL,
-		chart_type CHART_TYPE NOT NULL
+		chart_type CHART_TYPE NOT NULL,
+		x_axis_name TEXT NOT NULL,
+		y_axis_name TEXT NOT NULL
 	);
 
 	-- Chart series
 	CREATE TABLE IF NOT EXISTS chartSeries (
+		seriesName TEXT NOT NULL,
 		series_id SERIAL PRIMARY KEY,
-		chart_id INTEGER NOT NULL references chart(chart_id),
-		query_id INTEGER NOT NULL references queries(query_id),
+		chart_id INTEGER NOT NULL references chart(chart_id) ON DELETE CASCADE,
+		query_id INTEGER NOT NULL references queries(query_id) ON DELETE CASCADE,
 		x_column TEXT NOT NULL,
-		y_column TEXT NOT NULL 
+		y_column TEXT NOT NULL
 	);
 
 	-- Dashboard 

@@ -31,12 +31,20 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  xAxisTitle: {
+    type: String,
+    required: true,
+  },
+  yAxisTitle: {
+    type: String,
+    required: true,
+  },
 })
 
 const chartData = computed(() => {
   return {
     datasets: props.series.map((section, idx) => ({
-      label: section.yColumn || `Series ${idx + 1}`,
+      label: section.name || `Series ${idx + 1}`,
       data: section.chartData.map(item => ({
         x: item?.[section.xColumn],
         y: item?.[section.yColumn],
@@ -48,28 +56,36 @@ const chartData = computed(() => {
     })),
   }
 })
-const chartOptions = {
-  responsive: true,
-  scales: {
-    x: {
-      type: 'linear',
-      title: {
-        display: true,
-        text: props.series[0]?.xColumn || 'X Axis',
+
+const chartOptions = computed(() => {
+  return {
+    responsive: true,
+    scales: {
+      x: {
+        type: 'linear',
+        title: {
+          display: true,
+          text: props.xAxisTitle,
+        },
       },
-      min: 0, 
+      y: {
+        beginAtZero: false,
+        title: {
+          display: true,
+          text: props.yAxisTitle,
+        },
+      },
     },
-    y: {
-      beginAtZero: true, 
+    plugins: {
+      legend: {
+        display: true,
+      },
+      title: {
+        display: false,
+      },
     },
-  },
-  plugins: {
-    legend: {
-      display: true,
-    },
-    title: {
-      display: false,
-    },
-  },
-}
+
+  }
+})
+
 </script>

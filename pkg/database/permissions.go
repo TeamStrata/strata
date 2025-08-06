@@ -28,7 +28,7 @@ func (d *DbManager) GetScopedPermissions(scope ScopeType) ([]Permission, error) 
          FROM permissions
          WHERE permissions.permission_scope = $1`
 
-	rows, err := d.Connection.Query(d.context, query, scope)
+	rows, err := d.Connection.Query(d.Context, query, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (d *DbManager) GetPermissions() ([]Permission, error) {
 		`SELECT permission_id, permission_name, permission_scope
          FROM permissions`
 
-	rows, err := d.Connection.Query(d.context, query)
+	rows, err := d.Connection.Query(d.Context, query)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func (d *DbManager) GetPermissions() ([]Permission, error) {
 func (d *DbManager) AddDashboardRolePermission(dashId int, roleId int, permissionId int) error {
 	var scope string
 	query := `SELECT permission_scope FROM permissions WHERE permission_id = $1;`
-	err := d.Connection.QueryRow(d.context, query, permissionId).Scan(&scope)
+	err := d.Connection.QueryRow(d.Context, query, permissionId).Scan(&scope)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -108,7 +108,7 @@ func (d *DbManager) AddDashboardRolePermission(dashId int, roleId int, permissio
 		AND
 			permission_scope = 'dashboard';`
 
-	_, err = d.Connection.Exec(d.context, query, dashId, roleId, permissionId)
+	_, err = d.Connection.Exec(d.Context, query, dashId, roleId, permissionId)
 	if err != nil {
 		errMsg := fmt.Sprintf("unable to add dashboard role permission: %s", err.Error())
 		return errors.New(errMsg)
@@ -128,7 +128,7 @@ func (d *DbManager) DeleteDashboardRolePermission(dashId int, roleId int, permis
 		AND
 			permission_id = $3`
 
-	_, err := d.Connection.Exec(d.context, query, dashId, roleId, permissionId)
+	_, err := d.Connection.Exec(d.Context, query, dashId, roleId, permissionId)
 	if err != nil {
 		errMsg := fmt.Sprintf("unable to delete dashboard role permission: %s", err.Error())
 		return errors.New(errMsg)

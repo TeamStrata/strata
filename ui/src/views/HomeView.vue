@@ -20,6 +20,7 @@ const pageInfo = computed(() => {
       title: route.meta.title,
       description: route.meta.description,
       configurable: route.meta.configurable,
+      ignorePadding: route.meta.ignorePadding || false,
     };
   } else {
     return {
@@ -57,7 +58,7 @@ const pageInfo = computed(() => {
         </div>
         <Separator></Separator>
         <!-- main content area -->
-        <div class="h-full w-full" :class="route.name == 'queries' ? 'p-0' : 'p-5'">
+        <div class="h-full w-full" :class="pageInfo.ignorePadding ? 'p-0' : 'p-5'">
           <RouterView></RouterView>
         </div>
       </SidebarInset>

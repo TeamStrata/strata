@@ -27,6 +27,7 @@ const router = createRouter({
             title: 'Queries',
             description: 'Build and manage your organizations queries.',
             configurable: false,
+            ignorePadding: true,
           },
         },
         {
@@ -80,6 +81,7 @@ const router = createRouter({
                 title: 'Charts',
                 description: 'Manage your organization\'s charts.',
                 configurable: false,
+                ignorePadding: true,
               },
               component: () => import("../components/Charts.vue")
             }

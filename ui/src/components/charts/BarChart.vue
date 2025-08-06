@@ -22,6 +22,14 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  xAxisTitle: {
+    type: String,
+    required: true,
+  },
+  yAxisTitle: {
+    type: String,
+    required: true,
+  },
 })
 
 const chartData = computed(() => {
@@ -29,11 +37,11 @@ const chartData = computed(() => {
   const labels = firstSection?.chartData.map(row => row[firstSection.xColumn]) ?? []
 
   const datasets = props.series.map((section, index) => ({
-    label: section.query?.name || `Series ${index + 1}`,
-    data: section.chartData.map(row => {
-      const val = row?.[section.yColumn]
-      return isNaN(val) ? 0 : Number(val)
-    }),
+    label: section.name || `Series ${index + 1}`,
+      data: (section.chartData || []).map(item => ({
+        y: item?.[section.xColumn],
+        x: item?.[section.yColumn],
+      })),
     backgroundColor: `hsl(${(index * 60) % 360}, 70%, 60%)`
   }))
 
@@ -43,18 +51,32 @@ const chartData = computed(() => {
   }
 })
 
-const chartOptions = {
-  indexAxis: 'y',
-  responsive: true,
-  plugins: {
-    legend: {
-      display: true,
-      position: 'top',
+const chartOptions = computed(() => {
+  return {
+    indexAxis: 'y',
+    responsive: true,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top',
+      },
     },
-    title: {
-      display: true,
-      text: 'Bar Chart',
-    },
-  },
-}
+    scales: {
+      x: {
+        type: 'linear',
+        title: {
+          display: true,
+          text: props.xAxisTitle,
+        }
+      },
+      y: {
+        title: {
+          display: true,
+          text: props.yAxisTitle,
+        },
+        beginAtZero: true
+      }
+    }
+  }
+})
 </script>
