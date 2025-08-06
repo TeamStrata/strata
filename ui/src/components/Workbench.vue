@@ -2,10 +2,8 @@
 import { ref, onMounted, nextTick } from 'vue'
 import Separator from "./ui/separator/Separator.vue";
 import { apiFetch } from "@/api/request";
-
-
-
-
+import hljs from 'highlight.js';
+import MarkdownIt from 'markdown-it';
 
 const userInput = ref('')
 const response = ref('')
@@ -14,6 +12,11 @@ const loading = ref(false)
 const messages = ref([]);
 const schema = ref('');
 
+const md = MarkdownIt({
+  html: true,
+  linkify: true,
+  typographer: true
+})
 // Fetch the schema
 apiFetch("/cdb-schema").then(async res => {
   if (res.ok) {
@@ -71,7 +74,8 @@ const sendQuery = async () => {
 
     } else {
       // In the case of a success, push the response
-      const data = await res.json()
+      let data = await res.json()
+      data.pretty = md.render(data.content)
 
       // Append the message to the message list
       messages.value.push(data)
@@ -116,8 +120,14 @@ function handleEnter(e) {
     <Separator></Separator>
 
     <div class="p-2 flex-1 overflow-y-scroll overflow-x-hidden">
-      <div v-for="(message, index) in messages" :key="index" class="text-sm flex flex-col items-start">
-        <p v-if="message.role != 'system'" class="block p-1 font-black"
+      <div v-for="(message, index) in messages" :key="index" class="flex flex-col items-start mx-2 *:my-3">
+        <p v-if="message.role == 'user'" class="self-end p-2 px-3 bg-accent rounded-md whitespace-pre-wrap">{{
+          message.content }}</p>
+        <p v-if="message.role == 'assistant'" v-html="message.pretty"
+          class="prose prose-pre:bg-accent prose-pre:border-1 prose-pre:text-black"></p>
+
+
+        <!-- <p v-if="message.role != 'system'" class="block p-1 font-black"
           :class="message.role == 'user' ? 'self-end' : 'self-start'">
           {{ message.role == 'user' ? "You:" : "StrataBot:" }}
         </p>
@@ -125,7 +135,7 @@ function handleEnter(e) {
         <div v-if="message.role != 'system'" class="w-fit rounded-sm p-2 max-w-4/5"
           :class="message.role == 'user' ? 'bg-blue-300 self-end' : message.role == 'assistant' ? 'bg-purple-300 self-start' : 'bg-red-400'">
           <p class="block">{{ message.content }}</p>
-        </div>
+        </div> -->
       </div>
     </div>
 
