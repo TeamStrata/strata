@@ -3,6 +3,19 @@ import { ref, reactive } from 'vue'
 import { watch } from 'vue'
 import { computed, defineAsyncComponent } from 'vue'
 import { apiFetch } from '@/api/request'
+import Input from './ui/input/Input.vue';
+import Label from './ui/label/Label.vue';
+import { Check, File, FolderOpen, Pencil, Plus, Save, X } from 'lucide-vue-next';
+
+import Dialog from './ui/dialog/Dialog.vue';
+import DialogContent from './ui/dialog/DialogContent.vue';
+import DialogHeader from './ui/dialog/DialogHeader.vue';
+import DialogTitle from './ui/dialog/DialogTitle.vue';
+
+import Toast, { ToastTypes } from "./Toast.vue";
+import Separator from './ui/separator/Separator.vue';
+import Swal from 'sweetalert2';
+import DialogDescription from './ui/dialog/DialogDescription.vue';
 
 const toastRef = ref(null);
 const chartTypes = ['Line', 'Area', 'Column', 'Bar', 'Scatter']
@@ -16,6 +29,8 @@ const chartTitle = ref('')
 const savedChartTitles = ref([])
 const selectedChartTitle = ref('')
 const isChartLoaded = ref(false)
+const xAxisTitle = ref('')
+const yAxisTitle = ref('')
 
 const seriesSections = reactive([])
 const series = ref([
@@ -57,7 +72,7 @@ apiFetch('/queries')
       throw new Error('No queries found')
     }
   })
- .then(async (response) => {
+  .then(async (response) => {
     if (!response.ok) {
       toastRef.value?.showToast(
         'There was an error when executing the query',
@@ -75,19 +90,20 @@ apiFetch('/queries')
   })
   .then(async (response) => {
     if (!response.ok) throw new Error('Failed to fetch chart titles')
-    savedChartTitles.value = await response.json() 
+    savedChartTitles.value = await response.json()
   })
   .catch((error) => {
     console.error('Initialization error:', error)
   })
 
-  const addSeriesSection = () => {
+const addSeriesSection = () => {
   const section = reactive({
     query: savedQueries.value[0] || {},
     xColumn: '',
     yColumn: '',
     chartData: [],
     columns: [],
+    name: "Series " + (seriesSections.length + 1)
   })
   watch(
     () => section.query,
@@ -112,21 +128,12 @@ apiFetch('/queries')
   )
 
   seriesSections.push(section)
+  generateChart(seriesSections.length - 1)
 }
 
 
 const removeChartSection = (index) => {
-  let spliced = seriesSections.splice(index, 1)
-  spliced.forEach(s => {
-    apiFetch(`/chart/${selectedChartTitle.value.id}/series/${s.id}`, 'DELETE')
-      .then(response => {
-        if (!response.ok) throw new Error('Failed to delete chart section')
-        console.log(`Section ${s.id} removed successfully`)
-      })
-      .catch(err => {
-        console.error(`Error removing section ${s.id}:`, err)
-      })
-  })
+  seriesSections.splice(index, 1)
 }
 
 const chartData = ref([])
@@ -142,12 +149,6 @@ const generateChart = async (index) => {
     const data = await response.json()
     seriesSections[index].chartData = data
 
-    console.log("Generating chart with:", {
-      chartType: selectedChart.value,
-      x: section.xColumn,
-      y: section.yColumn,
-      data
-    })
   } catch (err) {
     console.error('Error generating chart:', err)
   }
@@ -157,10 +158,25 @@ const saveChart = async () => {
   const payload = {
     title: chartTitle.value,
     type: selectedChart.value.toLowerCase(),
+    x_axis: xAxisTitle.value,
+    y_axis: yAxisTitle.value
   }
 
   try {
-    const response = await apiFetch('/chart', 'POST', JSON.stringify(payload), 'application/sql')
+    if (!payload.title) {
+      toastRef.value?.showToast('Missing chart title', ToastTypes.FAIL)
+      throw new Error('Missing chart title')
+    }
+
+    if (seriesSections.length < 1) {
+      toastRef.value?.showToast(
+        'At least one series is required',
+        ToastTypes.FAIL
+      )
+      throw new Error('At least one series is required')
+    }
+
+    const response = await apiFetch('/chart', 'POST', JSON.stringify(payload), 'application/json')
     if (!response.ok) throw new Error('Failed to save chart')
 
     const data = await response.json()
@@ -171,24 +187,29 @@ const saveChart = async () => {
     }
 
     const seriesPayload = seriesSections.map(section => ({
-      id:section.id,
+      id: section.id,
       chart_id: chartId,
       query_id: section.query?.id,
       x_col_name: section.xColumn,
       y_col_name: section.yColumn,
+      name: section.name,
     }))
 
     console.log("Posting chartSeries links:");
-    seriesPayload.forEach(async c =>{
-      console.log(c);
-      const seriesResponse = await apiFetch(`/chart/${c.chart_id}/series`, 'POST', JSON.stringify(c), 'application/json')
-      if (!seriesResponse.ok) throw new Error('Failed to save series')
-      else
-        alert('Chart and series saved successfully')
-    })
+    const seriesResponse = await apiFetch(`/chart/${chartId}/series`, 'POST', JSON.stringify(seriesPayload), 'application/json')
+    if (!seriesResponse.ok) throw new Error('Failed to save series')
+    else
+      Swal.fire({
+        title: 'Success!',
+        text: 'Chart and series saved successfully.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
 
-    
-    
+
+
+
     fetchSavedChartTitles()
   } catch (err) {
     console.error('Error saving chart and series:', err)
@@ -207,8 +228,12 @@ const loadChartFromDB = async () => {
     if (!chartRes.ok) throw new Error('Failed to load chart');
     const chartData = await chartRes.json();
 
+    resetChart();
+
     chartTitle.value = chartData.title;
     selectedChart.value = capitalizeFirstLetter(chartData.type);
+    xAxisTitle.value = chartData.x_axis || '';
+    yAxisTitle.value = chartData.y_axis || '';
 
     // Fetch the series separately (assuming /chart/:id/series endpoint)
     const seriesRes = await apiFetch(`/chart/${selectedChartTitle.value.id}/series`);
@@ -226,7 +251,8 @@ const loadChartFromDB = async () => {
         const chartData = await result.json();
 
         return {
-          id:seriesItem.id,
+          name: seriesItem.name,
+          id: seriesItem.id,
           query,
           xColumn: seriesItem.x_col_name,
           yColumn: seriesItem.y_col_name,
@@ -250,88 +276,153 @@ const fetchSavedChartTitles = async () => {
   try {
     const response = await apiFetch('/charts')
     if (!response.ok) throw new Error('Failed to fetch chart titles')
-    savedChartTitles.value = await response.json() 
+    savedChartTitles.value = await response.json()
   } catch (err) {
     console.error('Error fetching titles:', err)
   }
 }
+
+async function deleteChart(cid) {
+  apiFetch(`/chart/${cid}`, 'DELETE').then(res => {
+    if (res.ok) {
+      toastRef.value?.showToast('Chart deleted successfully', ToastTypes.SUCCESS)
+      fetchSavedChartTitles()
+    } else {
+      toastRef.value?.showToast('Failed to delete chart', ToastTypes.FAIL)
+    }
+  })
+}
+
+function resetChart() {
+  chartTitle.value = ''
+  selectedChart.value = chartTypes[0]
+  xAxisTitle.value = ''
+  yAxisTitle.value = ''
+  seriesSections.splice(0, seriesSections.length)
+  isCreatingNewChart.value = true
+  isChartLoaded.value = false
+}
+
+const vFocus = {
+  mounted(el) {
+    el.focus()
+  }
+}
+
+defineExpose()
+
+function quickPause(func) {
+  setTimeout(func, 100)
+}
+const isLoadOpen = ref(false);
 </script>
 
 
 <template>
   <Toast ref="toastRef" />
-  <!-- brutal temp solution to overflow -->
-  <div class="max-w-full max-h-[calc(100vh-80px)] overflow-y-auto mx-auto p-6 bg-white shadow-md rounded-lg">
-    <h1 class="text-2xl font-bold mb-6 text-gray-800">Chart Viewer</h1>
 
-    <!-- Chart Type Selection -->
-    <div class="mb-4">
-      <label class="text-gray-600 font-medium">Chart Type:</label>
-      <select
-        v-model="selectedChart"
-        class="w-full p-2 border border-gray-300 rounded"
-      >
-        <option v-for="type in chartTypes" :key="type">{{ type }}</option>
-      </select>
-    </div>
+  <!-- load dialog -->
+  <Dialog v-model:open="isLoadOpen">
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Load Chart</DialogTitle>
+        <DialogDescription>Load a chart from your saved charts</DialogDescription>
+      </DialogHeader>
 
-    <!-- New or Load Chart Options -->
-    <div class="flex flex-wrap gap-4 mb-6">
-      <div class="flex flex-col">
-        <label class="text-gray-600 font-medium mb-1">Load Saved Chart:</label>
-        <select
-          v-model="selectedChartTitle"
-          @change="loadChartFromDB"
-          class="p-2 border border-gray-300 rounded"
-        >
-          <option value="">Select a chart</option>
-          <option v-for="chart in savedChartTitles" :key="chart.id" :value="chart">
-            {{ chart.title }}
-          </option>
+      <div>
+        <div class="flex items-center justify-between font-semibold text-gray-700 px-2 py-1 border-b mb-2">
+          <span class="w-1/3">Title</span>
+          <span class="w-1/3 text-right">Type</span>
+          <span class="w-8"></span>
+        </div>
+        <div class="flex flex-col">
+          <div class="flex items-center justify-between group hover:bg-muted p-2 cursor-pointer"
+            v-for="chart in savedChartTitles"
+            @click="selectedChartTitle = chart; loadChartFromDB(); isLoadOpen = false">
+            <p class="w-1/3 truncate">{{ chart.title }}</p>
+            <p class="w-1/3 text-right">{{ chart.type }}</p>
+            <div class="w-8 invisible group-hover:visible flex justify-end" @click.stop="deleteChart(chart.id)">
+              <X></X>
+            </div>
+          </div>
+        </div>
+      </div>
+    </DialogContent>
+  </Dialog>
+
+
+  <div class="flex h-full w-full">
+    <!-- left control panel -->
+    <div class="w-[350px] h-[calc(100vh-70px)] flex flex-col py-2 px-4 gap-4 min-h-0">
+      <!-- save/load controls -->
+      <div class="flex gap-1 justify-end">
+        <div class="p-1 cursor-pointer hover:bg-neutral-200 rounded-sm" @click="resetChart">
+          <File></File>
+        </div>
+        <div class="p-1 cursor-pointer hover:bg-neutral-200 rounded-sm" @click="isLoadOpen = true">
+          <FolderOpen></FolderOpen>
+        </div>
+        <div class="p-1 cursor-pointer hover:bg-neutral-200 rounded-sm" @click="saveChart">
+          <Save :size="24" class="hover:cursor-pointer"></Save>
+        </div>
+      </div>
+
+      <!-- name and stuff -->
+      <div>
+        <Label class="mb-1">Chart Title</Label>
+        <Input v-model="chartTitle" placeholder="Enter chart title" />
+      </div>
+
+      <!-- type selection -->
+      <div>
+        <Label class="mb-1">Chart Type:</Label>
+        <select v-model="selectedChart" class="w-full p-2 border border-gray-300 rounded">
+          <option v-for="type in chartTypes" :key="type">{{ type }}</option>
         </select>
       </div>
-      <button
-        @click="isCreatingNewChart = true"
-        class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
-      >
-        Create New Chart
-      </button>
-    </div>
 
-    <div v-if="isCreatingNewChart || isChartLoaded">
-      <div class="mb-4">
-        <label class="text-gray-600 font-medium">Chart Title:</label>
-        <input
-          v-model="chartTitle"
-          class="w-full p-2 border border-gray-300 rounded"
-          placeholder="Enter chart title"
-        />
+      <!-- axis naming -->
+      <div>
+        <Label class="mb-1">X Axis Name</Label>
+        <Input placeholder="Enter X Axis name" v-model="xAxisTitle" />
+        <Label class="mb-1 mt-4">Y Axis Name</Label>
+        <Input placeholder="Enter Y Axis name" v-model="yAxisTitle" />
       </div>
 
-      <!-- Series Sections (Horizontally Scrollable) -->
-      <div class="flex gap-4 overflow-x-auto pb-4">
-        <div
-          v-for="(section, index) in seriesSections"
-          :key="index"
-          class="min-w-[300px] shrink-0 border border-gray-300 p-4 rounded-lg bg-gray-50 relative"
-        >
-          <h2 class="text-md font-semibold text-gray-700 mb-2">Series {{ index + 1 }}</h2>
+      <!-- series management -->
+      <div class="flex justify-between items-center">
+        <p class="leading-7 [&:not(:first-child)]:mt-6">Series</p>
+        <Plus @click="addSeriesSection" class="cursor-pointer"></Plus>
+      </div>
 
-          <!-- Remove Button -->
-          <button
-            @click="removeChartSection(index)"
-            class="absolute top-2 right-2 text-red-500 hover:text-red-700 text-sm"
-          >
-            ✕
-          </button>
+      <!-- series scrollable container -->
+      <div class="flex-1 overflow-y-scroll gap-4 flex flex-col">
+        <div v-for="(section, index) in seriesSections" :key="index"
+          class="min-w-[300px] shrink-0 border border-gray-300 p-4 rounded-lg bg-gray-50 relative">
+          <div class="flex justify-between items-center mb-2">
+            <div class="flex items-center gap-2" v-if="!section.isEditingName ?? false"
+              @click="section.isEditingName = true; section.editName = section.name;">
+              <h2 class="text-md font-semibold text-gray-700">{{ section.name }}</h2>
+              <Pencil size="16" class="text-neutral-600"></Pencil>
+            </div>
+            <div v-else class="flex items-center gap-2">
+              <Input :id="`edit-series-name-${index}`" placeholder="Enter series name" v-model="section.editName"
+                v-focus @keydown.enter="section.isEditingName = false; section.name = section.editName"
+                @blur="quickPause(() => { section.isEditingName = false });" />
+              <Check size="16" class="cursor-pointer"
+                @click.stop="section.isEditingName = false; section.name = section.editName"></Check>
+            </div>
+            <!-- Remove Button -->
+            <button @click="removeChartSection(index)" class="text-red-500 hover:text-red-700 cursor-pointer text-sm">
+              ✕
+            </button>
+          </div>
 
           <!-- Query -->
           <div class="mb-2">
             <label class="block text-gray-600 text-sm mb-1">Saved Query:</label>
-            <select
-              v-model="section.query"
-              class="w-full p-1 border border-gray-300 rounded text-sm"
-            >
+            <select v-model="section.query" class="w-full p-1 border border-gray-300 rounded text-sm"
+              @change="generateChart(index)">
               <option v-for="query in savedQueries" :key="query.id" :value="query">
                 {{ query.name || query.id }}
               </option>
@@ -341,10 +432,7 @@ const fetchSavedChartTitles = async () => {
           <!-- X Column -->
           <div class="mb-2">
             <label class="block text-gray-600 text-sm mb-1">X Column:</label>
-            <select
-              v-model="section.xColumn"
-              class="w-full p-1 border border-gray-300 rounded text-sm"
-            >
+            <select v-model="section.xColumn" class="w-full p-1 border border-gray-300 rounded text-sm">
               <option v-for="col in section.columns" :key="col">{{ col }}</option>
             </select>
           </div>
@@ -352,50 +440,22 @@ const fetchSavedChartTitles = async () => {
           <!-- Y Column -->
           <div class="mb-2">
             <label class="block text-gray-600 text-sm mb-1">Y Column:</label>
-            <select
-              v-model="section.yColumn"
-              class="w-full p-1 border border-gray-300 rounded text-sm"
-            >
+            <select v-model="section.yColumn" class="w-full p-1 border border-gray-300 rounded text-sm">
               <option v-for="col in section.columns" :key="col">{{ col }}</option>
             </select>
           </div>
-
-          <!-- Generate Button -->
-          <button
-            @click="generateChart(index)"
-            class="mt-2 w-full bg-blue-500 hover:bg-blue-600 text-white text-sm py-1 rounded"
-          >
-            Generate
-          </button>
         </div>
+
       </div>
 
-      <!-- Add & Save Buttons -->
-      <div class="mt-6 flex flex-wrap gap-4">
-        <button
-          @click="addSeriesSection"
-          class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
-        >
-          Add Series
-        </button>
-
-        <button
-          @click="saveChart"
-          class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-        >
-          Save Chart
-        </button>
-      </div>
-      <!-- Render Chart -->
-      
-      <div class="mt-6" v-if="chartComponent && seriesSections.length">
-        <div class="mt-6" v-if="chartComponent && seriesSections.some(s => s.chartData?.length)">
-          <component
-            :is="chartComponent"
-            :series="seriesSections.filter(s => s.chartData?.length)"
-          />
-        </div>
     </div>
+    <Separator orientation="vertical"></Separator>
+    <!-- Render Chart -->
+    <div class="flex-1 ml-4 my-auto" v-if="chartComponent && seriesSections.length">
+      <div v-if="chartComponent && seriesSections.some(s => s.chartData?.length)">
+        <component :is="chartComponent" :series="seriesSections.filter(s => s.chartData?.length)"
+          :xAxisTitle="xAxisTitle" :yAxisTitle="yAxisTitle" />
+      </div>
     </div>
   </div>
 </template>

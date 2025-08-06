@@ -17,9 +17,12 @@ type Chart struct {
 	Id    int    `json:"id,omitempty"`
 	Title string `json:"title"`
 	Type  string `json:"type"`
+	Xname string `json:"x_axis"`
+	Yname string `json:"y_axis"`
 }
 
 type ChartSeries struct {
+	Name    string `json:"name"`
 	Id      int    `json:"id,omitempty"`
 	ChartID int    `json:"chart_id"`
 	QueryID int    `json:"query_id"`
@@ -46,7 +49,7 @@ func (d *DbManager) ListAllCharts() ([]Chart, error) {
 	query := "SELECT * FROM chart;"
 
 	// Query the databse for all queries
-	rows, err := d.Connection.Query(d.context, query)
+	rows, err := d.Connection.Query(d.Context, query)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +61,7 @@ func (d *DbManager) ListAllCharts() ([]Chart, error) {
 		var chart Chart
 
 		// Scan the row for the query ID and String Literal
-		err := rows.Scan(&chart.Id, &chart.Title, &chart.Type)
+		err := rows.Scan(&chart.Id, &chart.Title, &chart.Type, &chart.Xname, &chart.Yname)
 		if err != nil {
 			return nil, err
 		}
@@ -70,32 +73,37 @@ func (d *DbManager) ListAllCharts() ([]Chart, error) {
 }
 
 func (d *DbManager) InsertChart(chart Chart) (int, error) {
-	var chartID int
 
 	//Check if the chart already exists
 	queryCheck := "SELECT chart_id FROM chart WHERE chart_title = $1;"
-	err := d.Connection.QueryRow(d.context, queryCheck, chart.Title).Scan(&chartID)
-
-	if err == nil {
-		queryUpdate := "UPDATE chart SET chart_type = $1 WHERE chart_id = $2;"
-		_, updateErr := d.Connection.Exec(d.context, queryUpdate, chart.Type, chartID)
-		return chartID, updateErr
-	}
+	err := d.Connection.QueryRow(d.Context, queryCheck, chart.Title).Scan(&chart.Id)
 
 	//If no chart found (no rows), insert a new one
-	if err.Error() == "no rows in result set" {
-		queryInsert := "INSERT INTO chart (chart_title, chart_type) VALUES ($1, $2) RETURNING chart_id;"
-		insertErr := d.Connection.QueryRow(d.context, queryInsert, chart.Title, chart.Type).Scan(&chartID)
-		return chartID, insertErr
+	// if err.Error() == "no rows in result set" {
+	if err != nil {
+		queryInsert := "INSERT INTO chart (chart_title, chart_type, x_axis_name, y_axis_name) VALUES ($1, $2, $3, $4) RETURNING chart_id;"
+		insertErr := d.Connection.QueryRow(d.Context, queryInsert, chart.Title, chart.Type, chart.Xname, chart.Yname).Scan(&chart.Id)
+		return chart.Id, insertErr
 	}
-	return 0, err
+
+	updateErr := d.UpdateChart(chart)
+	if updateErr != nil {
+		return -1, updateErr
+	}
+	// if err == nil {
+	// 	queryUpdate := "UPDATE chart SET chart_type = $1 WHERE chart_id = $2;"
+	// 	_, updateErr := d.Connection.Exec(d.context, queryUpdate, chart.Type, chartID)
+	// 	return chartID, updateErr
+	// }
+
+	return chart.Id, err
 }
 
 func (d *DbManager) GetChart(chart_id int) (Chart, error) {
 	var chart Chart
 
-	query := "SELECT chart_id, chart_title, chart_type FROM chart WHERE chart_id = $1;"
-	err := d.Connection.QueryRow(d.context, query, chart_id).Scan(&chart.Id, &chart.Title, &chart.Type)
+	query := "SELECT chart_id, chart_title, chart_type, x_axis_name, y_axis_name FROM chart WHERE chart_id = $1;"
+	err := d.Connection.QueryRow(d.Context, query, chart_id).Scan(&chart.Id, &chart.Title, &chart.Type, &chart.Xname, &chart.Yname)
 	if err != nil {
 		return Chart{}, err
 	}
@@ -105,20 +113,20 @@ func (d *DbManager) GetChart(chart_id int) (Chart, error) {
 
 func (d *DbManager) DeleteChart(chart_id int) error {
 	query := "DELETE FROM chart WHERE chart_id = $1;"
-	_, err := d.Connection.Exec(d.context, query, chart_id)
+	_, err := d.Connection.Exec(d.Context, query, chart_id)
 	return err
 }
 
 func (d *DbManager) UpdateChart(chart Chart) error {
-	query := "UPDATE chart SET chart_title = $1, chart_type = $2 WHERE chart_id = $3;"
-	_, err := d.Connection.Exec(d.context, query, chart.Title, chart.Type, chart.Id)
+	query := "UPDATE chart SET chart_title = $1, chart_type = $2, x_axis_name = $3, y_axis_name = $4 WHERE chart_id = $5;"
+	_, err := d.Connection.Exec(d.Context, query, chart.Title, chart.Type, chart.Xname, chart.Yname, chart.Id)
 	return err
 }
 
 func (d *DbManager) ListChartSeries(chart_id int) ([]ChartSeries, error) {
 	var list []ChartSeries
-	query := "SELECT series_id, chart_id, query_id, x_column, y_column FROM chartSeries WHERE chart_id = $1;"
-	rows, err := d.Connection.Query(d.context, query, chart_id)
+	query := "SELECT series_id, chart_id, query_id, x_column, y_column, seriesName FROM chartSeries WHERE chart_id = $1;"
+	rows, err := d.Connection.Query(d.Context, query, chart_id)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +134,7 @@ func (d *DbManager) ListChartSeries(chart_id int) ([]ChartSeries, error) {
 
 	for rows.Next() {
 		var s ChartSeries
-		err := rows.Scan(&s.Id, &s.ChartID, &s.QueryID, &s.XCol, &s.YCol)
+		err := rows.Scan(&s.Id, &s.ChartID, &s.QueryID, &s.XCol, &s.YCol, &s.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -138,32 +146,43 @@ func (d *DbManager) ListChartSeries(chart_id int) ([]ChartSeries, error) {
 func (d *DbManager) GetChartSeries(series_id int) (ChartSeries, error) {
 	var s ChartSeries
 	query := "SELECT series_id, chart_id, query_id, x_column, y_column FROM chartSeries WHERE series_id = $1;"
-	err := d.Connection.QueryRow(d.context, query, series_id).Scan(&s.Id, &s.ChartID, &s.QueryID, &s.XCol, &s.YCol)
+	err := d.Connection.QueryRow(d.Context, query, series_id).Scan(&s.Id, &s.ChartID, &s.QueryID, &s.XCol, &s.YCol)
 	return s, err
 }
 
-func (d *DbManager) InsertChartSeries(series ChartSeries) (int, error) {
+func (d *DbManager) InsertChartSeries(series []ChartSeries) (int, error) {
 	var id int
-	query := "INSERT INTO chartSeries (chart_id, query_id, x_column, y_column) SELECT $1, $2, $3, $4 WHERE NOT EXISTS (SELECT 1 FROM chartSeries WHERE series_id = $5) RETURNING series_id;"
-	err := d.Connection.QueryRow(d.context, query, series.ChartID, series.QueryID, series.XCol, series.YCol, series.Id).Scan(&id)
-	return id, err
+	if len(series) > 0 {
+		err := d.DeleteAllChartSeries(series[0].ChartID)
+		if err != nil {
+			return -1, err
+		}
+	}
+	for _, s := range series {
+		query := "INSERT INTO chartSeries (chart_id, query_id, x_column, y_column, seriesName) SELECT $1, $2, $3, $4, $5 WHERE NOT EXISTS (SELECT 1 FROM chartSeries WHERE series_id = $6) RETURNING series_id;"
+		err := d.Connection.QueryRow(d.Context, query, s.ChartID, s.QueryID, s.XCol, s.YCol, s.Name, s.Id).Scan(&id)
+		if err != nil {
+			return -1, err
+		}
+	}
+	return id, nil
 }
 
 func (d *DbManager) DeleteChartSeries(series_id int) error {
 	query := "DELETE FROM chartSeries WHERE series_id = $1;"
-	_, err := d.Connection.Exec(d.context, query, series_id)
+	_, err := d.Connection.Exec(d.Context, query, series_id)
 	return err
 }
 
 func (d *DbManager) DeleteAllChartSeries(chart_id int) error {
 	query := "DELETE FROM chartSeries WHERE chart_id = $1;"
-	_, err := d.Connection.Exec(d.context, query, chart_id)
+	_, err := d.Connection.Exec(d.Context, query, chart_id)
 	return err
 }
 
 func (d *DbManager) UpdateChartSeries(series ChartSeries) error {
-	query := "UPDATE chartSeries SET chart_id = $1, query_id = $2, x_column = $3, y_column = $4 WHERE series_id = $5;"
-	_, err := d.Connection.Exec(d.context, query, series.ChartID, series.QueryID, series.XCol, series.YCol, series.Id)
+	query := "UPDATE chartSeries SET chart_id = $1, query_id = $2, x_column = $3, y_column = $4, seriesName = $5, WHERE series_id = $6;"
+	_, err := d.Connection.Exec(d.Context, query, series.ChartID, series.QueryID, series.XCol, series.YCol, series.Name, series.Id)
 	return err
 }
 
@@ -171,7 +190,7 @@ func (d *DbManager) UpdateChartSeries(series ChartSeries) error {
 func (d *DbManager) ListAllDashboards() ([]Dashboard, error) {
 	var dashboards []Dashboard
 	query := "SELECT dashboard_id, dashboard_title, dashboard_content FROM dashboards;"
-	rows, err := d.Connection.Query(d.context, query)
+	rows, err := d.Connection.Query(d.Context, query)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +209,7 @@ func (d *DbManager) ListAllDashboards() ([]Dashboard, error) {
 func (d *DbManager) GetDashboard(dashID int) (Dashboard, error) {
 	var dash Dashboard
 	query := "SELECT dashboard_id, dashboard_title, dashboard_content FROM dashboards WHERE dashboard_id = $1;"
-	err := d.Connection.QueryRow(d.context, query, dashID).Scan(&dash.Id, &dash.Title, &dash.Content)
+	err := d.Connection.QueryRow(d.Context, query, dashID).Scan(&dash.Id, &dash.Title, &dash.Content)
 	return dash, err
 }
 
@@ -198,46 +217,60 @@ func (d *DbManager) GetDashboard(dashID int) (Dashboard, error) {
 func (d *DbManager) InsertDashboard(dash Dashboard) (int, error) {
 	var id int
 	query := "INSERT INTO dashboards (dashboard_title, dashboard_content) VALUES ($1, $2) RETURNING dashboard_id;"
-	err := d.Connection.QueryRow(d.context, query, dash.Title, dash.Content).Scan(&id)
+	err := d.Connection.QueryRow(d.Context, query, dash.Title, dash.Content).Scan(&id)
 	return id, err
 }
 
 // Delete a dashboard by ID
 func (d *DbManager) DeleteDashboard(dashID int) error {
 	query := "DELETE FROM dashboards WHERE dashboard_id = $1;"
-	_, err := d.Connection.Exec(d.context, query, dashID)
+	_, err := d.Connection.Exec(d.Context, query, dashID)
 	return err
 }
 
 // List all charts for a dashboard
 func (d *DbManager) ListDashboardCharts(dashID int) ([]DashboardGraphs, error) {
-	var graphs []DashboardGraphs
-	query := "SELECT dash_id, chart_id, size_x, size_y, \"order\" FROM dashboard_graphs WHERE dash_id = $1 ORDER BY \"order\";"
-	rows, err := d.Connection.Query(d.context, query, dashID)
+	var charts []DashboardGraphs
+	query := "SELECT dashboard_id, chart_id, size_x, size_y, chart_order FROM dashbordGraphs WHERE dashboard_id = $1 ORDER BY chart_order;"
+	rows, err := d.Connection.Query(d.Context, query, dashID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var graph DashboardGraphs
-		if err := rows.Scan(&graph.DashId, &graph.ChartId, &graph.SizeX, &graph.SizeY, &graph.Order); err != nil {
+		var chart DashboardGraphs
+		if err := rows.Scan(&chart.DashId, &chart.ChartId, &chart.SizeX, &chart.SizeY, &chart.Order); err != nil {
 			return nil, err
 		}
-		graphs = append(graphs, graph)
+		charts = append(charts, chart)
 	}
-	return graphs, nil
+	return charts, nil
 }
 
-// Append a chart to a dashboard
-func (d *DbManager) AppendChartToDashboard(dashID, chartID int) error {
-	query := "INSERT INTO dashboard_graphs (dash_id, chart_id, size_x, size_y, \"order\") VALUES ($1, $2, 1, 1, (SELECT COALESCE(MAX(\"order\"), 0) + 1 FROM dashboard_graphs WHERE dash_id = $1));"
-	_, err := d.Connection.Exec(d.context, query, dashID, chartID)
+func (d *DbManager) AppendChartToDashboard(dashID, chartID, sizeX, sizeY int) error {
+	query := `
+		INSERT INTO dashbordGraphs 
+    (dashboard_id, chart_id, size_x, size_y, chart_order)
+VALUES 
+    ($1, $2, $3, $4, 
+     COALESCE(
+       (SELECT chart_order FROM dashbordGraphs WHERE dashboard_id = $1 AND chart_id = $2),
+       (SELECT COALESCE(MAX(chart_order), 0) + 1 FROM dashbordGraphs WHERE dashboard_id = $1)
+     )
+)
+ON CONFLICT (dashboard_id, chart_id)
+DO UPDATE SET 
+    size_x = EXCLUDED.size_x,
+    size_y = EXCLUDED.size_y,
+    chart_order = EXCLUDED.chart_order;
+	`
+	_, err := d.Connection.Exec(d.Context, query, dashID, chartID, sizeX, sizeY)
 	return err
 }
 
 // Remove a chart from a dashboard
 func (d *DbManager) RemoveChartFromDashboard(dashID, chartID int) error {
-	query := "DELETE FROM dashboard_graphs WHERE dash_id = $1 AND chart_id = $2;"
-	_, err := d.Connection.Exec(d.context, query, dashID, chartID)
+	query := "DELETE FROM dashbordGraphs WHERE dashboard_id = $1 AND chart_id = $2;"
+	_, err := d.Connection.Exec(d.Context, query, dashID, chartID)
 	return err
 }

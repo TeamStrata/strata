@@ -28,7 +28,15 @@ const props = defineProps({
   series: {
     type: Array,
     required: true,
-  }
+  },
+  xAxisTitle: {
+    type: String,
+    required: true,
+  },
+  yAxisTitle: {
+    type: String,
+    required: true,
+  },
 })
 
 // Prepare chart data with multiple bar series
@@ -38,37 +46,42 @@ const chartData = computed(() => {
   return {
     labels,
     datasets: props.series.map((section, idx) => ({
-      label: section.yColumn || `Series ${idx + 1}`,
-      data: section.chartData.map(item => item?.[section.yColumn]),
-      backgroundColor: `hsl(${idx * 60}, 70%, 60%)`,
+      label: section.name || `Series ${idx + 1}`,
+      data: section.chartData.map(item => ({
+        x: item?.[section.xColumn],
+        y: item?.[section.yColumn],
+      })), backgroundColor: `hsl(${idx * 60}, 70%, 60%)`,
     }))
   }
 })
 
-const chartOptions = {
-  responsive: true,
-  plugins: {
-    legend: {
-      display: true,
-    },
-    title: {
-      display: false,
-    },
-  },
-  scales: {
-    x: {
-      title: {
+const chartOptions = computed(() => {
+  return {
+    responsive: true,
+    plugins: {
+      legend: {
         display: true,
-        text: props.series[0]?.xColumn || 'X-Axis',
-      }
-    },
-    y: {
-      title: {
-        display: true,
-        text: 'Values',
       },
-      beginAtZero: true
+      title: {
+        display: false,
+      },
+    },
+    scales: {
+      x: {
+        type: 'linear',
+        title: {
+          display: true,
+          text: props.xAxisTitle,
+        }
+      },
+      y: {
+        title: {
+          display: true,
+          text: props.yAxisTitle,
+        },
+        beginAtZero: true
+      }
     }
   }
-}
+})
 </script>

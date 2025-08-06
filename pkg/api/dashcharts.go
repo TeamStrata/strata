@@ -69,6 +69,12 @@ func CreateChartHandler(d *database.DbManager) gin.HandlerFunc {
 			return
 		}
 
+		// Validate chart data
+		if chart.Title == "" || chart.Type == "" || chart.Xname == "" || chart.Yname == "" {
+			c.Status(http.StatusBadRequest)
+			return
+		}
+
 		// Inserting custom query
 		id, err := d.InsertChart(chart)
 		if err != nil {
@@ -94,7 +100,7 @@ func DeleteChartHandler(d *database.DbManager) gin.HandlerFunc {
 
 		err = d.DeleteChart(chart_id)
 		if err != nil {
-			c.Data(500, "text/plain", []byte("Could not delete this chart!"))
+			c.Data(500, "text/plain", []byte(err.Error()))
 			c.Done()
 			return
 		}
@@ -139,19 +145,19 @@ func GetChartSeriesListHandler(d *database.DbManager) gin.HandlerFunc {
 		chart_id_str := c.Param("cid")
 		chart_id, err := strconv.Atoi(chart_id_str)
 		if err != nil {
-      		c.Data(500, "text/plain", []byte(err.Error()))
+			c.Data(500, "text/plain", []byte(err.Error()))
 			c.Done()
 			return
 		}
 
 		series, err := d.ListChartSeries(chart_id)
 		if err != nil {
-      		c.Data(500, "text/plain", []byte(err.Error()))
+			c.Data(500, "text/plain", []byte(err.Error()))
 			c.Done()
 			return
 		}
-    
-    	c.JSON(200, series)
+
+		c.JSON(200, series)
 	}
 }
 
@@ -186,20 +192,12 @@ func GetChartSingleSeriesHandler(d *database.DbManager) gin.HandlerFunc {
 
 func AddChartSeriesHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		chart_id_str := c.Param("cid")
-		chart_id, err := strconv.Atoi(chart_id_str)
-		if err != nil {
-			c.Data(400, "text/plain", []byte("The chart ID must be an integer!"))
-			c.Done()
-			return
-		}
 
-		var series database.ChartSeries
+		var series []database.ChartSeries
 		if err := c.ShouldBindJSON(&series); err != nil {
 			c.Data(http.StatusBadRequest, "text/plain", []byte("ShouldBindJSON Error"))
 			return
 		}
-		series.ChartID = chart_id
 
 		id, err := d.InsertChartSeries(series)
 		if err != nil {
@@ -379,15 +377,15 @@ func ListDashboardChartsHandler(d *database.DbManager) gin.HandlerFunc {
 			c.Done()
 			return
 		}
-		graphs, err := d.ListDashboardCharts(dash_id)
+		charts, err := d.ListDashboardCharts(dash_id)
 		if err != nil {
-			c.Data(500, "text/plain", []byte("Internal server error"))
+			c.Data(500, "text/plain", []byte(err.Error()))
 			c.Done()
 			return
 		}
-		data, err := json.Marshal(graphs)
+		data, err := json.Marshal(charts)
 		if err != nil {
-			c.Data(500, "text/plain", []byte("Internal server error"))
+			c.Data(500, "text/plain", []byte(err.Error()))
 			c.Done()
 			return
 		}
@@ -398,28 +396,32 @@ func ListDashboardChartsHandler(d *database.DbManager) gin.HandlerFunc {
 
 func AppendChartToDashboardHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		dash_id_str := c.Param("did")
-		dash_id, err := strconv.Atoi(dash_id_str)
+		dash_id, err := strconv.Atoi(c.Param("did"))
 		if err != nil {
-			c.Data(400, "text/plain", []byte("The dashboard ID must be an integer!"))
-			c.Done()
+			c.String(400, "The dashboard ID must be an integer!")
 			return
 		}
-		chart_id_str := c.Param("cid")
-		chart_id, err := strconv.Atoi(chart_id_str)
+		chart_id, err := strconv.Atoi(c.Param("cid"))
 		if err != nil {
-			c.Data(400, "text/plain", []byte("The chart ID must be an integer!"))
-			c.Done()
+			c.String(400, "The chart ID must be an integer!")
 			return
 		}
-		err = d.AppendChartToDashboard(dash_id, chart_id)
+
+		var body struct {
+			SizeX int `json:"size_x"`
+			SizeY int `json:"size_y"`
+		}
+		if err := c.BindJSON(&body); err != nil {
+			c.String(400, "Invalid JSON payload")
+			return
+		}
+
+		err = d.AppendChartToDashboard(dash_id, chart_id, body.SizeX, body.SizeY)
 		if err != nil {
-			c.Data(500, "text/plain", []byte("Internal server error"))
-			c.Done()
+			c.String(500, err.Error())
 			return
 		}
 		c.Status(200)
-		c.Done()
 	}
 }
 

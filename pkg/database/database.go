@@ -18,7 +18,7 @@ const nilId = -1
 type DbManager struct {
 	conStr     string
 	Connection *pgxpool.Pool
-	context    context.Context
+	Context    context.Context
 }
 
 type User struct {
@@ -80,7 +80,7 @@ func NewDbManager(connectionString string, ctx context.Context) (*DbManager, err
 	dbManager := DbManager{
 		conStr:     connectionString,
 		Connection: nil,
-		context:    ctx,
+		Context:    ctx,
 	}
 
 	err := dbManager.ConnectToDatabase()
@@ -122,7 +122,7 @@ func (d *DbManager) GetAllUsers() ([]User, error) {
 		ORDER BY
 			users.user_name;`
 
-	rows, err := d.Connection.Query(d.context, query)
+	rows, err := d.Connection.Query(d.Context, query)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func (d *DbManager) GetSingleUser(name string) (User, error) {
 		WHERE ` + GetUserSearchSuffix(name)
 	args := []interface{}{name}
 
-	rows, err := d.Connection.Query(d.context, query, args...)
+	rows, err := d.Connection.Query(d.Context, query, args...)
 	if err != nil {
 		return User{}, err
 	}
@@ -205,7 +205,7 @@ func (d *DbManager) GetSingleUser(name string) (User, error) {
 }
 
 // Insert user into the database. Expects the password to be hashed using the auth module.
-func (d *DbManager) InsertUser(username string, password string) error {
+func (d *DbManager) InsertUser(username string, password string) (User, error) {
 	user := User{}
 	query :=
 		`INSERT INTO users (user_name, password_hash)
@@ -213,9 +213,9 @@ func (d *DbManager) InsertUser(username string, password string) error {
 		RETURNING user_id, user_name, password_hash`
 
 	var userId int
-	err := d.Connection.QueryRow(d.context, query, username, password).Scan(&userId, &user.Name, &user.Password)
+	err := d.Connection.QueryRow(d.Context, query, username, password).Scan(&userId, &user.Name, &user.Password)
 	if err != nil {
-		return err
+		return User{}, err
 	}
 
 	query =
@@ -229,12 +229,12 @@ func (d *DbManager) InsertUser(username string, password string) error {
 			SELECT $1, default_role.role_id
 			FROM default_role`
 
-	_, err = d.Connection.Query(d.context, query, userId)
+	_, err = d.Connection.Query(d.Context, query, userId)
 	if err != nil {
-		return err
+		return User{}, err
 	}
 
-	return nil
+	return user, nil
 }
 
 // Delete a user from the database by username
@@ -242,7 +242,7 @@ func (d *DbManager) DeleteUser(username string) error {
 	query :=
 		`DELETE FROM users
 		WHERE user_name = $1`
-	_, err := d.Connection.Query(d.context, query, username)
+	_, err := d.Connection.Query(d.Context, query, username)
 	return err
 }
 
@@ -259,7 +259,7 @@ func (d *DbManager) IsUserAdmin(user User) (bool, error) {
 		LIMIT 1`
 
 	var exists int
-	err := d.Connection.QueryRow(d.context, query, user.Id).Scan(&exists)
+	err := d.Connection.QueryRow(d.Context, query, user.Id).Scan(&exists)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
@@ -300,7 +300,7 @@ func (d *DbManager) UpdateUser(userid int, name string, password string) error {
 	query += " WHERE user_id = $" + strconv.Itoa(argCount)
 	args = append(args, userid)
 
-	_, err := d.Connection.Exec(d.context, query, args...)
+	_, err := d.Connection.Exec(d.Context, query, args...)
 	if err != nil {
 		errMsg := fmt.Sprintf("unable to update user '%d': %s", userid, err.Error())
 		return errors.New(errMsg)
@@ -318,7 +318,7 @@ func (d *DbManager) AddUserRole(userID string, roleID string) error {
 		WHERE users.user_id = $1
 		AND roles.role_id = $2`
 
-	_, err := d.Connection.Exec(d.context, query, userID, roleID)
+	_, err := d.Connection.Exec(d.Context, query, userID, roleID)
 	if err != nil {
 		errMsg := fmt.Sprintf("unable to add new role to: %s", err.Error())
 		return errors.New(errMsg)
@@ -334,7 +334,7 @@ func (d *DbManager) DeleteUserRole(userID string, roleID string) error {
 		WHERE user_id = $1
 		AND role_id = $2`
 
-	_, err := d.Connection.Exec(d.context, query, userID, roleID)
+	_, err := d.Connection.Exec(d.Context, query, userID, roleID)
 	if err != nil {
 		errMsg := fmt.Sprintf("unable to delete '%s' role from '%s': %s",
 			roleID, userID, err.Error())
@@ -367,7 +367,7 @@ func (d *DbManager) GetRoles() ([]Role, error) {
 			r.role_name,
 			r.role_color`
 
-	rows, err := d.Connection.Query(d.context, query)
+	rows, err := d.Connection.Query(d.Context, query)
 	if err != nil {
 		errMsg := fmt.Sprintf("error getting roles: %s", err.Error())
 		return nil, errors.New(errMsg)
@@ -419,7 +419,7 @@ func (d *DbManager) AddRole(role Role) (int, error) {
 		RETURNING role_id`
 
 	id := nilId
-	err := d.Connection.QueryRow(d.context, query, role.Name, role.Color).Scan(&id)
+	err := d.Connection.QueryRow(d.Context, query, role.Name, role.Color).Scan(&id)
 	if err != nil {
 		errMsg := fmt.Sprintf("unable to add new role: %s", err.Error())
 		return nilId, errors.New(errMsg)
@@ -430,21 +430,15 @@ func (d *DbManager) AddRole(role Role) (int, error) {
 
 // Update a role.
 func (d *DbManager) UpdateRole(role Role) error {
-	hasBasicUpdates := role.Name != "" || role.Color != ""
-	hasPermissionUpdates := len(role.Permissions) > 0
-
-	if !hasBasicUpdates && !hasPermissionUpdates {
-		return nil
-	}
-
 	// Start a transaction since we might need multiple operations
-	tx, err := d.Connection.Begin(d.context)
+	tx, err := d.Connection.Begin(d.Context)
 	if err != nil {
 		return fmt.Errorf("unable to start transaction: %w", err)
 	}
-	defer tx.Rollback(d.context)
+	defer tx.Rollback(d.Context)
 
 	// Handle basic role info updates
+	hasBasicUpdates := role.Name != "" || role.Color != ""
 	if hasBasicUpdates {
 		query := "UPDATE roles SET"
 		argCount := 1
@@ -468,45 +462,43 @@ func (d *DbManager) UpdateRole(role Role) error {
 		query += " WHERE role_id = $" + strconv.Itoa(argCount)
 		args = append(args, role.Id)
 
-		_, err = tx.Exec(d.context, query, args...)
+		_, err = tx.Exec(d.Context, query, args...)
 		if err != nil {
 			return fmt.Errorf("unable to update role basic info '%d': %w", role.Id, err)
 		}
 	}
 
 	// Handle permissions updates
-	if hasPermissionUpdates {
-		// First, delete existing role permissions
-		deleteQuery := "DELETE FROM rolepermissions WHERE role_id = $1"
-		_, err = tx.Exec(d.context, deleteQuery, role.Id)
-		if err != nil {
-			return fmt.Errorf("unable to delete existing permissions for role '%d': %w", role.Id, err)
+	// First, delete existing role permissions
+	deleteQuery := "DELETE FROM rolepermissions WHERE role_id = $1"
+	_, err = tx.Exec(d.Context, deleteQuery, role.Id)
+	if err != nil {
+		return fmt.Errorf("unable to delete existing permissions for role '%d': %w", role.Id, err)
+	}
+
+	// Then, insert new permissions
+	if len(role.Permissions) > 0 {
+		insertQuery := "INSERT INTO rolepermissions (role_id, permission_id) VALUES "
+		var insertArgs []any
+		argCount := 1
+
+		for i, permission := range role.Permissions {
+			if i > 0 {
+				insertQuery += ", "
+			}
+			insertQuery += fmt.Sprintf("($%d, $%d)", argCount, argCount+1)
+			insertArgs = append(insertArgs, role.Id, permission.Id)
+			argCount += 2
 		}
 
-		// Then, insert new permissions
-		if len(role.Permissions) > 0 {
-			insertQuery := "INSERT INTO rolepermissions (role_id, permission_id) VALUES "
-			var insertArgs []any
-			argCount := 1
-
-			for i, permission := range role.Permissions {
-				if i > 0 {
-					insertQuery += ", "
-				}
-				insertQuery += fmt.Sprintf("($%d, $%d)", argCount, argCount+1)
-				insertArgs = append(insertArgs, role.Id, permission.Id)
-				argCount += 2
-			}
-
-			_, err = tx.Exec(d.context, insertQuery, insertArgs...)
-			if err != nil {
-				return fmt.Errorf("unable to insert new permissions for role '%d': %w", role.Id, err)
-			}
+		_, err = tx.Exec(d.Context, insertQuery, insertArgs...)
+		if err != nil {
+			return fmt.Errorf("unable to insert new permissions for role '%d': %w", role.Id, err)
 		}
 	}
 
 	// Commit the transaction
-	err = tx.Commit(d.context)
+	err = tx.Commit(d.Context)
 	if err != nil {
 		return fmt.Errorf("unable to commit transaction: %w", err)
 	}
@@ -521,7 +513,7 @@ func (d *DbManager) UpdateRoleName(roleId int, newName string) error {
 		SET role_name = $1
 		WHERE role_id = $2`
 
-	_, err := d.Connection.Exec(d.context, query, newName, roleId)
+	_, err := d.Connection.Exec(d.Context, query, newName, roleId)
 	if err != nil {
 		errMsg := fmt.Sprintf("unable to update '%d' role: %s", roleId, err.Error())
 		return errors.New(errMsg)
@@ -538,7 +530,7 @@ func (d *DbManager) UpdateRoleColor(roleId int, newColor string) error {
 		WHERE role_id = $2
 		`
 
-	_, err := d.Connection.Exec(d.context, query, newColor, roleId)
+	_, err := d.Connection.Exec(d.Context, query, newColor, roleId)
 	if err != nil {
 		return err
 	}
@@ -552,7 +544,7 @@ func (d *DbManager) DeleteRole(roleId int) error {
 		`DELETE FROM roles
 		WHERE role_id = $1`
 
-	_, err := d.Connection.Exec(d.context, query, roleId)
+	_, err := d.Connection.Exec(d.Context, query, roleId)
 	if err != nil {
 		errMsg := fmt.Sprintf("unable to delete '%d' role: %s", roleId, err.Error())
 		return errors.New(errMsg)
@@ -569,7 +561,7 @@ func (d *DbManager) InsertCustomQuery(query_name string, query_string string) (i
 	}
 
 	query := "INSERT INTO queries (query_name, query_string) VALUES ($1, $2) RETURNING query_id"
-	err := d.Connection.QueryRow(d.context, query, query_name, query_string).Scan(&query_id)
+	err := d.Connection.QueryRow(d.Context, query, query_name, query_string).Scan(&query_id)
 
 	return query_id, err
 }
@@ -581,7 +573,7 @@ func (d *DbManager) GetCustomQuery(idName string) (string, string, error) {
 	query := "SELECT query_name,query_string FROM queries WHERE " + GetQuerySearchSuffix(idName)
 
 	// Query the Db
-	err := d.Connection.QueryRow(d.context, query, idName).Scan(&query_name, &query_string)
+	err := d.Connection.QueryRow(d.Context, query, idName).Scan(&query_name, &query_string)
 
 	return query_name, query_string, err
 }
@@ -589,7 +581,7 @@ func (d *DbManager) GetCustomQuery(idName string) (string, string, error) {
 // Delete a custom query based on ID
 func (d *DbManager) DeleteCustomQuery(query_name string) error {
 	query := "DELETE FROM queries WHERE " + GetQuerySearchSuffix(query_name)
-	_, err := d.Connection.Exec(d.context, query, query_name)
+	_, err := d.Connection.Exec(d.Context, query, query_name)
 
 	return err
 }
@@ -600,7 +592,7 @@ func (d *DbManager) ListCustomQueries() ([]Query, error) {
 	query := "SELECT * FROM queries"
 
 	// Query the databse for all queries
-	rows, err := d.Connection.Query(d.context, query)
+	rows, err := d.Connection.Query(d.Context, query)
 	if err != nil {
 		return nil, err
 	}
@@ -632,7 +624,7 @@ func (d *DbManager) ExecuteCustomQuery(query string) ([]map[string]string, error
 	var retRows []map[string]string
 
 	// Get Rows
-	rows, err := d.Connection.Query(d.context, query)
+	rows, err := d.Connection.Query(d.Context, query)
 	if err != nil {
 		return nil, err
 	}
@@ -684,7 +676,7 @@ func (d *DbManager) UpdateCustomQueryLiteral(queryId int, newLiteral string) err
 		SET query_string = $1
 		WHERE query_id = $2
 	`
-	_, err := d.Connection.Exec(d.context, query, newLiteral, queryId)
+	_, err := d.Connection.Exec(d.Context, query, newLiteral, queryId)
 	if err != nil {
 		return fmt.Errorf("unable to update query '%d': %s", queryId, err.Error())
 	}
@@ -697,7 +689,7 @@ func (d *DbManager) UpdateCustomQueryName(queryId int, newName string) error {
 		SET query_name = $1
 		WHERE query_id = $2
 	`
-	_, err := d.Connection.Exec(d.context, query, newName, queryId)
+	_, err := d.Connection.Exec(d.Context, query, newName, queryId)
 	if err != nil {
 		return fmt.Errorf("unable to update query '%d': %s", queryId, err.Error())
 	}
@@ -709,7 +701,7 @@ func (d *DbManager) GetSetting(key string) (string, error) {
 	query := "SELECT svalue FROM settings WHERE skey = $1;"
 	var value string
 
-	err := d.Connection.QueryRow(d.context, query, key).Scan(&value)
+	err := d.Connection.QueryRow(d.Context, query, key).Scan(&value)
 	if err != nil {
 		return "", fmt.Errorf("error getting setting '%s': %w", key, err)
 	}
@@ -721,7 +713,7 @@ func (d *DbManager) GetSetting(key string) (string, error) {
 func (d *DbManager) SetSetting(key string, value string) error {
 	query := "UPDATE settings SET svalue = $2 WHERE skey = $1;"
 
-	_, err := d.Connection.Exec(d.context, query, key, value)
+	_, err := d.Connection.Exec(d.Context, query, key, value)
 	if err != nil {
 		return fmt.Errorf("error setting key '%s' to value '%s': %w", key, value, err)
 	}
