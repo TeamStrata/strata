@@ -92,7 +92,7 @@ func (d *DbManager) InsertChart(chart Chart) (int, error) {
 	}
 	// if err == nil {
 	// 	queryUpdate := "UPDATE chart SET chart_type = $1 WHERE chart_id = $2;"
-	// 	_, updateErr := d.Connection.Exec(d.context, queryUpdate, chart.Type, chartID)
+	// 	_, updateErr := d.Connection.Exec(d.Context, queryUpdate, chart.Type, chartID)
 	// 	return chartID, updateErr
 	// }
 
