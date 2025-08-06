@@ -69,6 +69,12 @@ func CreateChartHandler(d *database.DbManager) gin.HandlerFunc {
 			return
 		}
 
+		// Validate chart data
+		if chart.Title == "" || chart.Type == "" || chart.Xname == "" || chart.Yname == "" {
+			c.Status(http.StatusBadRequest)
+			return
+		}
+
 		// Inserting custom query
 		id, err := d.InsertChart(chart)
 		if err != nil {
@@ -94,7 +100,7 @@ func DeleteChartHandler(d *database.DbManager) gin.HandlerFunc {
 
 		err = d.DeleteChart(chart_id)
 		if err != nil {
-			c.Data(500, "text/plain", []byte("Could not delete this chart!"))
+			c.Data(500, "text/plain", []byte(err.Error()))
 			c.Done()
 			return
 		}
@@ -139,19 +145,19 @@ func GetChartSeriesListHandler(d *database.DbManager) gin.HandlerFunc {
 		chart_id_str := c.Param("cid")
 		chart_id, err := strconv.Atoi(chart_id_str)
 		if err != nil {
-      		c.Data(500, "text/plain", []byte(err.Error()))
+			c.Data(500, "text/plain", []byte(err.Error()))
 			c.Done()
 			return
 		}
 
 		series, err := d.ListChartSeries(chart_id)
 		if err != nil {
-      		c.Data(500, "text/plain", []byte(err.Error()))
+			c.Data(500, "text/plain", []byte(err.Error()))
 			c.Done()
 			return
 		}
-    
-    	c.JSON(200, series)
+
+		c.JSON(200, series)
 	}
 }
 
@@ -186,20 +192,12 @@ func GetChartSingleSeriesHandler(d *database.DbManager) gin.HandlerFunc {
 
 func AddChartSeriesHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		chart_id_str := c.Param("cid")
-		chart_id, err := strconv.Atoi(chart_id_str)
-		if err != nil {
-			c.Data(400, "text/plain", []byte("The chart ID must be an integer!"))
-			c.Done()
-			return
-		}
 
-		var series database.ChartSeries
+		var series []database.ChartSeries
 		if err := c.ShouldBindJSON(&series); err != nil {
 			c.Data(http.StatusBadRequest, "text/plain", []byte("ShouldBindJSON Error"))
 			return
 		}
-		series.ChartID = chart_id
 
 		id, err := d.InsertChartSeries(series)
 		if err != nil {
