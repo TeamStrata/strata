@@ -470,7 +470,7 @@ func (d *DbManager) UpdateRole(role Role) error {
 	// Handle permissions updates
 	// First, delete existing role permissions
 	deleteQuery := "DELETE FROM rolepermissions WHERE role_id = $1"
-	_, err = tx.Exec(d.context, deleteQuery, role.Id)
+	_, err = tx.Exec(d.Context, deleteQuery, role.Id)
 	if err != nil {
 		return fmt.Errorf("unable to delete existing permissions for role '%d': %w", role.Id, err)
 	}
@@ -490,7 +490,7 @@ func (d *DbManager) UpdateRole(role Role) error {
 			argCount += 2
 		}
 
-		_, err = tx.Exec(d.context, insertQuery, insertArgs...)
+		_, err = tx.Exec(d.Context, insertQuery, insertArgs...)
 		if err != nil {
 			return fmt.Errorf("unable to insert new permissions for role '%d': %w", role.Id, err)
 		}
