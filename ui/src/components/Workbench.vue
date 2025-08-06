@@ -92,6 +92,19 @@ function scaleChatBox() {
     }
   });
 }
+
+function handleEnter(e) {
+  if (e.shiftKey) {
+    // Allow newline
+    userInput.value += '\n';
+    scaleChatBox();
+    return
+  }
+
+  // Send message on Enter
+  e.preventDefault()
+  sendQuery()
+}
 </script>
 
 <template>
@@ -123,7 +136,7 @@ function scaleChatBox() {
     </div>
 
     <div class="py-3 px-4 flex items-end gap-2">
-      <textarea placeholder="Write a message..." v-model="userInput"
+      <textarea placeholder="Write a message..." v-model="userInput" @keydown.enter.prevent="handleEnter"
         class="w-full resize-none break-words focus:outline-none" rows="1" ref="inputBox" @input="scaleChatBox()">
       </textarea>
 
