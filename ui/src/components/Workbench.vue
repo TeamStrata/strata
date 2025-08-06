@@ -1,14 +1,12 @@
-<script>
-import { ref, onMounted } from 'vue'
+<script setup>
+import { ref, onMounted, nextTick } from 'vue'
 import Separator from "./ui/separator/Separator.vue";
 import { apiFetch } from "@/api/request";
 
-export default {
-  components: {
-    Separator
-  },
 
-  setup() {
+
+
+
     const userInput = ref('')
     const response = ref('')
     const error = ref('')
@@ -53,20 +51,20 @@ ${schema.value}
 
       // if the messages list is empty or the last message was not sent by the user...
       if (messages.value.length == 0 || messages.value[messages.value.length - 1].role != "user") {
-        messages.value.push({"role":"user","content":userInput.value})
+    messages.value.push({ "role": "user", "content": userInput.value })
       }
       
       userInput.value = '';
 
       // Send the message history to ollama
-      apiFetch(API_URL, 'POST', JSON.stringify({"messages":messages.value})).then(async (res) => {
+  apiFetch(API_URL, 'POST', JSON.stringify({ "messages": messages.value })).then(async (res) => {
         // Mark that we are finished loading.
         loading.value = false
 
         if (!res.ok) {
           // In the case of an error, push the error as a message
           let err = `Error ${res.status}: ${res.statusText}`;
-          messages.value.push({"role": "error", "content": err});
+      messages.value.push({ "role": "error", "content": err });
           throw new Error(err);
 
         } else {
@@ -77,17 +75,20 @@ ${schema.value}
           messages.value.push(data)
         }
       });
-    }
 
-    return {
-      userInput,
-      response,
-      error,
-      loading,
-      sendQuery,
-      messages
+
+}
+
+const inputBox = ref(null);
+
+function scaleChatBox() {
+  nextTick(() => {
+    const chatBox = inputBox.value;
+    if (chatBox) {
+      chatBox.style.height = 'auto'; // Reset height
+      chatBox.style.height = `${chatBox.scrollHeight}px`; // Set to scrollHeight
     }
-  }
+  });
 }
 </script>
 
@@ -99,15 +100,16 @@ ${schema.value}
 
     <Separator></Separator>
     
-    <div class="p-2 flex-2 max-h-[calc(100vh-180px)] overflow-y-scroll overflow-x-hidden">
+    <div class="p-2 flex-1 overflow-y-scroll overflow-x-hidden">
       <div v-for="(message, index) in messages" :key="index" class="text-sm flex flex-col items-start">
-        <p v-if="message.role != 'system'" class="block p-1 font-black" :class="message.role == 'user' ? 'self-end' : 'self-start'">
-          {{message.role == 'user' ? "You:" : "StrataBot:"}}
+        <p v-if="message.role != 'system'" class="block p-1 font-black"
+          :class="message.role == 'user' ? 'self-end' : 'self-start'">
+          {{ message.role == 'user' ? "You:" : "StrataBot:" }}
         </p>
 
-        <div v-if="message.role != 'system'"  class="w-fit rounded-sm p-2 max-w-4/5"
+        <div v-if="message.role != 'system'" class="w-fit rounded-sm p-2 max-w-4/5"
         :class="message.role == 'user' ? 'bg-blue-300 self-end' : message.role == 'assistant' ? 'bg-purple-300 self-start' : 'bg-red-400'">
-          <p class="block">{{message.content}}</p>
+          <p class="block">{{ message.content }}</p>
         </div>
       </div>
     </div>
@@ -118,17 +120,16 @@ ${schema.value}
       <p class="block">Thinking...</p>
     </div>
 
-    <div class="py-3 px-4 flex items-center input-box">
+    <div class="py-3 px-4 flex items-end gap-2">
       <textarea placeholder="Write a message..." v-model="userInput"
-        class="w-full resize-none break-words focus:outline-none" rows="1" ref="chatBox"
-        @input="scaleChatBox">
+        class="w-full resize-none break-words focus:outline-none" rows="1" ref="inputBox" @input="scaleChatBox()">
       </textarea>
       
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
         class="lucide lucide-send-horizontal-icon lucide-send-horizontal"
-        :class="userInput == '' ? 'text-neutral-400' : 'text-black cursor-pointer'"
-        @click="sendQuery" :disabled="loading">
+        :class="userInput == '' ? 'text-neutral-400' : 'text-black cursor-pointer'" @click="sendQuery"
+        :disabled="loading">
         <path
           d="M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" />
         <path d="M6 12h16" />
