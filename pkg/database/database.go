@@ -204,7 +204,7 @@ func (d *DbManager) GetSingleUser(name string) (User, error) {
 }
 
 // Insert user into the database. Expects the password to be hashed using the auth module.
-func (d *DbManager) InsertUser(username string, password string) error {
+func (d *DbManager) InsertUser(username string, password string) (User, error) {
 	user := User{}
 	query :=
 		`INSERT INTO users (user_name, password_hash)
@@ -214,7 +214,7 @@ func (d *DbManager) InsertUser(username string, password string) error {
 	var userId int
 	err := d.Connection.QueryRow(d.Context, query, username, password).Scan(&userId, &user.Name, &user.Password)
 	if err != nil {
-		return err
+		return User{}, err
 	}
 
 	query =
@@ -230,10 +230,10 @@ func (d *DbManager) InsertUser(username string, password string) error {
 
 	_, err = d.Connection.Query(d.Context, query, userId)
 	if err != nil {
-		return err
+		return User{}, err
 	}
 
-	return nil
+	return user, nil
 }
 
 // Delete a user from the database by username

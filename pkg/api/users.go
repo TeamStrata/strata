@@ -39,7 +39,7 @@ func SignUpHandler(d *database.DbManager, activeUsers map[string]UserSessionData
 			return
 		}
 
-		err = d.InsertUser(user.Name, hash)
+		user, err = d.InsertUser(user.Name, hash)
 		if err != nil {
 			errMsg := fmt.Sprintf("unable to add user to database: %s", err.Error())
 			c.String(http.StatusInternalServerError, errMsg)
@@ -53,7 +53,7 @@ func SignUpHandler(d *database.DbManager, activeUsers map[string]UserSessionData
 			return
 		}
 
-		newId := addNewUUID(user.Name, isAdmin, activeUsers)
+		newId := addNewUUID(user.Id, user.Name, isAdmin, activeUsers)
 		c.SetCookie(
 			uuidTag,
 			newId,
