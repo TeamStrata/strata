@@ -15,7 +15,16 @@ const schema = ref('');
 const md = MarkdownIt({
   html: true,
   linkify: true,
-  typographer: true
+  typographer: true,
+  highlight: function (str, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return hljs.highlight(str, { language: "sql" }).value;
+      } catch (__) {}
+    }
+
+    return ''; // use external default escaping
+  }
 })
 // Fetch the schema
 apiFetch("/cdb-schema").then(async res => {
@@ -35,6 +44,7 @@ Adhere to these rules:
 If the user does not start with a question or actionable message, respond with a short friendly message offering to help explain something or build a query
 Respond to the user in a friendly way, but minimize any extra words. Answer their inquirty directly and consisely.
 Generate a SQL query that answers the question \`{question}\`.
+If the users asks for an explanation, explain the solution consisely to accompany any code you generate.
 This query will run on a database whose schema is represented by this string:
 \`\`\`sql
 ${schema.value}
@@ -79,6 +89,9 @@ const sendQuery = async () => {
 
       // Append the message to the message list
       messages.value.push(data)
+      nextTick(() => {
+        hljs.highlightAll();
+      })
     }
   });
 
@@ -112,6 +125,7 @@ function handleEnter(e) {
 </script>
 
 <template>
+
   <div class="h-full flex flex-col">
     <div class="p-2 flex justify-between bg-accent">
       <p>AI Chat</p>
@@ -124,7 +138,7 @@ function handleEnter(e) {
         <p v-if="message.role == 'user'" class="self-end p-2 px-3 bg-accent rounded-md whitespace-pre-wrap">{{
           message.content }}</p>
         <p v-if="message.role == 'assistant'" v-html="message.pretty"
-          class="prose prose-pre:bg-accent prose-pre:border-1 prose-pre:text-black"></p>
+          class="prose prose-pre:bg-accent prose-pre:p-0 prose-pre:border-1 prose-pre:text-black"></p>
 
 
         <!-- <p v-if="message.role != 'system'" class="block p-1 font-black"
