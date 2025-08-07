@@ -346,7 +346,7 @@ function scaleChatBox() {
 
 	<Toast ref="toastRef" />
 	<ResizablePanelGroup id="demo-group-1" direction="horizontal" class="h-full">
-		<ResizablePanel id="demo-panel-1" :default-size="20" :max-size="35" :min-size="15" collapsible
+		<ResizablePanel id="demo-panel-1" :default-size="20" :max-size="45" :min-size="15" collapsible
 			:collapsed-size="0" ref="chatWindow">
 			
 				<Workbench />
@@ -483,7 +483,7 @@ function scaleChatBox() {
 			</ResizablePanelGroup>
 		</ResizablePanel>
 		<ResizableHandle id="demo-handle-5" />
-		<ResizablePanel id="demo-panel-5" :default-size="20" :max-size="35" :min-size="15" collapsible
+		<ResizablePanel id="demo-panel-5" :default-size="20" :max-size="45" :min-size="15" collapsible
 			:collapsed-size="0" ref="explorerWindow">
 			<div>
 				<div class="p-2 flex justify-between bg-accent">
