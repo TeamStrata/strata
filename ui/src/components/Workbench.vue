@@ -173,13 +173,15 @@ initChat()
         <p v-if="message.role == 'assistant'" v-html="message.pretty"
           class="prose  prose-pre:bg-accent prose-pre:p-0 prose-pre:border-1 prose-pre:text-black"></p>
       </div>
+      <div v-if="loading" class="mx-2 py-3">
+        <!-- <p class="block">Thinking...</p> -->
+        <div class="loader"></div>
+      </div>
     </div>
 
     <Separator></Separator>
 
-    <div v-if="loading" class="flex justify-items-center">
-      <p class="block">Thinking...</p>
-    </div>
+
 
     <div class="py-3 px-4 flex items-end gap-2">
       <textarea placeholder="Write a message..." v-model="userInput" @keydown.enter.prevent="handleEnter"
@@ -198,3 +200,63 @@ initChat()
     </div>
   </div>
 </template>
+
+<style scoped>
+.loader {
+  width: 30px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 6px solid #00000023;
+  animation:
+    l20-1 0.8s infinite linear alternate,
+    l20-2 1.6s infinite linear;
+}
+
+@keyframes l20-1 {
+  0% {
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 50% 0%, 50% 0%, 50% 0%, 50% 0%)
+  }
+
+  12.5% {
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 0%, 100% 0%, 100% 0%)
+  }
+
+  25% {
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 100%, 100% 100%, 100% 100%)
+  }
+
+  50% {
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 100%, 50% 100%, 0% 100%)
+  }
+
+  62.5% {
+    clip-path: polygon(50% 50%, 100% 0, 100% 0%, 100% 0%, 100% 100%, 50% 100%, 0% 100%)
+  }
+
+  75% {
+    clip-path: polygon(50% 50%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 50% 100%, 0% 100%)
+  }
+
+  100% {
+    clip-path: polygon(50% 50%, 50% 100%, 50% 100%, 50% 100%, 50% 100%, 50% 100%, 0% 100%)
+  }
+}
+
+@keyframes l20-2 {
+  0% {
+    transform: scaleY(1) rotate(0deg)
+  }
+
+  49.99% {
+    transform: scaleY(1) rotate(135deg)
+  }
+
+  50% {
+    transform: scaleY(-1) rotate(0deg)
+  }
+
+  100% {
+    transform: scaleY(-1) rotate(-135deg)
+  }
+}
+</style>
