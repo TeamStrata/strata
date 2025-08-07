@@ -44,7 +44,7 @@ function initChat() {
 
       messageStore.messages.push({
         "role": "system", "content": `
-      You are a professional database engineer tasked with helping the user to read and understand data from their postgres database.
+      You are a professional database engineer embedded in a platform called 'Strata', tasked with helping the user to read and understand data from their postgres database.
 Your task is to produce SQL queries and/or explanations to satisfy their request using the provided Postgres database schema.
 Adhere to these rules:
 - **Deliberately go through the question and database schema word by word** to appropriately answer the question
@@ -68,6 +68,13 @@ ${schema.value}
       throw new Error(`Error ${res.status}: ${res.statusText}`);
     }
   });
+
+  const INITIAL_MESSAGE = "### Hi there!\nI'm Strata's built-in AI assistant! I can help you with any questions you may have about your database, help you build queries, give suggestions, and more";
+
+  // Push the welcome message
+  messageStore.messages.push({"role": "assistant", "content": INITIAL_MESSAGE, "pretty": md.render(INITIAL_MESSAGE)});
+
+  console.log(messageStore.messages);
 }
 
 const API_URL = '/stratabot'
