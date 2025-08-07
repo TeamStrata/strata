@@ -15,7 +15,7 @@ const loading = ref(false)
 const schema = ref('');
 
 const messageStore = useChatStore()
-// const messageStore.messages = messageStore.messageStore.messages
+const messageContainer = ref(null);
 
 const md = MarkdownIt({
   html: true,
@@ -72,7 +72,7 @@ ${schema.value}
   const INITIAL_MESSAGE = "### Hi there!\nI'm Strata's built-in AI assistant! I can help you with any questions you may have about your database, help you build queries, give suggestions, and more!";
 
   // Push the welcome message
-  messageStore.messages.push({"role": "assistant", "content": INITIAL_MESSAGE, "pretty": md.render(INITIAL_MESSAGE)});
+  messageStore.messages.push({ "role": "assistant", "content": INITIAL_MESSAGE, "pretty": md.render(INITIAL_MESSAGE) });
 
   console.log(messageStore.messages);
 }
@@ -113,12 +113,16 @@ const sendQuery = async () => {
       messageStore.messages.push(data)
       nextTick(() => {
         hljs.highlightAll();
+        messageContainer.value.scrollTo({
+          top: messageContainer.value.scrollHeight,
+          behavior: 'smooth'
+        })
       })
     }
   });
-
-
 }
+
+
 
 const inputBox = ref(null);
 
@@ -166,7 +170,7 @@ initChat()
 
     <Separator></Separator>
 
-    <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-2">
+    <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-2" ref="messageContainer">
       <div v-for="(message, index) in messageStore.messages" :key="index" class="flex flex-col items-start mx-2 *:my-3">
         <p v-if="message.role == 'user'" class="self-end p-2 px-3 bg-accent rounded-md whitespace-pre-wrap">{{
           message.content }}</p>
