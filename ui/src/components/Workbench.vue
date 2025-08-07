@@ -69,7 +69,7 @@ ${schema.value}
     }
   });
 
-  const INITIAL_MESSAGE = "### Hi there!\nI'm Strata's built-in AI assistant! I can help you with any questions you may have about your database, help you build queries, give suggestions, and more";
+  const INITIAL_MESSAGE = "### Hi there!\nI'm Strata's built-in AI assistant! I can help you with any questions you may have about your database, help you build queries, give suggestions, and more!";
 
   // Push the welcome message
   messageStore.messages.push({"role": "assistant", "content": INITIAL_MESSAGE, "pretty": md.render(INITIAL_MESSAGE)});
