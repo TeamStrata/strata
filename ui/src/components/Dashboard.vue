@@ -57,7 +57,7 @@
             <Plus></Plus>Add Chart
           </Button>
           <Button variant="outline" :onClick="() => { editMode = false }">Exit</Button>
-          <Button :onClick="saveDashboardCharts">Save Dashboard</Button>
+          <Button :onClick="() => { saveDashboardCharts(); editMode = false; }">Save Dashboard</Button>
         </div>
       </div>
       <Separator></Separator>
@@ -66,7 +66,7 @@
     <div class="p-3">
       <ChartWidget v-for="chart in selectedCharts" :key="chart.id" :chart-data="chart" :width="chart.size_x"
         :height="chart.size_y" :id="`chart-widget-${chart.id}`" @close="removeChart(chart.id)"
-        @update:size="(event) => onSizeUpdate(chart.id, event)" />
+        @update:size="(event) => onSizeUpdate(chart.id, event)" :edit-mode="editMode" />
     </div>
 
     <!-- <div>
