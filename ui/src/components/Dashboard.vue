@@ -4,11 +4,7 @@
     <div class="bg-white border border-gray-300 rounded-xl p-4 shadow mb-6 w-full max-w-md">
       <h3 class="text-lg font-semibold text-gray-800 mb-2">Saved Chart</h3>
       <label class="block text-gray-600 font-medium mb-1">Select from saved charts:</label>
-      <select
-        v-model="selectedChartTitle"
-        @change="loadChartFromDB"
-        class="w-full p-2 border border-gray-300 rounded"
-      >
+      <select v-model="selectedChartTitle" @change="loadChartFromDB" class="w-full p-2 border border-gray-300 rounded">
         <option value="">-- Select a chart --</option>
         <option v-for="chart in savedChartTitles" :key="chart.id" :value="chart">
           {{ chart.title }}
@@ -18,21 +14,14 @@
 
     <!-- Selected chart(s) shown below -->
     <div class="chart-display">
-      <ChartWidget
-        v-for="chart in selectedCharts"
-        :key="chart.id"
-        :chart-data="chart"
-        :width="chart.size_x"
-        :height="chart.size_y"
-        :id="`chart-widget-${chart.id}`"
-        @close="removeChart(chart.id)"
-        @update:size="(event) => onSizeUpdate(chart.id, event)"
-      />
+      <ChartWidget v-for="chart in selectedCharts" :key="chart.id" :chart-data="chart" :width="chart.size_x"
+        :height="chart.size_y" :id="`chart-widget-${chart.id}`" @close="removeChart(chart.id)"
+        @update:size="(event) => onSizeUpdate(chart.id, event)" />
     </div>
-    <br/>
+    <br />
     <div>
       <button @click="saveDashboardCharts"
-      class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">Save Layout</button>
+        class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">Save Layout</button>
     </div>
     <Toast ref="toastRef" />
   </div>
@@ -45,6 +34,7 @@ import { useRoute } from 'vue-router';
 import Toast, { ToastTypes } from './Toast.vue';
 import ChartWidget from './ui/ChartWidget/ChartWidget.vue';
 import Swal from 'sweetalert2';
+import { usePageInfoStore } from '@/stores/pageInfo';
 const route = useRoute();
 const dashboardId = ref(route.params.id);
 
@@ -54,6 +44,8 @@ const selectedChartId = ref("");
 const selectedChartTitle = ref("");
 const toastRef = ref(null);
 const savedChartTitles = ref([])
+
+const pageInfoStore = usePageInfoStore();
 
 function onSizeUpdate(chartId, size) {
   const chart = selectedCharts.value.find(c => c.id === chartId);
@@ -67,7 +59,7 @@ const fetchSavedChartTitles = async () => {
   try {
     const response = await apiFetch('/charts')
     if (!response.ok) throw new Error('Failed to fetch chart titles')
-    savedChartTitles.value = await response.json() 
+    savedChartTitles.value = await response.json()
   } catch (err) {
     console.error('Error fetching titles:', err)
   }
@@ -85,11 +77,11 @@ const saveDashboardCharts = async () => {
     const existingChartMap = new Map(
       Array.isArray(existingCharts)
         ? existingCharts
-            .filter(chart => chart?.chart_id != null)
-            .map(chart => [
-              Number(chart.chart_id), // ✅ Ensure consistent type
-              { size_x: chart.size_x, size_y: chart.size_y }
-            ])
+          .filter(chart => chart?.chart_id != null)
+          .map(chart => [
+            Number(chart.chart_id), // ✅ Ensure consistent type
+            { size_x: chart.size_x, size_y: chart.size_y }
+          ])
         : []
     );
 
@@ -166,12 +158,12 @@ const loadDashboardGraphs = async () => {
     const response = await apiFetch(`/dashboard/${dashboardId.value}/charts`);
 
     if (response.status === 404) {
-      return; 
+      return;
     }
 
     const graphMappings = await response.json();
     console.log(graphMappings);
-    if(graphMappings!=null){
+    if (graphMappings != null) {
       for (const mapping of graphMappings) {
         const chartResponse = await apiFetch(`/chart/${mapping.chart_id}`);
         if (chartResponse.ok) {
@@ -183,7 +175,7 @@ const loadDashboardGraphs = async () => {
         }
       }
     } else {
-      selectedCharts.value=[];
+      selectedCharts.value = [];
     }
   } catch (err) {
     if (err?.response?.status !== 404) {
@@ -240,16 +232,32 @@ const loadChartFromDB = () => {
 import { watch } from 'vue';
 
 watch(() => route.params.id,
-(newVal, old) => {
-  dashboardId.value = newVal;
-  loadDashboardGraphs();
-  fetchSavedChartTitles();
-});
+  (newVal, old) => {
+    dashboardId.value = newVal;
+    loadDashboardGraphs();
+    fetchSavedChartTitles();
+  });
+
+async function loadDashboard() {
+  const response = await apiFetch(`/dashboard/${dashboardId.value}`);
+  if (!response.ok) return;
+  const data = await response.json();
+  console.log(data);
+
+  // Update store with API info
+  pageInfoStore.setPageInfo(
+    data.title || "",
+    data.content || "",
+    data.configurable ?? true
+  );
+}
 
 onMounted(async () => {
   await loadDashboardGraphs();
   await fetchSavedChartTitles();
+
 });
+loadDashboard();
 </script>
 
 <style scoped>
