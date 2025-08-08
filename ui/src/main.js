@@ -1,4 +1,5 @@
 import './assets/base.css'
+import 'highlight.js/styles/atom-one-light.css'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'

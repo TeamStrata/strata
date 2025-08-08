@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import DialogTitle from "./ui/dialog/DialogTitle.vue";
 import { watch } from "vue";
+import Workbench from "./Workbench.vue"
 // If we can't connect to the database, or while the fetch is in progress, this displays.
 var queries = ref([
 	{
@@ -279,7 +280,7 @@ function renameQuery() {
 const explorerWindow = ref(null);
 
 //chat stuff
-const chatMessage = ref('');
+//const chatMessage = ref('');
 const chatBox = ref(null);
 const chatWindow = ref(null);
 
@@ -345,14 +346,11 @@ function scaleChatBox() {
 
 	<Toast ref="toastRef" />
 	<ResizablePanelGroup id="demo-group-1" direction="horizontal" class="h-full">
-		<ResizablePanel id="demo-panel-1" :default-size="20" :max-size="35" :min-size="15" collapsible
+		<ResizablePanel id="demo-panel-1" :default-size="25" :max-size="45" :min-size="15" collapsible
 			:collapsed-size="0" ref="chatWindow">
-			<div class="h-full flex flex-col">
-				<div class="p-2 flex justify-between bg-accent">
-					<p>AI Chat</p>
-				</div>
-				<Separator></Separator>
-				<div class="flex-2">
+			
+				<Workbench />
+				<!--<div class="flex-2">
 					CHAT GOES HERE
 				</div>
 				<Separator></Separator>
@@ -368,8 +366,8 @@ function scaleChatBox() {
 							d="M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" />
 						<path d="M6 12h16" />
 					</svg>
-				</div>
-			</div>
+				</div>-->
+			
 		</ResizablePanel>
 		<ResizableHandle id="demo-handle-2" />
 		<ResizablePanel id="demo-panel-2" :default-size="50">
@@ -485,7 +483,7 @@ function scaleChatBox() {
 			</ResizablePanelGroup>
 		</ResizablePanel>
 		<ResizableHandle id="demo-handle-5" />
-		<ResizablePanel id="demo-panel-5" :default-size="20" :max-size="35" :min-size="15" collapsible
+		<ResizablePanel id="demo-panel-5" :default-size="25" :max-size="45" :min-size="15" collapsible
 			:collapsed-size="0" ref="explorerWindow">
 			<div>
 				<div class="p-2 flex justify-between bg-accent">
