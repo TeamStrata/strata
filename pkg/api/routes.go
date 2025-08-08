@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -185,6 +186,76 @@ func PingHandler(c *gin.Context) {
 	})
 }
 
+type Message struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+func StrataBotHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 1. Decode incoming request body into messages slice
+		var incoming struct {
+			Messages []Message `json:"messages"`
+		}
+		if err := c.BindJSON(&incoming); err != nil {
+			log.Printf("invalid request payload: %v", err)
+			c.JSON(http.StatusBadRequest, err.Error())
+			return
+		}
+
+		ollama_model, err := d.GetSetting("ollama_model")
+		if err != nil {
+			log.Printf("model lookup error: %v", err)
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		// 2. Build chat payload
+		payload := map[string]interface{}{
+			"model":    ollama_model,
+			"messages": incoming.Messages,
+			"stream":   false,
+		}
+		jsonBody, err := json.Marshal(payload)
+		if err != nil {
+			log.Printf("marshal error: %v", err)
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		// 3. Get host
+		ollama_host, err := d.GetSetting("ollama_host")
+		if err != nil {
+			log.Printf("host lookup error: %v", err)
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		// 4. Send chat request
+		resp, err := http.Post("http://"+ollama_host+"/api/chat",
+			"application/json", bytes.NewReader(jsonBody))
+		if err != nil {
+			log.Printf("request error: %v", err)
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer resp.Body.Close()
+
+		// 5. Decode response
+		var respData struct {
+			Message Message `json:"message"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
+			log.Printf("decode error: %v", err)
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		// 6. Forward response message object(s)
+		c.JSON(http.StatusOK, respData.Message)
+	}
+}
+
 // Generate UUID if user does not already have one
 func addNewUUID(userId int, username string, isAdmin bool, users map[string]UserSessionData) string {
 	for sessionUUID, session := range users {
@@ -261,22 +332,21 @@ func UpdateSettingHandler(d *database.DbManager, cdb **database.DbManager) gin.H
 			return
 		}
 
-		log.Printf("Before: '%p'\n", *cdb)
+		if key == "cdb" {
+			// Disconnect from the client database, then reconnect to this new database
+			if *cdb != nil {
+				(*cdb).Connection.Close()
+				*cdb = nil
+			}
 
-		// Disconnect from the client database, then reconnect to this new database
-		if *cdb != nil {
-			(*cdb).Connection.Close()
-			*cdb = nil
+			// Attempt to connect to new database so you don't have to restart the server
+			*cdb, err = database.NewDbManager(string(bodyBytes), context.Background())
+			if err != nil {
+				errMsg := fmt.Sprintf("Unable to connect to new database: %s", err.Error())
+				c.String(http.StatusInternalServerError, errMsg)
+				return
+			}
 		}
-
-		// Attempt to connect to new database so you don't have to restart the server
-		*cdb, err = database.NewDbManager(string(bodyBytes), context.Background())
-		if err != nil {
-			errMsg := fmt.Sprintf("Unable to connect to new database: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-		log.Printf("After: '%p'\n", *cdb)
 
 		c.Status(http.StatusOK)
 	}

@@ -40,4 +40,7 @@ ollama/*
 # Local .env
 .env.local
 
+# atac file (development)
+*.atac
+
 node_modules
