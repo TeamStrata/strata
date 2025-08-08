@@ -30,10 +30,11 @@ type UserDashboardPermissions struct {
 }
 
 type RolePermission struct {
-	RoleId    int  `json:"roleId"`
-	CanView   bool `json:"canView"`
-	CanEdit   bool `json:"canEdit"`
-	CanDelete bool `json:"canDelete"`
+	RoleId    int    `json:"roleId"`
+	RoleName  string `json:"roleName"`
+	CanView   bool   `json:"canView"`
+	CanEdit   bool   `json:"canEdit"`
+	CanDelete bool   `json:"canDelete"`
 }
 
 type DashboardRolePermissions struct {
@@ -87,6 +88,7 @@ func (d *DbManager) GetDashboardRolePermissions(id int) (DashboardRolePermission
 			d.dashboard_title,
 			d.dashboard_content,
 			drp.role_id,
+			r.role_name,
 			BOOL_OR(p.permission_name = 'view_dashboard')   AS can_view,
 			BOOL_OR(p.permission_name = 'edit_dashboard')   AS can_edit,
 			BOOL_OR(p.permission_name = 'delete_dashboard') AS can_delete
@@ -95,8 +97,15 @@ func (d *DbManager) GetDashboardRolePermissions(id int) (DashboardRolePermission
 			ON d.dashboard_id = drp.dash_id
 		JOIN permissions p
 			ON drp.permission_id = p.permission_id
+		JOIN roles r
+			ON drp.role_id = r.role_id
 		WHERE d.dashboard_id = $1
-		GROUP BY d.dashboard_id, d.dashboard_title, d.dashboard_content, drp.role_id
+		GROUP BY
+			d.dashboard_id,
+			d.dashboard_title,
+			d.dashboard_content,
+			drp.role_id,
+			r.role_name
 		ORDER BY drp.role_id;
 	`
 
@@ -121,6 +130,7 @@ func (d *DbManager) GetDashboardRolePermissions(id int) (DashboardRolePermission
 			&name,
 			&description,
 			&rp.RoleId,
+			&rp.RoleName,
 			&canView,
 			&canEdit,
 			&canDelete,
