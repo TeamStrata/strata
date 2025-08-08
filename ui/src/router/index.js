@@ -67,7 +67,7 @@ const router = createRouter({
           path: '/dashboard/:id',
           name: 'dashboard',
           meta: {
-
+            ignorePadding: true
           },
           component: () => import('../components/Dashboard.vue')
         },

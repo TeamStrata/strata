@@ -15,7 +15,7 @@ const route = useRoute()
 const pageInfoStore = usePageInfoStore();
 const pageInfo = computed(() => {
   // return route.meta
-  if (route.meta && route.meta.title) {
+  if (route.meta.title) {
     return {
       title: route.meta.title,
       description: route.meta.description,
@@ -27,6 +27,7 @@ const pageInfo = computed(() => {
       title: pageInfoStore.pageInfo.title.value,
       description: pageInfoStore.pageInfo.description.value,
       configurable: pageInfoStore.pageInfo.configurable.value,
+      ignorePadding: route.meta.ignorePadding || false,
     };
   }
 })
