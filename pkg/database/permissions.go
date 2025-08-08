@@ -213,22 +213,37 @@ func (d *DbManager) UpdateDashboardRolePermissions(dashPermissions DashboardRole
 		return err
 	}
 
-	// Insert given permissions for dashboard.
+	ensureRolePermissionQuery := `
+		INSERT INTO rolePermissions (role_id, permission_id)
+		VALUES ($1, $2)
+		ON CONFLICT DO NOTHING
+	`
 	query = `INSERT INTO dashboardRolePermissions (dash_id, role_id, permission_id) VALUES ($1, $2, $3)`
+
+	// Insert given permissions for dashboard.
 	for _, p := range dashPermissions.Permissions {
 		if p.CanView {
+			if _, err := tx.Exec(d.Context, ensureRolePermissionQuery, p.RoleId, readPermID); err != nil {
+				return err
+			}
 			_, err := tx.Exec(d.Context, query, dashPermissions.Id, p.RoleId, readPermID)
 			if err != nil {
 				return err
 			}
 		}
 		if p.CanEdit {
+			if _, err := tx.Exec(d.Context, ensureRolePermissionQuery, p.RoleId, editPermID); err != nil {
+				return err
+			}
 			_, err := tx.Exec(d.Context, query, dashPermissions.Id, p.RoleId, editPermID)
 			if err != nil {
 				return err
 			}
 		}
 		if p.CanDelete {
+			if _, err := tx.Exec(d.Context, ensureRolePermissionQuery, p.RoleId, deletePermID); err != nil {
+				return err
+			}
 			_, err := tx.Exec(d.Context, query, dashPermissions.Id, p.RoleId, deletePermID)
 			if err != nil {
 				return err
