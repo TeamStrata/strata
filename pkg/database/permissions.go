@@ -83,20 +83,20 @@ func (d *DbManager) GetUserDashboardPermissions(userId int) ([]UserDashboardPerm
 func (d *DbManager) GetDashboardRolePermissions(id int) (DashboardRolePermissions, error) {
 	query := `
 		SELECT
-			d.dash_id AS id,
-			d.name,
-			d.description,
+			d.dashboard_id AS id,
+			d.dashboard_title,
+			d.dashboard_content,
 			drp.role_id,
 			BOOL_OR(p.permission_name = 'view_dashboard')   AS can_view,
 			BOOL_OR(p.permission_name = 'edit_dashboard')   AS can_edit,
 			BOOL_OR(p.permission_name = 'delete_dashboard') AS can_delete
 		FROM dashboards d
 		JOIN dashboardRolePermissions drp
-			ON d.dash_id = drp.dash_id
+			ON d.dashboard_id = drp.dash_id
 		JOIN permissions p
 			ON drp.permission_id = p.permission_id
-		WHERE d.dash_id = $1
-		GROUP BY d.dash_id, d.name, d.description, drp.role_id
+		WHERE d.dashboard_id = 1
+		GROUP BY d.dashboard_id, d.dashboard_title, d.dashboard_content, drp.role_id
 		ORDER BY drp.role_id;
 	`
 
