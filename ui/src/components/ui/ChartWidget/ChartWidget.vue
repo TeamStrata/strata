@@ -2,7 +2,10 @@
   <div class="chart-widget" :style="style" ref="widgetRef">
     <div class="header">
       <h3>{{ chartData.title }}</h3>
-      <button @click="$emit('close')">✖</button>
+      <button v-if="props.editMode" @click="$emit('close')" class="cursor-pointer">
+        <X></X>
+      </button>
+
     </div>
     <div class="chart-container">
       <canvas ref="chartCanvas"></canvas>
@@ -14,6 +17,7 @@
 import { onMounted, ref, watch, onBeforeUnmount } from 'vue';
 import Chart from 'chart.js/auto';
 import { apiFetch } from '@/api/request';
+import { X } from 'lucide-vue-next';
 
 const props = defineProps({
   chartData: {
@@ -21,7 +25,8 @@ const props = defineProps({
     required: true
   },
   width: { type: Number, default: 300 },
-  height: { type: Number, default: 300 }
+  height: { type: Number, default: 300 },
+  editMode: Boolean
 });
 
 
@@ -38,7 +43,7 @@ let resizeObserver = null;
 const style = {
   width: widgetWidth.value + 'px',
   height: widgetHeight.value + 'px',
-  resize: 'both',
+  resize: props.editMode ? 'both' : 'none',
   overflow: 'auto',
   border: '1px solid #ccc',
   borderRadius: '8px',
@@ -70,8 +75,8 @@ const fetchSeriesAndRender = async () => {
     const chartInfo = await chartRes.json();
     const chartTypeRaw = chartInfo.type || 'line';
     const chartType = chartTypeRaw === 'column' ? 'bar'
-                   : chartTypeRaw === 'area' ? 'line'
-                   : chartTypeRaw;
+      : chartTypeRaw === 'area' ? 'line'
+        : chartTypeRaw;
 
     const response = await apiFetch(`/chart/${props.chartData.id}/series`);
     if (!response.ok) {
@@ -94,8 +99,8 @@ const fetchSeriesAndRender = async () => {
           x: row[series.x_col_name],
           y: row[series.y_col_name]
         })),
-        backgroundColor: chartTypeRaw === 'area' ? getRandomColor(0.3) : getRandomColor(),
-        borderColor: getRandomColor(),
+        // backgroundColor: chartTypeRaw === 'area' ? getRandomColor(0.3) : getRandomColor(),
+        // borderColor: getRandomColor(),
         fill: chartTypeRaw === 'area',
         tension: chartTypeRaw === 'area' ? 0.4 : 0,
         pointRadius: chartTypeRaw === 'scatter' ? 3 : 0,
@@ -122,7 +127,7 @@ const fetchSeriesAndRender = async () => {
         parsing: false,
         scales: {
           x: {
-            type: (chartTypeRaw === 'area'||chartTypeRaw === 'bar') && typeof filteredDatasets[0]?.data?.[0]?.x === 'string'
+            type: (chartTypeRaw === 'area' || chartTypeRaw === 'bar') && typeof filteredDatasets[0]?.data?.[0]?.x === 'string'
               ? 'category'
               : ['line', 'area', 'scatter', 'bar', 'column'].includes(chartTypeRaw)
                 ? 'linear'
@@ -194,7 +199,7 @@ onMounted(() => {
   fetchSeriesAndRender();
   observeSize();
 });
-  
+
 watch(() => [widgetWidth.value, widgetHeight.value], () => {
   emit('update', {
     id: props.chartData.id,
@@ -238,13 +243,5 @@ onBeforeUnmount(() => {
 canvas {
   width: 100% !important;
   height: 100% !important;
-}
-
-button {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  color: #888;
 }
 </style>
