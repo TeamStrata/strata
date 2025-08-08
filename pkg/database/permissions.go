@@ -95,7 +95,7 @@ func (d *DbManager) GetDashboardRolePermissions(id int) (DashboardRolePermission
 			ON d.dashboard_id = drp.dash_id
 		JOIN permissions p
 			ON drp.permission_id = p.permission_id
-		WHERE d.dashboard_id = 1
+		WHERE d.dashboard_id = $1
 		GROUP BY d.dashboard_id, d.dashboard_title, d.dashboard_content, drp.role_id
 		ORDER BY drp.role_id;
 	`
