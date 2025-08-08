@@ -35,11 +35,52 @@
       </div>
       <Label>Role Management</Label>
       <!-- input table here -->
+      <table class="w-full text-left border border-gray-300 rounded mb-2">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="p-2">Role ID</th>
+            <th class="p-2">Can View</th>
+            <th class="p-2">Can Edit</th>
+            <th class="p-2">Can Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(role, idx) in boardConfig.rolePermissions" :key="role.roleId">
+            <td class="p-2">{{ role.roleName }}</td>
+            <td class="p-2">
+              <input type="checkbox" v-model="role.canView" />
+            </td>
+            <td class="p-2">
+              <input type="checkbox" v-model="role.canEdit" />
+            </td>
+            <td class="p-2">
+              <input type="checkbox" v-model="role.canDelete" />
+            </td>
+          </tr>
+          <tr>
+            <td class="p-2">
+              <select v-model="selectedRoleToAdd" class="border rounded p-1 w-full">
+                <option value="">-- Add Role --</option>
+                <option v-for="role in availableRoles" :key="role.id" :value="role.id">
+                  {{ role.name || role.id }}
+                </option>
+              </select>
+            </td>
+            <td class="p-2"></td>
+            <td class="p-2"></td>
+            <td class="p-2">
+              <Button variant="outline" :disabled="!selectedRoleToAdd" :onClick="addRolePermission">
+                Add Role
+              </Button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
       <DialogFooter>
         <DialogClose>
           <Button variant="outline">Cancel</Button>
         </DialogClose>
-        <Button>Save Changes</Button>
+        <Button :onClick="updateBoardConfig">Save Changes</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
@@ -78,7 +119,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, onUnmounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, reactive, onUnmounted, onBeforeUnmount, computed } from 'vue';
 import { apiFetch } from '@/api/request';
 import { useRoute } from 'vue-router';
 import Toast, { ToastTypes } from './Toast.vue';
@@ -101,7 +142,33 @@ const pageInfoStore = usePageInfoStore();
 import { useEventBus } from '@/stores/eventBus';
 const bus = useEventBus();
 
+const allRoles = ref([])
+const availableRoles = computed(() => {
+  // Only include roles not already present in boardConfig.rolePermissions
+  const existingRoleIds = boardConfig.rolePermissions.map(rp => rp.roleId);
+  return allRoles.value.filter(role => !existingRoleIds.includes(role.id));
+});
+const selectedRoleToAdd = ref(null)
+async function getAllRoles() {
+    const response = await apiFetch('/admin/roles')
+    allRoles.value = await response.json()
+}
 
+function addRolePermission() {
+  if (!selectedRoleToAdd.value) return;
+  // Find the role object from allRoles to get the name
+  const roleObj = allRoles.value.find(role => role.id === selectedRoleToAdd.value);
+  boardConfig.rolePermissions.push({
+    roleId: selectedRoleToAdd.value,
+    roleName: roleObj ? roleObj.name : '', // Add the name here
+    canView: true,
+    canEdit: false,
+    canDelete: false
+  });
+  selectedRoleToAdd.value = null;
+}
+
+getAllRoles();
 
 // edit mode stuff
 const editMode = ref(false);
@@ -324,6 +391,9 @@ async function loadDashboard() {
   if (!response.ok) return;
   const data = await response.json();
   console.log(data);
+  const res2 = await apiFetch(`/dashboard/${dashboardId.value}/permissions`, 'GET')
+  const data2 = await res2.json();
+  boardConfig.rolePermissions = data2.permissions;
 
   // Update store with API info
   pageInfoStore.setPageInfo(
@@ -332,6 +402,45 @@ async function loadDashboard() {
     data.configurable ?? true
   );
 }
+
+function updateBoardConfig() {
+  const payload = {
+    id: parseInt(dashboardId.value, 10),
+    name: boardConfig.title,
+    description: boardConfig.desc,
+    permissions: Array.isArray(boardConfig.rolePermissions)
+      ? boardConfig.rolePermissions.map(rp => ({
+        roleId: rp.roleId,
+        canView: !!rp.canView,
+        canEdit: !!rp.canEdit,
+        canDelete: !!rp.canDelete
+      }))
+      : []
+  };
+
+  apiFetch(`/dashboard`, 'PATCH', JSON.stringify(payload))
+    .then(res => {
+      if (!res.ok) {
+        toastRef.value?.showToast('Failed to update dashboard config', ToastTypes.FAIL);
+        return;
+      }
+      toastRef.value?.showToast('Dashboard config updated', ToastTypes.SUCCESS);
+      showBoardConfig.value = false;
+      loadDashboard();
+    })
+    .catch(err => {
+      console.error(err);
+      toastRef.value?.showToast('Error updating dashboard config', ToastTypes.FAIL);
+    });
+}
+
+watch(showBoardConfig, (val) => {
+  if (val) {
+    let out = pageInfoStore.pageInfo;
+    boardConfig.title = out.title;
+    boardConfig.desc = out.description;
+  }
+});
 
 let offAlpha
 let offBeta
