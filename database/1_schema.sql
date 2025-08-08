@@ -98,7 +98,8 @@ BEGIN
 		chart_id INTEGER NOT NULL references chart(chart_id),
 		size_x INTEGER NOT NULL,
 		size_y INTEGER NOT NULL,
-		chart_order INTEGER NOT NULL
+		chart_order INTEGER NOT NULL,
+		PRIMARY KEY (dashboard_id, chart_id)
 	);
 
 	---=== RELATIONS ===---
