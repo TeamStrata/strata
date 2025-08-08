@@ -7,12 +7,12 @@ import Separator from '@/components/ui/separator/Separator.vue';
 import SidebarInset from '@/components/ui/sidebar/SidebarInset.vue';
 import SidebarProvider from '@/components/ui/sidebar/SidebarProvider.vue';
 import SidebarTrigger from '@/components/ui/sidebar/SidebarTrigger.vue';
-import { useCounterStore } from '@/stores/pageInfo';
+import { usePageInfoStore } from '@/stores/pageInfo';
 
 
 const route = useRoute()
 
-const pageInfoStore = useCounterStore();
+const pageInfoStore = usePageInfoStore();
 const pageInfo = computed(() => {
   // return route.meta
   if (route.meta && route.meta.title) {
@@ -59,7 +59,7 @@ const pageInfo = computed(() => {
         <Separator></Separator>
         <!-- main content area -->
         <div class="h-full w-full" :class="pageInfo.ignorePadding ? 'p-0' : 'p-5'">
-          <RouterView></RouterView>
+          <RouterView :key="$route.path"></RouterView>
         </div>
       </SidebarInset>
     </SidebarProvider>
