@@ -212,7 +212,7 @@ loadDashboards();
                     </svg> <span class="sr-only">Add Dashboards</span>
                 </SidebarGroupAction>
                 <SidebarContent v-for="d in dashboards" :key="d.id">
-                    <SidebarMenuItem>
+                    <SidebarMenuItem class="list-none">
                         <SidebarMenuButton>
                             <RouterLink :to="`/dashboard/${d.id}`">
                                 {{ d.name }}
