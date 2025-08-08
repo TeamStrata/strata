@@ -215,7 +215,7 @@ loadDashboards();
                     <SidebarMenuItem>
                         <SidebarMenuButton>
                             <RouterLink :to="`/dashboard/${d.id}`">
-                                {{ d.title }}
+                                {{ d.name }}
                             </RouterLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
