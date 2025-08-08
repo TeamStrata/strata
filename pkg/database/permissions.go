@@ -50,7 +50,7 @@ func (d *DbManager) GetUserDashboardPermissions(userId int) ([]UserDashboardPerm
 			d.dashboard_title,
 		BOOL_OR(p.permission_name = 'edit_dashboard')   AS can_edit,
 		BOOL_OR(p.permission_name = 'delete_dashboard') AS can_delete,
-		BOOL_OR(p.permission_name = 'view_dashboard')   AS can_view,
+		BOOL_OR(p.permission_name = 'view_dashboard')   AS can_view
 		FROM dashboards					AS d
 		JOIN dashboardRolePermissions	AS drp ON drp.dash_id = d.dashboard_id
 		JOIN rolePermissions			AS rp  ON rp.role_id = drp.role_id
