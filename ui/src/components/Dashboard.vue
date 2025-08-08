@@ -104,11 +104,11 @@ const bus = useEventBus();
 
 
 // edit mode stuff
-const editMode = ref(true);
+const editMode = ref(false);
 const addChartDialog = ref(false);
 
 // settings dialog and config
-const showBoardConfig = ref(true);
+const showBoardConfig = ref(false);
 const boardConfig = reactive({
   title: null,
   desc: null,
@@ -333,12 +333,15 @@ async function loadDashboard() {
   );
 }
 
+let offAlpha
+let offBeta
+
 onMounted(async () => {
   await loadDashboardGraphs();
   await fetchSavedChartTitles();
 
-  var offAlpha = bus.on('goEdit', () => { editMode.value = true })
-  var offBeta = bus.on('goSettings', () => { showBoardConfig.value = true })
+  offAlpha = bus.on('goEdit', () => { editMode.value = true })
+  offBeta = bus.on('goSettings', () => { showBoardConfig.value = true })
 });
 
 onBeforeUnmount(() => {
