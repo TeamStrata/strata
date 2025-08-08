@@ -53,8 +53,7 @@ BEGIN
 		-- Dashboards
 		INSERT INTO dashboards (dashboard_title, dashboard_content)
 		VALUES
-			('Main Dashboard', 'This is the main dashboard.'),
-			('Test Dashboard', 'This is the test dashboard.');
+			('Main Dashboard', 'This is the main dashboard.');
 
 		-- Insert permissions
 		INSERT INTO permissions (permission_name, permission_scope)
@@ -71,7 +70,15 @@ BEGIN
 		VALUES
 			(2, 1),
 			(2, 2),
-			(2, 3);
+			(2, 3),
+			(2, 4),
+			(2, 5);
+
+		INSERT INTO dashboardRolePermissions (dash_id, role_id, permission_id)
+		VALUES
+			(1, 2, 3),
+			(1, 2, 4),
+			(1, 2, 5);
 	END IF;
 END
 $do$

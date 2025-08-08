@@ -21,6 +21,49 @@ type Permission struct {
 	Scope ScopeType `json:"scope,omitempty"`
 }
 
+type UserDashboardPermissions struct {
+	DashboardId int    `json:"id"`
+	Name        string `json:"name"`
+	CanEdit     bool   `json:"canEdit"`
+	CanDelete   bool   `json:"canDelete"`
+}
+
+func (d *DbManager) GetUserDashboardPermissions(userId int) ([]UserDashboardPermissions, error) {
+	query :=
+		`SELECT
+			d.dashboard_id,
+			d.dashboard_title,
+		BOOL_OR(p.permission_name = 'edit_dashboard')   AS can_edit,
+		BOOL_OR(p.permission_name = 'delete_dashboard') AS can_delete
+		FROM dashboards					AS d
+		JOIN dashboardRolePermissions	AS drp ON drp.dash_id = d.dashboard_id
+		JOIN rolePermissions			AS rp  ON rp.role_id = drp.role_id
+											AND rp.permission_id = drp.permission_id
+		JOIN userRoles					AS ur  ON ur.role_id = rp.role_id
+											AND ur.user_id  = $1
+		JOIN permissions				AS p ON p.permission_id = drp.permission_id
+		GROUP BY d.dashboard_id, d.dashboard_title
+		HAVING BOOL_OR(p.permission_name = 'view_dashboard');
+		`
+
+	rows, err := d.Connection.Query(d.Context, query, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	dashboards := []UserDashboardPermissions{}
+	for rows.Next() {
+		tmp := UserDashboardPermissions{}
+		err = rows.Scan(&tmp.DashboardId, &tmp.Name, &tmp.CanEdit, &tmp.CanDelete)
+		if err != nil {
+			return nil, err
+		}
+		dashboards = append(dashboards, tmp)
+	}
+
+	return dashboards, nil
+}
+
 // Get all permissions with a specific scope (e.g. 'global', 'dashboard')
 func (d *DbManager) GetScopedPermissions(scope ScopeType) ([]Permission, error) {
 	query :=

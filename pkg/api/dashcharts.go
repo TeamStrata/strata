@@ -284,18 +284,29 @@ func DeleteAllChartSeriesHandler(d *database.DbManager) gin.HandlerFunc {
 	}
 }
 
-// / Dashboard itself
-func GetDashboardListHandler(d *database.DbManager) gin.HandlerFunc {
+// Dashboard itself
+func GetDashboardListHandler(d *database.DbManager, activeUsers map[string]UserSessionData) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		dashboards, err := d.ListAllDashboards()
+		userId, err := c.Cookie(uuidTag)
 		if err != nil {
-			c.Data(500, "text/plain", []byte("Internal server error"))
+			c.String(http.StatusBadRequest, "missing uuid cookie")
+			return
+		}
+
+		user, exists := activeUsers[userId]
+		if !exists {
+			c.String(http.StatusForbidden, "invalid uuid cookie")
+		}
+
+		dashboards, err := d.GetUserDashboardPermissions(user.Id)
+		if err != nil {
+			c.Data(500, "text/plain", []byte("Internal server error:"+err.Error()))
 			c.Done()
 			return
 		}
 		data, err := json.Marshal(dashboards)
 		if err != nil {
-			c.Data(500, "text/plain", []byte("Internal server error"))
+			c.Data(500, "text/plain", []byte("Internal server error"+err.Error()))
 			c.Done()
 			return
 		}

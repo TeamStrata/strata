@@ -62,6 +62,9 @@ func main() {
 	server.StaticFile("/", "ui/dist/index.html")
 	server.StaticFile("/favicon.ico", "ui/dist/favicon.ico")
 
+	// Documenation Endpoints
+	server.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	// Auth endpoints
 	server.POST("/login", api.LoginHandler(db, activeUsers))
 
@@ -89,7 +92,7 @@ func main() {
 		protected.PATCH("/chart/:cid/series/:sid", api.UpdateChartSeriesHandler(db))
 		protected.DELETE("/chart/:cid/series", api.DeleteAllChartSeriesHandler(db))
 		/// Dashboard itself
-		protected.GET("/dashboards", api.GetDashboardListHandler(db))
+		protected.GET("/dashboards", api.GetDashboardListHandler(db, activeUsers))
 		protected.GET("/dashboard/:did", api.GetDashboardHandler(db))
 		protected.POST("/dashboard", api.CreateDashboardPageHandler(db))
 		protected.DELETE("/dashboard/:did", api.DeleteDashboardHandler(db))
@@ -105,9 +108,6 @@ func main() {
 		protected.POST("/query/:qid", api.SaveQueryHandler(db))
 		protected.DELETE("/query/:qid", api.DeleteQueryHandler(db))
 		protected.PATCH("/query/:qid", api.UpdateQueryHandler(db)) // Update a custom query in the database
-
-		// Documenation Endpoints
-		protected.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 		// Misc Endpoints
 		protected.GET("/ping", api.PingHandler)
@@ -134,16 +134,16 @@ func main() {
 			admin.POST("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
 
 			// Roles
-			admin.GET("/roles", api.GetRolesHandler(db))
-			admin.POST("/role", api.AddRoleHandler(db))
-			admin.PATCH("/role/:rid", api.UpdateRoleHandler(db))
-			admin.DELETE("/role/:rid", api.DeleteRoleHandler(db))
+			protected.GET("/roles", api.GetRolesHandler(db))
+			protected.POST("/role", api.AddRoleHandler(db))
+			protected.PATCH("/role/:rid", api.UpdateRoleHandler(db))
+			protected.DELETE("/role/:rid", api.DeleteRoleHandler(db))
 
 			// Permissions
-			admin.GET("/permissions", api.GetPermissionsHandler(db))
-			admin.GET("/permissions/:scope", api.GetScopedPermissionsHandler(db))
-			admin.POST("/dashboard/:did/role/:rid/permission/:pid", api.AddDashboardRolePermissionHandler(db))
-			admin.DELETE("/dashboard/:did/role/:rid/permission/:pid", api.DeleteDashboardRolePermissionHandler(db))
+			protected.GET("/permissions", api.GetPermissionsHandler(db))
+			protected.GET("/permissions/:scope", api.GetScopedPermissionsHandler(db))
+			protected.POST("/dashboard/:did/role/:rid/permission/:pid", api.AddDashboardRolePermissionHandler(db))
+			protected.DELETE("/dashboard/:did/role/:rid/permission/:pid", api.DeleteDashboardRolePermissionHandler(db))
 
 			// Settings
 			admin.GET("/settings", api.GetAllSettingsHandler(db))

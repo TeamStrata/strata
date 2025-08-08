@@ -270,6 +270,7 @@ func addNewUUID(userId int, username string, isAdmin bool, users map[string]User
 	}
 
 	users[newUUId] = UserSessionData{
+		Id:      userId,
 		Name:    username,
 		IsAdmin: isAdmin,
 	}
