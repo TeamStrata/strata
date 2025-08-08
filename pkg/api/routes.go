@@ -1,13 +1,13 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"time"
-	"bytes"
 
 	"github.com/TeamStrata/strata/pkg/auth"
 	"github.com/TeamStrata/strata/pkg/database"
@@ -187,71 +187,73 @@ func PingHandler(c *gin.Context) {
 }
 
 type Message struct {
-    Role    string `json:"role"`
-    Content string `json:"content"`
+	Role    string `json:"role"`
+	Content string `json:"content"`
 }
 
 func StrataBotHandler(d *database.DbManager) gin.HandlerFunc {
-    return func(c *gin.Context) {
-        // 1. Decode incoming request body into messages slice
-        var incoming struct { Messages []Message `json:"messages"` }
-        if err := c.BindJSON(&incoming); err != nil {
-            log.Printf("invalid request payload: %v", err)
-            c.JSON(http.StatusBadRequest, gin.H{"error":"invalid messages array"})
-            return
-        }
+	return func(c *gin.Context) {
+		// 1. Decode incoming request body into messages slice
+		var incoming struct {
+			Messages []Message `json:"messages"`
+		}
+		if err := c.BindJSON(&incoming); err != nil {
+			log.Printf("invalid request payload: %v", err)
+			c.JSON(http.StatusBadRequest, err.Error())
+			return
+		}
 
 		ollama_model, err := d.GetSetting("ollama_model")
-        if err != nil {
-            log.Printf("model lookup error: %v", err)
-            c.String(http.StatusInternalServerError, "error retrieving model")
-            return
-        }
+		if err != nil {
+			log.Printf("model lookup error: %v", err)
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
 
-        // 2. Build chat payload
-        payload := map[string]interface{}{
-            "model":    ollama_model,
-            "messages": incoming.Messages,
-            "stream":   false,
-        }
-        jsonBody, err := json.Marshal(payload)
-        if err != nil {
-            log.Printf("marshal error: %v", err)
-            c.String(http.StatusInternalServerError, "error preparing request")
-            return
-        }
+		// 2. Build chat payload
+		payload := map[string]interface{}{
+			"model":    ollama_model,
+			"messages": incoming.Messages,
+			"stream":   false,
+		}
+		jsonBody, err := json.Marshal(payload)
+		if err != nil {
+			log.Printf("marshal error: %v", err)
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
 
-        // 3. Get host
-        ollama_host, err := d.GetSetting("ollama_host")
-        if err != nil {
-            log.Printf("host lookup error: %v", err)
-            c.String(http.StatusInternalServerError, "error retrieving host")
-            return
-        }
+		// 3. Get host
+		ollama_host, err := d.GetSetting("ollama_host")
+		if err != nil {
+			log.Printf("host lookup error: %v", err)
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
 
-        // 4. Send chat request
-        resp, err := http.Post("http://"+ollama_host+"/api/chat",
-                               "application/json", bytes.NewReader(jsonBody))
-        if err != nil {
-            log.Printf("request error: %v", err)
-            c.String(http.StatusInternalServerError, "error communicating with StrataBot")
-            return
-        }
-        defer resp.Body.Close()
+		// 4. Send chat request
+		resp, err := http.Post("http://"+ollama_host+"/api/chat",
+			"application/json", bytes.NewReader(jsonBody))
+		if err != nil {
+			log.Printf("request error: %v", err)
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer resp.Body.Close()
 
-        // 5. Decode response
-        var respData struct {
-            Message Message `json:"message"`
-        }
-        if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
-            log.Printf("decode error: %v", err)
-            c.String(http.StatusInternalServerError, "error decoding StrataBot response")
-            return
-        }
+		// 5. Decode response
+		var respData struct {
+			Message Message `json:"message"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
+			log.Printf("decode error: %v", err)
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
 
-        // 6. Forward response message object(s)
-        c.JSON(http.StatusOK, respData.Message)
-    }
+		// 6. Forward response message object(s)
+		c.JSON(http.StatusOK, respData.Message)
+	}
 }
 
 // Generate UUID if user does not already have one

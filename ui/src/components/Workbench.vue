@@ -73,8 +73,6 @@ ${schema.value}
 
   // Push the welcome message
   messageStore.messages.push({"role": "assistant", "content": INITIAL_MESSAGE, "pretty": md.render(INITIAL_MESSAGE)});
-
-  console.log(messageStore.messages);
 }
 
 const API_URL = '/stratabot'
@@ -100,8 +98,8 @@ const sendQuery = async () => {
 
     if (!res.ok) {
       // In the case of an error, push the error as a message
-      let err = `Error ${res.status}: ${res.statusText}`;
-      messageStore.messages.push({ "role": "error", "content": err });
+      let text = await res.text();
+      messageStore.messages.push({ "role": "error", "content": text, "pretty": md.render(text)});
       throw new Error(err);
 
     } else {
@@ -172,6 +170,8 @@ initChat()
           message.content }}</p>
         <p v-if="message.role == 'assistant'" v-html="message.pretty"
           class="prose  prose-pre:bg-accent prose-pre:p-0 prose-pre:border-1 prose-pre:text-black"></p>
+        <p v-if="message.role == 'error'" v-html="message.pretty"
+          class="prose prose-pre:bg-red-50 prose-pre:p-2 prose-pre:text-red-800 bg-red-100 border border-red-500 rounded-md shadow-md p-4 text-red-800"></p>
       </div>
     </div>
 
