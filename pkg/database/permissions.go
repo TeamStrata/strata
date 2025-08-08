@@ -28,6 +28,19 @@ type UserDashboardPermissions struct {
 	CanDelete   bool   `json:"canDelete"`
 }
 
+type RolePermission struct {
+	RoleId  int  `json:"roleId"`
+	CanView bool `json:"canView"`
+	CanEdit bool `json:"canEdit"`
+}
+
+type DashboardRolePermissions struct {
+	Id          int              `json:"id"`
+	Name        string           `json:"name"`
+	Description string           `json:"description"`
+	Permissions []RolePermission `json:"permissions"`
+}
+
 func (d *DbManager) GetUserDashboardPermissions(userId int) ([]UserDashboardPermissions, error) {
 	query :=
 		`SELECT
@@ -62,6 +75,54 @@ func (d *DbManager) GetUserDashboardPermissions(userId int) ([]UserDashboardPerm
 	}
 
 	return dashboards, nil
+}
+
+// Bulk update role permissions for a dashboard.
+func (d *DbManager) UpdateDashboardRolePermissions(dashPermissions DashboardRolePermissions) error {
+	// Get view_dashboard and edit_dashboard permission id.
+	var readPermID, editPermID int
+	query := `SELECT permission_id FROM permissions WHERE permission_name = 'view_dashboard'`
+	err := d.Connection.QueryRow(d.Context, query).Scan(&readPermID)
+	if err != nil {
+		return err
+	}
+
+	query = `SELECT permission_id FROM permissions WHERE permission_name = 'edit_dashboard'`
+	err = d.Connection.QueryRow(d.Context, query).Scan(&editPermID)
+	if err != nil {
+		return err
+	}
+
+	tx, err := d.Connection.Begin(d.Context)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(d.Context)
+
+	// Delete all permissions for dashboard.
+	query = `DELETE FROM dashboardRolePermissions WHERE dash_id = $1`
+	_, err = tx.Exec(d.Context, query, dashPermissions.Id)
+	if err != nil {
+		return err
+	}
+
+	query = `INSERT INTO dashboardRolePermissions (dash_id, role_id, permission_id) VALUES ($1, $2, $3)`
+	for _, p := range dashPermissions.Permissions {
+		if p.CanView {
+			_, err := tx.Exec(d.Context, query, dashPermissions.Id, p.RoleId, readPermID)
+			if err != nil {
+				return err
+			}
+		}
+		if p.CanEdit {
+			_, err := tx.Exec(d.Context, query, dashPermissions.Id, p.RoleId, editPermID)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return tx.Commit(d.Context)
 }
 
 // Get all permissions with a specific scope (e.g. 'global', 'dashboard')
