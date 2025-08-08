@@ -9,6 +9,25 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func UpdateDashboardRolePermissionsHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		dashboardData := database.DashboardRolePermissions{}
+		err := c.ShouldBindJSON(&dashboardData)
+		if err != nil {
+			c.String(http.StatusBadRequest, "invalid JSON body: "+err.Error())
+			return
+		}
+
+		err = d.UpdateDashboardRolePermissions(dashboardData)
+		if err != nil {
+			c.String(http.StatusBadRequest, "unable to update dashboard permissions: "+err.Error())
+			return
+		}
+
+		c.Status(http.StatusOK)
+	}
+}
+
 // @Summary Get permissions by scope
 // @Description Retrieves all permissions filtered by a specific scope (e.g., global, server, channel).
 // @Tags Permissions
