@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -9,7 +10,42 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func UpdateDashboardRolePermissionsHandler(d *database.DbManager) gin.HandlerFunc {
+func GetDashboardRolePermissionsHandler(d *database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idParam := c.Param("did")
+		if idParam == "" {
+			c.String(http.StatusBadRequest, "expected dashboard id route parameter")
+			return
+		}
+		id, err := strconv.Atoi(idParam)
+		if err != nil {
+			c.String(http.StatusBadRequest, "invalid route parameter, expected integer")
+			return
+		}
+
+		permissions, err := d.GetDashboardRolePermissions(id)
+		if err != nil {
+			c.String(
+				http.StatusInternalServerError,
+				"unable to get dashboard permissions"+err.Error(),
+			)
+			return
+		}
+
+		body, err := json.Marshal(permissions)
+		if err != nil {
+			c.String(
+				http.StatusInternalServerError,
+				"unable to marshal JSON body"+err.Error(),
+			)
+			return
+		}
+
+		c.JSON(http.StatusOK, body)
+	}
+}
+
+func UpdateDashboardHandler(d *database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		dashboardData := database.DashboardRolePermissions{}
 		err := c.ShouldBindJSON(&dashboardData)
