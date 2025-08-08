@@ -231,7 +231,7 @@ func (d *DbManager) DeleteDashboard(dashID int) error {
 // List all charts for a dashboard
 func (d *DbManager) ListDashboardCharts(dashID int) ([]DashboardGraphs, error) {
 	var charts []DashboardGraphs
-	query := "SELECT dashboard_id, chart_id, size_x, size_y, chart_order FROM dashbordGraphs WHERE dashboard_id = $1 ORDER BY chart_order;"
+	query := "SELECT dashboard_id, chart_id, size_x, size_y, chart_order FROM dashboardGraphs WHERE dashboard_id = $1 ORDER BY chart_order;"
 	rows, err := d.Connection.Query(d.Context, query, dashID)
 	if err != nil {
 		return nil, err
