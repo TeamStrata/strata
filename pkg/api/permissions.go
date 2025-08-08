@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -32,16 +31,7 @@ func GetDashboardRolePermissionsHandler(d *database.DbManager) gin.HandlerFunc {
 			return
 		}
 
-		body, err := json.Marshal(permissions)
-		if err != nil {
-			c.String(
-				http.StatusInternalServerError,
-				"unable to marshal JSON body"+err.Error(),
-			)
-			return
-		}
-
-		c.JSON(http.StatusOK, body)
+		c.JSON(http.StatusOK, permissions)
 	}
 }
 
