@@ -73,7 +73,7 @@ func LoginHandler(d *database.DbManager, activeUsers map[string]UserSessionData)
 			newId,
 			int(24*time.Hour.Seconds()),
 			"/",
-			"localhost",
+			c.Request.Host,
 			false,
 			true,
 		)
