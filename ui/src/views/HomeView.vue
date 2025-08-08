@@ -8,6 +8,7 @@ import SidebarInset from '@/components/ui/sidebar/SidebarInset.vue';
 import SidebarProvider from '@/components/ui/sidebar/SidebarProvider.vue';
 import SidebarTrigger from '@/components/ui/sidebar/SidebarTrigger.vue';
 import { usePageInfoStore } from '@/stores/pageInfo';
+import { Edit, Settings } from 'lucide-vue-next';
 
 
 const route = useRoute()
@@ -32,6 +33,11 @@ const pageInfo = computed(() => {
   }
 })
 
+import { useEventBus } from '@/stores/eventBus'
+const bus = useEventBus()
+
+
+
 </script>
 
 <template>
@@ -50,11 +56,9 @@ const pageInfo = computed(() => {
           </div>
           <!-- TODO: make this a real dropdown menu and button interaction and stuff -->
           <!-- Hidden options button that only shows on pages with the "configurable" property (for dashboard options) -->
-          <div :class="pageInfo.configurable ? 'block' : 'hidden'">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-              <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M4 12h16M4 18h16M4 6h16" />
-            </svg>
+          <div class="flex items-center gap-3 *:hover:text-neutral-600 *:cursor-pointer" :class="pageInfo.configurable ? 'block' : 'hidden'">
+            <Edit @click="bus.emit('goEdit')"></Edit>
+            <Settings @click="bus.emit('goSettings')"></Settings>
           </div>
         </div>
         <Separator></Separator>
