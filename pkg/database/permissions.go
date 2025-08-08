@@ -191,7 +191,7 @@ func (d *DbManager) UpdateDashboardRolePermissions(dashPermissions DashboardRole
 	// Update name and description.
 	query = `
 		UPDATE dashboards
-		SET dashboard_name = $1,
+		SET dashboard_title = $1,
 			dashboard_content = $2
 		WHERE dashboard_id = $3
 	`
