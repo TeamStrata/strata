@@ -193,7 +193,7 @@ func (d *DbManager) UpdateDashboardRolePermissions(dashPermissions DashboardRole
 		UPDATE dashboards
 		SET dashboard_name = $1,
 			dashboard_content = $2
-		WHERE dash_id = $3
+		WHERE dashboard_id = $3
 	`
 	_, err = tx.Exec(
 		d.Context,
