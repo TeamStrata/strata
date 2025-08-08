@@ -34,9 +34,20 @@ const pageInfo = computed(() => {
 })
 
 import { useEventBus } from '@/stores/eventBus'
+import { useUserStore } from '@/stores/user';
+
 const bus = useEventBus()
 
-
+const user = useUserStore();
+const canEditPage = computed(() => {
+  // Check if page is configurable
+  if (!pageInfo.value.configurable) return false;
+  // Get the ID from the route params
+  const pageId = route.params.id;
+  // Check if user has boardPerms and canEdit for this page ID
+  const perm = user.boardPerms.find(p => p.id == pageId);
+  return perm?.canEdit === true;
+});
 
 </script>
 
@@ -56,7 +67,7 @@ const bus = useEventBus()
           </div>
           <!-- TODO: make this a real dropdown menu and button interaction and stuff -->
           <!-- Hidden options button that only shows on pages with the "configurable" property (for dashboard options) -->
-          <div class="flex items-center gap-3 *:hover:text-neutral-600 *:cursor-pointer" :class="pageInfo.configurable ? 'block' : 'hidden'">
+          <div class="flex items-center gap-3 *:hover:text-neutral-600 *:cursor-pointer" :class="canEditPage ? 'block' : 'hidden'">
             <Edit @click="bus.emit('goEdit')"></Edit>
             <Settings @click="bus.emit('goSettings')"></Settings>
           </div>
