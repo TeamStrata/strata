@@ -70,7 +70,7 @@ func (d *DbManager) GetUserDashboardPermissions(userId int) ([]UserDashboardPerm
 	dashboards := []UserDashboardPermissions{}
 	for rows.Next() {
 		tmp := UserDashboardPermissions{}
-		err = rows.Scan(&tmp.DashboardId, &tmp.Name, &tmp.CanEdit, &tmp.CanDelete)
+		err = rows.Scan(&tmp.DashboardId, &tmp.Name, &tmp.CanEdit, &tmp.CanDelete, &tmp.CanView)
 		if err != nil {
 			return nil, err
 		}
