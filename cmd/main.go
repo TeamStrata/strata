@@ -134,16 +134,16 @@ func main() {
 			admin.POST("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
 
 			// Roles
-			protected.GET("/roles", api.GetRolesHandler(db))
-			protected.POST("/role", api.AddRoleHandler(db))
-			protected.PATCH("/role/:rid", api.UpdateRoleHandler(db))
-			protected.DELETE("/role/:rid", api.DeleteRoleHandler(db))
+			admin.GET("/roles", api.GetRolesHandler(db))
+			admin.POST("/role", api.AddRoleHandler(db))
+			admin.PATCH("/role/:rid", api.UpdateRoleHandler(db))
+			admin.DELETE("/role/:rid", api.DeleteRoleHandler(db))
 
 			// Permissions
-			protected.GET("/permissions", api.GetPermissionsHandler(db))
-			protected.GET("/permissions/:scope", api.GetScopedPermissionsHandler(db))
-			protected.POST("/dashboard/:did/role/:rid/permission/:pid", api.AddDashboardRolePermissionHandler(db))
-			protected.DELETE("/dashboard/:did/role/:rid/permission/:pid", api.DeleteDashboardRolePermissionHandler(db))
+			admin.GET("/permissions", api.GetPermissionsHandler(db))
+			admin.GET("/permissions/:scope", api.GetScopedPermissionsHandler(db))
+			admin.POST("/dashboard/:did/role/:rid/permission/:pid", api.AddDashboardRolePermissionHandler(db))
+			admin.DELETE("/dashboard/:did/role/:rid/permission/:pid", api.DeleteDashboardRolePermissionHandler(db))
 
 			// Settings
 			admin.GET("/settings", api.GetAllSettingsHandler(db))
