@@ -100,6 +100,7 @@ function loadDashboards() {
                 throw new Error('unable to fetch dashboards');
             } else {
                 dashboards.value = await response.json();
+                user.boardPerms = dashboards.value
             }
         }
     )

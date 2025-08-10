@@ -14,7 +14,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch, onBeforeUnmount } from 'vue';
+import { onMounted, ref, watch, onBeforeUnmount, reactive, computed } from 'vue';
 import Chart from 'chart.js/auto';
 import { apiFetch } from '@/api/request';
 import { X } from 'lucide-vue-next';
@@ -40,7 +40,7 @@ const widgetRef = ref(null);
 let chartInstance = null;
 let resizeObserver = null;
 
-const style = {
+const style = computed(() => ({
   width: widgetWidth.value + 'px',
   height: widgetHeight.value + 'px',
   resize: props.editMode ? 'both' : 'none',
@@ -53,7 +53,7 @@ const style = {
   minHeight: '300px',
   maxWidth: '800px',
   maxHeight: '600px'
-};
+}));
 
 function getRandomColor() {
   const r = Math.floor(Math.random() * 200);
@@ -178,6 +178,7 @@ const chartContainer = ref(null);
 
 const observeSize = () => {
   const observer = new ResizeObserver(entries => {
+    if(!props.editMode) return
     for (const entry of entries) {
       const { width, height } = entry.contentRect;
       widgetWidth.value = Math.round(width);
@@ -191,7 +192,7 @@ const observeSize = () => {
       });
     }
   });
-  if (chartContainer.value) observer.observe(chartContainer.value);
+  if (widgetRef.value) observer.observe(widgetRef.value);
 };
 
 
