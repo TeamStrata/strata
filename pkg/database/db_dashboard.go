@@ -1,5 +1,11 @@
 package database
 
+import (
+	"errors"
+
+	"github.com/jackc/pgx"
+)
+
 const (
 	CT_Line    string = "line"
 	CT_Area    string = "area"
@@ -215,10 +221,93 @@ func (d *DbManager) GetDashboard(dashID int) (Dashboard, error) {
 
 // Insert a new dashboard, returns new dashboard ID
 func (d *DbManager) InsertDashboard(dash Dashboard) (int, error) {
-	var id int
-	query := "INSERT INTO dashboards (dashboard_title, dashboard_content) VALUES ($1, $2) RETURNING dashboard_id;"
-	err := d.Connection.QueryRow(d.Context, query, dash.Title, dash.Content).Scan(&id)
-	return id, err
+	tx, err := d.Connection.Begin(d.Context)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(d.Context)
+
+	adminId := 0
+	query := `
+		SELECT role_id
+		FROM roles
+		WHERE role_name = 'admin';
+	`
+	err = tx.QueryRow(d.Context, query).Scan(&adminId)
+	if err == pgx.ErrNoRows {
+		return 0, errors.New("admin role not found in database")
+	} else if err != nil {
+		return 0, err
+	}
+
+	permNames := []string{"view_dashboard", "edit_dashboard", "delete_dashboard"}
+	query = `
+		SELECT permission_name, permission_id
+		FROM permissions
+		WHERE permission_name = ANY($1);
+	`
+
+	rows, err := tx.Query(d.Context, query, permNames)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	permMap := make(map[string]int)
+	for rows.Next() {
+		var name string
+		var pid int
+		if err := rows.Scan(&name, &pid); err != nil {
+			return 0, err
+		}
+		permMap[name] = pid
+	}
+
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+
+	if len(permMap) != len(permNames) {
+		msg := "database is missing one or more essential permissions: 'view_dashboard', 'edit_dashboard', 'delete_dashboard'"
+		return 0, errors.New(msg)
+	}
+
+	var dashboardId int
+	query = `
+		INSERT INTO dashboards (dashboard_title, dashboard_content)
+		VALUES ($1, $2)
+		RETURNING dashboard_id;
+	`
+	err = tx.QueryRow(d.Context, query, dash.Title, dash.Content).Scan(&dashboardId)
+	if err != nil {
+		return 0, err
+	}
+
+	query =
+		`INSERT INTO dashboardRolePermissions (dash_id, role_id, permission_id)
+		VALUES
+			($1, $2, $3),
+			($1, $2, $4),
+			($1, $2, $5);
+		`
+	_, err = tx.Exec(
+		d.Context,
+		query,
+		dashboardId,
+		adminId,
+		permMap["view_dashboard"],
+		permMap["edit_dashboard"],
+		permMap["delete_dashboard"],
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	if err := tx.Commit(d.Context); err != nil {
+		return 0, err
+	}
+
+	return dashboardId, nil
 }
 
 // Delete a dashboard by ID
