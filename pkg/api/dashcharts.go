@@ -462,11 +462,11 @@ func (server *Server) GetFullDashboardData(c *gin.Context) {
 		SizeX   int              `json:"size_x"`
 		SizeY   int              `json:"size_y"`
 		Order   int              `json:"order"`
-		Xname   string           `json:"xname"`
-		Yname   string           `json:"yname"`
+		Xname   string           `json:"xColumn"`
+		Yname   string           `json:"yColumn"`
 		Title   string           `json:"title"`
 		Type    string           `json:"type"`
-		Series  []SeriesWithData `json:"series"`
+		Series  []SeriesWithData `json:"chartData"`
 	}
 
 	var chartsWithSeries []ChartWithSeries
