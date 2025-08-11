@@ -28,12 +28,13 @@ type Chart struct {
 }
 
 type ChartSeries struct {
-	Name    string `json:"name"`
-	Id      int    `json:"id,omitempty"`
-	ChartID int    `json:"chart_id"`
-	QueryID int    `json:"query_id"`
-	XCol    string `json:"x_col_name"`
-	YCol    string `json:"y_col_name"`
+	Name    string   `json:"name"`
+	Id      int      `json:"id,omitempty"`
+	ChartID int      `json:"chart_id"`
+	QueryID int      `json:"query_id"`
+	XCol    string   `json:"x_col_name"`
+	YCol    string   `json:"y_col_name"`
+	Data    []string `json:"data,omitempty"`
 }
 
 type Dashboard struct {
@@ -319,6 +320,25 @@ func (d *DbManager) DeleteDashboard(dashID int) error {
 
 // List all charts for a dashboard
 func (d *DbManager) ListDashboardCharts(dashID int) ([]DashboardGraphs, error) {
+	var charts []DashboardGraphs
+	query := "SELECT dashboard_id, chart_id, size_x, size_y, chart_order FROM dashboardGraphs WHERE dashboard_id = $1 ORDER BY chart_order;"
+	rows, err := d.Connection.Query(d.Context, query, dashID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var chart DashboardGraphs
+		if err := rows.Scan(&chart.DashId, &chart.ChartId, &chart.SizeX, &chart.SizeY, &chart.Order); err != nil {
+			return nil, err
+		}
+		charts = append(charts, chart)
+	}
+	return charts, nil
+}
+
+// List all charts for a dashboard
+func (d *DbManager) ListDashboardChartsFull(dashID int) ([]DashboardGraphs, error) {
 	var charts []DashboardGraphs
 	query := "SELECT dashboard_id, chart_id, size_x, size_y, chart_order FROM dashboardGraphs WHERE dashboard_id = $1 ORDER BY chart_order;"
 	rows, err := d.Connection.Query(d.Context, query, dashID)

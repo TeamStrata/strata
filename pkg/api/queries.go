@@ -110,6 +110,23 @@ func ExecuteQueryHandler(d *database.DbManager, cdb **database.DbManager) gin.Ha
 	}
 }
 
+func executeQuery(d *database.DbManager, cdb **database.DbManager, queryID int) ([]map[string]string, error) {
+
+	// Get the query string from the database
+	_, query_string, serr := d.GetCustomQuery(strconv.Itoa(queryID))
+	if serr != nil {
+		return nil, serr
+	}
+
+	// Execute the query
+	rows, qerr := (*cdb).ExecuteCustomQuery(query_string)
+	if qerr != nil {
+		return nil, qerr
+	}
+
+	return rows, nil
+}
+
 func ExecuteQueryLiteralHandler(d **database.DbManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Read the SQL string from the request body

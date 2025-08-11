@@ -462,3 +462,116 @@ func RemoveChartFromDashboardHandler(d *database.DbManager) gin.HandlerFunc {
 		c.Done()
 	}
 }
+
+func GetFullDashboardData(d *database.DbManager, cdb **database.DbManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		dash_id_str := c.Param("did")
+		dash_id, err := strconv.Atoi(dash_id_str)
+		if err != nil {
+			c.Data(400, "text/plain", []byte("The dashboard ID must be an integer!"))
+			c.Done()
+			return
+		}
+
+		dash, err := d.GetDashboard(dash_id)
+		if err != nil {
+			c.Data(404, "text/plain", []byte("Dashboard not found"))
+			c.Done()
+			return
+		}
+		charts, err := d.ListDashboardCharts(dash_id)
+		if err != nil {
+			c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
+			return
+		}
+
+		type SeriesRow = map[string]any
+
+		type SeriesWithData struct {
+			database.ChartSeries             // embed existing fields (id, name, query_id, etc.)
+			Data                 []SeriesRow `json:"data,omitempty"`  // attach query results here
+			Error                string      `json:"error,omitempty"` // optional per-series error
+		}
+
+		// For each chart, fetch its series and axis names
+		type ChartWithSeries struct {
+			ChartId int              `json:"chart_id"`
+			SizeX   int              `json:"size_x"`
+			SizeY   int              `json:"size_y"`
+			Order   int              `json:"order"`
+			Xname   string           `json:"xname"`
+			Yname   string           `json:"yname"`
+			Title   string           `json:"title"`
+			Type    string           `json:"type"`
+			Series  []SeriesWithData `json:"series"`
+		}
+
+		var chartsWithSeries []ChartWithSeries
+		for _, chart := range charts {
+			series, err := d.ListChartSeries(chart.ChartId)
+			if err != nil {
+				c.Data(500, "text/plain", []byte(err.Error()))
+				c.Done()
+				return
+			}
+			// Get chart details for axis names, title, type
+			chartDetails, err := d.GetChart(chart.ChartId)
+			if err != nil {
+				c.Data(500, "text/plain", []byte(err.Error()))
+				c.Done()
+				return
+			}
+
+			swd := make([]SeriesWithData, len(series))
+			for i, s := range series {
+				swd[i] = SeriesWithData{ChartSeries: s}
+				var queryErr error
+				rawData, err := executeQuery(d, cdb, s.QueryID)
+				if err != nil {
+					c.Data(500, "text/plain", []byte(err.Error()))
+					c.Done()
+					return
+				}
+				seriesRows := make([]SeriesRow, len(rawData))
+				for j, row := range rawData {
+					seriesRows[j] = make(SeriesRow)
+					for k, v := range row {
+						seriesRows[j][k] = v
+					}
+				}
+				swd[i].Data = seriesRows
+				if queryErr != nil {
+					c.Data(500, "text/plain", []byte(queryErr.Error()))
+					c.Done()
+					return
+				}
+			}
+
+			chartsWithSeries = append(chartsWithSeries, ChartWithSeries{
+				ChartId: chart.ChartId,
+				SizeX:   chart.SizeX,
+				SizeY:   chart.SizeY,
+				Order:   chart.Order,
+				Xname:   chartDetails.Xname,
+				Yname:   chartDetails.Yname,
+				Title:   chartDetails.Title,
+				Type:    chartDetails.Type,
+				Series:  swd,
+			})
+		}
+
+		result := map[string]interface{}{
+			"dashboard": dash,
+			"charts":    chartsWithSeries,
+		}
+		data, err := json.Marshal(result)
+		if err != nil {
+			c.Data(500, "text/plain", []byte("Internal server error"))
+			c.Done()
+			return
+		}
+		c.Data(200, "application/json", data)
+		c.Done()
+	}
+}

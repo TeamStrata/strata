@@ -99,6 +99,7 @@ func main() {
 		protected.GET("/dashboard/:did/charts", api.ListDashboardChartsHandler(db))
 		protected.PATCH("/dashboard/:did/chart/:cid", api.AppendChartToDashboardHandler(db))
 		protected.DELETE("/dashboard/:did/chart/:cid", api.RemoveChartFromDashboardHandler(db))
+		protected.GET("/dashboard/:did/full", api.GetFullDashboardData(db, &cdb))
 
 		protected.GET("/dashboard/:did/permissions", api.GetDashboardRolePermissionsHandler(db))
 		protected.PATCH("/dashboard", api.UpdateDashboardHandler(db))
