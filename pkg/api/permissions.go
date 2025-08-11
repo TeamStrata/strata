@@ -9,49 +9,45 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetDashboardRolePermissionsHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		idParam := c.Param("did")
-		if idParam == "" {
-			c.String(http.StatusBadRequest, "expected dashboard id route parameter")
-			return
-		}
-		id, err := strconv.Atoi(idParam)
-		if err != nil {
-			c.String(http.StatusBadRequest, "invalid route parameter, expected integer")
-			return
-		}
-
-		permissions, err := d.GetDashboardRolePermissions(id)
-		if err != nil {
-			c.String(
-				http.StatusInternalServerError,
-				"unable to get dashboard permissions"+err.Error(),
-			)
-			return
-		}
-
-		c.JSON(http.StatusOK, permissions)
+func (server *Server) GetDashboardRolePermissionsHandler(c *gin.Context) {
+	idParam := c.Param("did")
+	if idParam == "" {
+		c.String(http.StatusBadRequest, "expected dashboard id route parameter")
+		return
 	}
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid route parameter, expected integer")
+		return
+	}
+
+	permissions, err := server.Db.GetDashboardRolePermissions(id)
+	if err != nil {
+		c.String(
+			http.StatusInternalServerError,
+			"unable to get dashboard permissions"+err.Error(),
+		)
+		return
+	}
+
+	c.JSON(http.StatusOK, permissions)
 }
 
-func UpdateDashboardHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		dashboardData := database.DashboardRolePermissions{}
-		err := c.ShouldBindJSON(&dashboardData)
-		if err != nil {
-			c.String(http.StatusBadRequest, "invalid JSON body: "+err.Error())
-			return
-		}
-
-		err = d.UpdateDashboardRolePermissions(dashboardData)
-		if err != nil {
-			c.String(http.StatusBadRequest, "unable to update dashboard permissions: "+err.Error())
-			return
-		}
-
-		c.Status(http.StatusOK)
+func (server *Server) UpdateDashboardHandler(c *gin.Context) {
+	dashboardData := database.DashboardRolePermissions{}
+	err := c.ShouldBindJSON(&dashboardData)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid JSON body: "+err.Error())
+		return
 	}
+
+	err = server.Db.UpdateDashboardRolePermissions(dashboardData)
+	if err != nil {
+		c.String(http.StatusBadRequest, "unable to update dashboard permissions: "+err.Error())
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
 
 // @Summary Get permissions by scope
@@ -63,23 +59,21 @@ func UpdateDashboardHandler(d *database.DbManager) gin.HandlerFunc {
 // @Failure 400 {string} string "Bad Request - Invalid or missing scope parameter"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /permissions/{scope} [get]
-func GetScopedPermissionsHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		scope := database.StringToScopeType(c.Param("scope"))
-		if scope == database.EmptyScope {
-			c.String(http.StatusBadRequest, "expected route parameter: ':scope'")
-			return
-		}
-
-		permissions, err := d.GetScopedPermissions(scope)
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to get scoped permissions: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-
-		c.JSON(http.StatusOK, permissions)
+func (server *Server) GetScopedPermissionsHandler(c *gin.Context) {
+	scope := database.StringToScopeType(c.Param("scope"))
+	if scope == database.EmptyScope {
+		c.String(http.StatusBadRequest, "expected route parameter: ':scope'")
+		return
 	}
+
+	permissions, err := server.Db.GetScopedPermissions(scope)
+	if err != nil {
+		errMsg := fmt.Sprintf("unable to get scoped permissions: %s", err.Error())
+		c.String(http.StatusInternalServerError, errMsg)
+		return
+	}
+
+	c.JSON(http.StatusOK, permissions)
 }
 
 // @Summary Get all permissions
@@ -89,17 +83,15 @@ func GetScopedPermissionsHandler(d *database.DbManager) gin.HandlerFunc {
 // @Success 200 {object} []database.Permission "Successfully retrieved all permissions"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /permissions [get]
-func GetPermissionsHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		permissions, err := d.GetPermissions()
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to get all permissions: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-
-		c.JSON(http.StatusOK, permissions)
+func (server *Server) GetPermissionsHandler(c *gin.Context) {
+	permissions, err := server.Db.GetPermissions()
+	if err != nil {
+		errMsg := fmt.Sprintf("unable to get all permissions: %s", err.Error())
+		c.String(http.StatusInternalServerError, errMsg)
+		return
 	}
+
+	c.JSON(http.StatusOK, permissions)
 }
 
 // AddDashboardRolePermissionHandler
@@ -115,40 +107,38 @@ func GetPermissionsHandler(d *database.DbManager) gin.HandlerFunc {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/admin/dashboard/{did}/role/{rid}/permission/{pid} [post]
-func AddDashboardRolePermissionHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		dashIdStr := c.Param("did")
-		roleIdStr := c.Param("rid")
-		permIdStr := c.Param("pid")
+func (server *Server) AddDashboardRolePermissionHandler(c *gin.Context) {
+	dashIdStr := c.Param("did")
+	roleIdStr := c.Param("rid")
+	permIdStr := c.Param("pid")
 
-		if dashIdStr == "" || roleIdStr == "" || permIdStr == "" {
-			c.String(http.StatusBadRequest, "missing route parameters")
-			return
-		}
-
-		dashId, err := strconv.Atoi(dashIdStr)
-		if err != nil {
-			c.String(http.StatusBadRequest, "invalid dashboard id param")
-		}
-
-		roleId, err := strconv.Atoi(roleIdStr)
-		if err != nil {
-			c.String(http.StatusBadRequest, "invalid dashboard id param")
-		}
-
-		permId, err := strconv.Atoi(permIdStr)
-		if err != nil {
-			c.String(http.StatusBadRequest, "invalid dashboard id param")
-		}
-
-		err = d.AddDashboardRolePermission(dashId, roleId, permId)
-		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		c.Status(http.StatusOK)
+	if dashIdStr == "" || roleIdStr == "" || permIdStr == "" {
+		c.String(http.StatusBadRequest, "missing route parameters")
+		return
 	}
+
+	dashId, err := strconv.Atoi(dashIdStr)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid dashboard id param")
+	}
+
+	roleId, err := strconv.Atoi(roleIdStr)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid dashboard id param")
+	}
+
+	permId, err := strconv.Atoi(permIdStr)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid dashboard id param")
+	}
+
+	err = server.Db.AddDashboardRolePermission(dashId, roleId, permId)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
 
 // DeleteDashboardRolePermissionHandler
@@ -164,38 +154,36 @@ func AddDashboardRolePermissionHandler(d *database.DbManager) gin.HandlerFunc {
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/admin/dashboard/{did}/role/{rid}/permission/{pid} [delete]
-func DeleteDashboardRolePermissionHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		dashIdStr := c.Param("did")
-		roleIdStr := c.Param("rid")
-		permIdStr := c.Param("pid")
+func (server *Server) DeleteDashboardRolePermissionHandler(c *gin.Context) {
+	dashIdStr := c.Param("did")
+	roleIdStr := c.Param("rid")
+	permIdStr := c.Param("pid")
 
-		if dashIdStr == "" || roleIdStr == "" || permIdStr == "" {
-			c.String(http.StatusBadRequest, "missing route parameters")
-			return
-		}
-
-		dashId, err := strconv.Atoi(dashIdStr)
-		if err != nil {
-			c.String(http.StatusBadRequest, "invalid dashboard id param")
-		}
-
-		roleId, err := strconv.Atoi(roleIdStr)
-		if err != nil {
-			c.String(http.StatusBadRequest, "invalid dashboard id param")
-		}
-
-		permId, err := strconv.Atoi(permIdStr)
-		if err != nil {
-			c.String(http.StatusBadRequest, "invalid dashboard id param")
-		}
-
-		err = d.DeleteDashboardRolePermission(dashId, roleId, permId)
-		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		c.Status(http.StatusOK)
+	if dashIdStr == "" || roleIdStr == "" || permIdStr == "" {
+		c.String(http.StatusBadRequest, "missing route parameters")
+		return
 	}
+
+	dashId, err := strconv.Atoi(dashIdStr)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid dashboard id param")
+	}
+
+	roleId, err := strconv.Atoi(roleIdStr)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid dashboard id param")
+	}
+
+	permId, err := strconv.Atoi(permIdStr)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid dashboard id param")
+	}
+
+	err = server.Db.DeleteDashboardRolePermission(dashId, roleId, permId)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.Status(http.StatusOK)
 }

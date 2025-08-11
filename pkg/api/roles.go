@@ -36,17 +36,15 @@ func (rUpdate *RoleUpdateRequest) ToRole() database.Role {
 // @Success 200 {object} []database.Role "Successfully retrieved roles with user counts"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /roles [get]
-func GetRolesHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		roles, err := d.GetRoles()
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to get roles: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-
-		c.JSON(http.StatusOK, roles)
+func (server *Server) GetRolesHandler(c *gin.Context) {
+	roles, err := server.Db.GetRoles()
+	if err != nil {
+		errMsg := fmt.Sprintf("unable to get roles: %s", err.Error())
+		c.String(http.StatusInternalServerError, errMsg)
+		return
 	}
+
+	c.JSON(http.StatusOK, roles)
 }
 
 // Add a new role to the database using the 'rname' route parameter.
@@ -61,25 +59,23 @@ func GetRolesHandler(d *database.DbManager) gin.HandlerFunc {
 // @Failure 400 {string} string "Bad Request - Invalid JSON format"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /role [post]
-func AddRoleHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var newRole database.Role
-		err := c.ShouldBindJSON(&newRole)
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to bind role to JSON: %s", err.Error())
-			c.String(http.StatusBadRequest, errMsg)
-			return
-		}
-
-		_, err = d.AddRole(newRole)
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to add role: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-
-		c.Status(http.StatusOK)
+func (server *Server) AddRoleHandler(c *gin.Context) {
+	var newRole database.Role
+	err := c.ShouldBindJSON(&newRole)
+	if err != nil {
+		errMsg := fmt.Sprintf("unable to bind role to JSON: %s", err.Error())
+		c.String(http.StatusBadRequest, errMsg)
+		return
 	}
+
+	_, err = server.Db.AddRole(newRole)
+	if err != nil {
+		errMsg := fmt.Sprintf("unable to add role: %s", err.Error())
+		c.String(http.StatusInternalServerError, errMsg)
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
 
 // Update an existing role using the 'rid' route parameter.
@@ -95,34 +91,32 @@ func AddRoleHandler(d *database.DbManager) gin.HandlerFunc {
 // @Failure 400 {string} string "Bad Request - Invalid role ID or JSON format"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /role/{rid} [patch]
-func UpdateRoleHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		roleIdStr := c.Param("rid")
-		roleId, err := strconv.Atoi(roleIdStr)
-		if err != nil {
-			errMsg := fmt.Sprintf("role id not provided as route parameter: %s", err.Error())
-			c.String(http.StatusBadRequest, errMsg)
-			return
-		}
-
-		// Bind JSON request body
-		var roleUpdate RoleUpdateRequest
-		err = c.ShouldBindJSON(&roleUpdate)
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to bind request JSON body: %s", err.Error())
-			c.String(http.StatusBadRequest, errMsg)
-			return
-		}
-
-		err = d.UpdateRole(roleUpdate.ToRole())
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to update role '%d': %s", roleId, err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-
-		c.Status(http.StatusOK)
+func (server *Server) UpdateRoleHandler(c *gin.Context) {
+	roleIdStr := c.Param("rid")
+	roleId, err := strconv.Atoi(roleIdStr)
+	if err != nil {
+		errMsg := fmt.Sprintf("role id not provided as route parameter: %s", err.Error())
+		c.String(http.StatusBadRequest, errMsg)
+		return
 	}
+
+	// Bind JSON request body
+	var roleUpdate RoleUpdateRequest
+	err = c.ShouldBindJSON(&roleUpdate)
+	if err != nil {
+		errMsg := fmt.Sprintf("unable to bind request JSON body: %s", err.Error())
+		c.String(http.StatusBadRequest, errMsg)
+		return
+	}
+
+	err = server.Db.UpdateRole(roleUpdate.ToRole())
+	if err != nil {
+		errMsg := fmt.Sprintf("unable to update role '%d': %s", roleId, err.Error())
+		c.String(http.StatusInternalServerError, errMsg)
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
 
 // Delete a role, using `rid` route parameter.
@@ -136,21 +130,19 @@ func UpdateRoleHandler(d *database.DbManager) gin.HandlerFunc {
 // @Failure 400 {string} string "Bad Request - Invalid role ID"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /role/{rid} [delete]
-func DeleteRoleHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		roleId, err := strconv.Atoi(c.Param("rid"))
-		if err != nil {
-			c.String(http.StatusBadRequest, "unable to convert role id to int")
-			return
-		}
-
-		err = d.DeleteRole(roleId)
-		if err != nil {
-			errMsg := fmt.Sprintf("unable to delete role: %s", err.Error())
-			c.String(http.StatusInternalServerError, errMsg)
-			return
-		}
-
-		c.Status(http.StatusOK)
+func (server *Server) DeleteRoleHandler(c *gin.Context) {
+	roleId, err := strconv.Atoi(c.Param("rid"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "unable to convert role id to int")
+		return
 	}
+
+	err = server.Db.DeleteRole(roleId)
+	if err != nil {
+		errMsg := fmt.Sprintf("unable to delete role: %s", err.Error())
+		c.String(http.StatusInternalServerError, errMsg)
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
