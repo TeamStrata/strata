@@ -105,7 +105,7 @@
     </div>
     <!-- dashboard container -->
     <div class="p-3 flex gap-3">
-      <ChartWidget v-for="chart in selectedCharts" :key="chart.id" :chart-data="chart" :width="chart.size_x"
+      <ChartWidget v-for="chart in dashboardData.charts" :key="chart.chart_id" :chart="chart" :width="chart.size_x"
         :height="chart.size_y" :id="`chart-widget-${chart.id}`" @close="removeChart(chart.id)"
         @update:size="(event) => onSizeUpdate(chart.id, event)" :edit-mode="editMode" />
     </div>
@@ -150,8 +150,8 @@ const availableRoles = computed(() => {
 });
 const selectedRoleToAdd = ref(null)
 async function getAllRoles() {
-    const response = await apiFetch('/admin/roles')
-    allRoles.value = await response.json()
+  const response = await apiFetch('/admin/roles')
+  allRoles.value = await response.json()
 }
 
 function addRolePermission() {
@@ -169,6 +169,27 @@ function addRolePermission() {
 }
 
 getAllRoles();
+
+const dashboardData = ref({});
+//function to load all dashboard data
+async function loadDashboard() {
+  const response = await apiFetch(`/dashboard/${dashboardId.value}/full`);
+  if (!response.ok) return;
+  const data = await response.json();
+  console.log(data);
+  dashboardData.value = data;
+  const res2 = await apiFetch(`/dashboard/${dashboardId.value}/permissions`, 'GET')
+  const data2 = await res2.json();
+  boardConfig.rolePermissions = data2.permissions;
+
+  // Update store with API info
+  pageInfoStore.setPageInfo(
+    data.dashboard.title || "",
+    data.dashboard.content || "",
+    data.configurable ?? true //if this page has settings that can be modified
+  );
+}
+
 
 // edit mode stuff
 const editMode = ref(false);
@@ -288,37 +309,37 @@ const saveDashboardCharts = async () => {
   }
 };
 
-const loadDashboardGraphs = async () => {
-  try {
-    const response = await apiFetch(`/dashboard/${dashboardId.value}/charts`);
+// const loadDashboardGraphs = async () => {
+//   try {
+//     const response = await apiFetch(`/dashboard/${dashboardId.value}/charts`);
 
-    if (response.status === 404) {
-      return;
-    }
+//     if (response.status === 404) {
+//       return;
+//     }
 
-    const graphMappings = await response.json();
-    console.log(graphMappings);
-    if (graphMappings != null) {
-      for (const mapping of graphMappings) {
-        const chartResponse = await apiFetch(`/chart/${mapping.chart_id}`);
-        if (chartResponse.ok) {
-          const chart = await chartResponse.json();
-          chart.size_x = mapping.size_x;
-          chart.size_y = mapping.size_y;
-          chart.order = mapping.order;
-          selectedCharts.value.push(chart);
-        }
-      }
-    } else {
-      selectedCharts.value = [];
-    }
-  } catch (err) {
-    if (err?.response?.status !== 404) {
-      toastRef.value?.showToast('Error loading dashboard graphs', ToastTypes.FAIL);
-    }
-    console.error(err);
-  }
-};
+//     const graphMappings = await response.json();
+//     console.log(graphMappings);
+//     if (graphMappings != null) {
+//       for (const mapping of graphMappings) {
+//         const chartResponse = await apiFetch(`/chart/${mapping.chart_id}`);
+//         if (chartResponse.ok) {
+//           const chart = await chartResponse.json();
+//           chart.size_x = mapping.size_x;
+//           chart.size_y = mapping.size_y;
+//           chart.order = mapping.order;
+//           selectedCharts.value.push(chart);
+//         }
+//       }
+//     } else {
+//       selectedCharts.value = [];
+//     }
+//   } catch (err) {
+//     if (err?.response?.status !== 404) {
+//       toastRef.value?.showToast('Error loading dashboard graphs', ToastTypes.FAIL);
+//     }
+//     console.error(err);
+//   }
+// };
 
 const removeChart = async (chartId) => {
   const result = await Swal.fire({
@@ -386,22 +407,23 @@ watch(() => route.params.id,
     fetchSavedChartTitles();
   });
 
-async function loadDashboard() {
-  const response = await apiFetch(`/dashboard/${dashboardId.value}`);
-  if (!response.ok) return;
-  const data = await response.json();
-  console.log(data);
-  const res2 = await apiFetch(`/dashboard/${dashboardId.value}/permissions`, 'GET')
-  const data2 = await res2.json();
-  boardConfig.rolePermissions = data2.permissions;
+// async function loadDashboard() {
+//   const response = await apiFetch(`/dashboard/${dashboardId.value}`);
+//   if (!response.ok) return;
+//   const data = await response.json();
+//   console.log(data);
+//   const res2 = await apiFetch(`/dashboard/${dashboardId.value}/permissions`, 'GET')
+//   const data2 = await res2.json();
+//   boardConfig.rolePermissions = data2.permissions;
 
-  // Update store with API info
-  pageInfoStore.setPageInfo(
-    data.title || "",
-    data.content || "",
-    data.configurable ?? true
-  );
-}
+//   // Update store with API info
+//   pageInfoStore.setPageInfo(
+//     data.title || "",
+//     data.content || "",
+//     data.configurable ?? true //if this page has settings that can be modified
+//   );
+// }
+
 
 function updateBoardConfig() {
   const payload = {
@@ -446,7 +468,7 @@ let offAlpha
 let offBeta
 
 onMounted(async () => {
-  await loadDashboardGraphs();
+  // await loadDashboardGraphs();
   await fetchSavedChartTitles();
 
   offAlpha = bus.on('goEdit', () => { editMode.value = true })

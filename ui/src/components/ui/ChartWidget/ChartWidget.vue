@@ -1,26 +1,28 @@
 <template>
   <div class="chart-widget" :style="style" ref="widgetRef">
     <div class="header">
-      <h3>{{ chartData.title }}</h3>
+      <h3>{{ chart.title }}</h3>
       <button v-if="props.editMode" @click="$emit('close')" class="cursor-pointer">
         <X></X>
       </button>
 
     </div>
     <div class="chart-container">
-      <canvas ref="chartCanvas"></canvas>
+      <!-- <canvas ref="chartCanvas"></canvas> -->
+      <component :is="chartComponent" :chart="props.chart" :xAxisTitle="props.chart.xname"
+        :yAxisTitle="props.chart.yname" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref, watch, onBeforeUnmount, reactive, computed } from 'vue';
-import Chart from 'chart.js/auto';
+import { onMounted, ref, watch, onBeforeUnmount, reactive, computed, defineAsyncComponent } from 'vue';
+import Chart, { plugins } from 'chart.js/auto';
 import { apiFetch } from '@/api/request';
 import { X } from 'lucide-vue-next';
 
 const props = defineProps({
-  chartData: {
+  chart: {
     type: Object,
     required: true
   },
@@ -29,9 +31,23 @@ const props = defineProps({
   editMode: Boolean
 });
 
+console.log(props.chart)
 
-const widgetWidth = ref(props.width || 800);
-const widgetHeight = ref(props.height || 600);
+//decide what chart to render
+const chartComponent = computed(() => {
+  const map = {
+    line: defineAsyncComponent(() => import('../../charts/LineChart.vue')),
+    area: defineAsyncComponent(() => import('../../charts/AreaChart.vue')),
+    column: defineAsyncComponent(() => import('../../charts/ColumnChart.vue')),
+    bar: defineAsyncComponent(() => import('../../charts/BarChart.vue')),
+    scatter: defineAsyncComponent(() => import('../../charts/ScatterChart.vue')),
+  }
+
+  return map[props.chart.type] || null
+})
+
+const widgetWidth = ref(props.chart.size_x || 800);
+const widgetHeight = ref(props.chart.size_y || 600);
 
 const emit = defineEmits(['close', 'update:size', 'update']);
 
@@ -62,11 +78,76 @@ function getRandomColor() {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+// buildChartConfig(props.chartData)
+
+// function buildChartConfig(chart) {
+//   const config = {
+//     type: chart.type,
+//     data: datasetBuilder(chart),
+//     options: {
+//       plugins: {
+//         title: {
+//           display: true,
+//           text: chart.title
+//         }
+//       }
+//     },
+//     plugins: []
+//   }
+//   console.log(config);
+// }
+
+function datasetBuilder(chart) {
+
+  let datasets = []
+
+  switch ((chart?.type || "").toLowerCase()) {
+    case "area":
+
+      break;
+    case "bar":
+
+      break;
+    case "column":
+      datasets = chart.chartData.map((s, i) => {
+
+      })
+      return datasets;
+      break;
+    case "line":
+      datasets = chart.series.map((s, i) => {
+        const xKey = s.x_col_name;
+        const yKey = s.y_col_name;
+        return {
+          label: s.name || `Series ${i + 1}`,
+          data: (s.data || []).map(row => ({
+            x: row[xKey],
+            y: Number(row[yKey])
+          })),
+          fill: false,
+          tension: 0.25,
+          pointRadius: 2,
+          borderWidth: 2
+        };
+
+      })
+      return datasets;
+      break;
+
+    case "scatter":
+
+      break;
+    default:
+      console.error("Something went terribly wrong");
+      break;
+  }
+}
+
 const fetchSeriesAndRender = async () => {
   if (chartInstance) chartInstance.destroy();
 
   try {
-    const chartRes = await apiFetch(`/chart/${props.chartData.id}`);
+    const chartRes = await apiFetch(`/chart/${props.chart.id}`);
     if (!chartRes.ok) {
       console.error('Failed to load chart');
       return;
@@ -78,7 +159,7 @@ const fetchSeriesAndRender = async () => {
       : chartTypeRaw === 'area' ? 'line'
         : chartTypeRaw;
 
-    const response = await apiFetch(`/chart/${props.chartData.id}/series`);
+    const response = await apiFetch(`/chart/${props.chart.id}/series`);
     if (!response.ok) {
       console.error('Failed to load chart series');
       return;
@@ -117,7 +198,7 @@ const fetchSeriesAndRender = async () => {
     const yLabel = seriesList[0]?.y_col_name || 'Y Axis';
 
     chartInstance = new Chart(chartCanvas.value, {
-      type: chartType,
+      type: props.chart.type,
       data: {
         datasets: filteredDatasets
       },
@@ -178,7 +259,7 @@ const chartContainer = ref(null);
 
 const observeSize = () => {
   const observer = new ResizeObserver(entries => {
-    if(!props.editMode) return
+    if (!props.editMode) return
     for (const entry of entries) {
       const { width, height } = entry.contentRect;
       widgetWidth.value = Math.round(width);
@@ -186,7 +267,7 @@ const observeSize = () => {
 
       // You can still emit if you want to notify parent
       emit('update:size', {
-        id: props.chartData.id,
+        id: props.chart.id,
         width: widgetWidth.value,
         height: widgetHeight.value,
       });
@@ -197,17 +278,17 @@ const observeSize = () => {
 
 
 onMounted(() => {
-  fetchSeriesAndRender();
+  // fetchSeriesAndRender();
   observeSize();
 });
 
 watch(() => [widgetWidth.value, widgetHeight.value], () => {
   emit('update', {
-    id: props.chartData.id,
+    id: props.chart.id,
     width: widgetWidth.value,
     height: widgetHeight.value,
-    x: props.chartData.x,
-    y: props.chartData.y
+    x: props.chart.x,
+    y: props.chart.y
   });
 });
 onBeforeUnmount(() => {

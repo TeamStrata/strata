@@ -29,7 +29,7 @@ ChartJS.register(
 )
 
 const props = defineProps({
-  series: {
+  chart: {
     type: Array,
     required: true,
   },
@@ -43,16 +43,23 @@ const props = defineProps({
   },
 })
 
+function labels() {
+  console.error(props)
+  const xCol = props.chart.xColumn;
+  return props.chart.chartData[0].data.map(item => item[xCol]);
+}
+
 // Build chart.js format data with multiple series
 const chartData = computed(() => {
   return {
-    labels: props.series[0]?.chartData?.map(item => item?.[props.series[0].xColumn]) ?? [],
-    datasets: props.series.map((section, idx) => ({
+    // labels: props.series[0]?.chartData?.map(item => item?.[props.series[0].xColumn]) ?? [],
+    labels: labels(),
+    datasets: props.chart.chartData.map((section, idx) => ({
       label: section.name || `Series ${idx + 1}`,
-      data: section.chartData.map(item => ({
+      data: section.data.map(item => ({
         x: item?.[section.xColumn],
         y: item?.[section.yColumn],
-      })),      fill: true,
+      })), fill: true,
       borderColor: `hsl(${idx * 60}, 70%, 50%)`,
       backgroundColor: `hsla(${idx * 60}, 70%, 70%, 0.3)`,
       tension: 0.4
