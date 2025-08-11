@@ -103,6 +103,23 @@ func (server *Server) ExecuteQueryHandler(c *gin.Context) {
 	c.Done()
 }
 
+func executeQuery(d *database.DbManager, cdb **database.DbManager, queryID int) ([]map[string]string, error) {
+
+	// Get the query string from the database
+	_, query_string, serr := d.GetCustomQuery(strconv.Itoa(queryID))
+	if serr != nil {
+		return nil, serr
+	}
+
+	// Execute the query
+	rows, qerr := (*cdb).ExecuteCustomQuery(query_string)
+	if qerr != nil {
+		return nil, qerr
+	}
+
+	return rows, nil
+}
+
 func (server *Server) ExecuteQueryLiteralHandler(c *gin.Context) {
 	// Read the SQL string from the request body
 	sqlBytes, err := io.ReadAll(c.Request.Body)
@@ -262,6 +279,5 @@ func (server *Server) SchemaDump(c *gin.Context) {
 		c.Done()
 		return
 	}
-
 	c.Data(200, "text/plain", []byte(str))
 }
