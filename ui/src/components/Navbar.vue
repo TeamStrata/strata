@@ -116,7 +116,7 @@ loadDashboards();
     
     <Sidebar variant="inset">
         <SidebarHeader>
-            <img src="@/assets/StrataFullx256.png" alt="STRATA" class="mx-auto w-5/6 pt-2"></img>
+            <img src="@/assets/256_darker_black.png" alt="STRATA" class="mx-auto w-2/6 pt-2"></img>
         </SidebarHeader>
         <SidebarContent>
             <SidebarGroup v-if="user.isAdmin">
