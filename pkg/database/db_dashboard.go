@@ -32,8 +32,8 @@ type ChartSeries struct {
 	Id      int      `json:"id,omitempty"`
 	ChartID int      `json:"chart_id"`
 	QueryID int      `json:"query_id"`
-	XCol    string   `json:"x_col_name"`
-	YCol    string   `json:"y_col_name"`
+	XCol    string   `json:"xColumn"`
+	YCol    string   `json:"yColumn"`
 	Data    []string `json:"data,omitempty"`
 }
 
