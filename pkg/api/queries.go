@@ -103,16 +103,16 @@ func (server *Server) ExecuteQueryHandler(c *gin.Context) {
 	c.Done()
 }
 
-func executeQuery(d *database.DbManager, cdb **database.DbManager, queryID int) ([]map[string]string, error) {
+func (server *Server) executeQuery(queryID int) ([]map[string]string, error) {
 
 	// Get the query string from the database
-	_, query_string, serr := d.GetCustomQuery(strconv.Itoa(queryID))
+	_, query_string, serr := server.Db.GetCustomQuery(strconv.Itoa(queryID))
 	if serr != nil {
 		return nil, serr
 	}
 
 	// Execute the query
-	rows, qerr := (*cdb).ExecuteCustomQuery(query_string)
+	rows, qerr := server.ClientDb.ExecuteCustomQuery(query_string)
 	if qerr != nil {
 		return nil, qerr
 	}

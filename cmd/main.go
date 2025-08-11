@@ -58,7 +58,8 @@ func main() {
 		protected.GET("/dashboard/:did/charts", server.ListDashboardChartsHandler)
 		protected.PATCH("/dashboard/:did/chart/:cid", server.AppendChartToDashboardHandler)
 		protected.DELETE("/dashboard/:did/chart/:cid", server.RemoveChartFromDashboardHandler)
-		// Fashboard
+		protected.GET("/dashboard/:did/full", server.GetFullDashboardData)
+		// Dashboard permissions
 		protected.GET("/dashboard/:did/permissions", server.GetDashboardRolePermissionsHandler)
 		protected.PATCH("/dashboard", server.UpdateDashboardHandler)
 
