@@ -1,161 +1,120 @@
 package main
 
 import (
-	"context"
 	"log"
-	"time"
 
 	_ "github.com/TeamStrata/strata/docs"
 	"github.com/TeamStrata/strata/pkg/api"
-	"github.com/TeamStrata/strata/pkg/database"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func main() {
-	server := gin.Default()
-
-	//cors config (redux)
-	config := cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},
-		AllowMethods:     []string{"GET", "PATCH", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}
-	server.Use(cors.New(config))
-
-	// Get database connection string
-	conStr, err := database.GetConnectionString(database.DefaultPath)
+	server, err := api.InitServer()
 	if err != nil {
-		log.Fatalf("error loading .env file: %s", err.Error())
-	}
-
-	// Initialize database manager
-	db, err := database.NewDbManager(conStr, context.Background())
-	if err != nil {
-		log.Fatalf("error initializing DB manager: %s", err.Error())
-	}
-
-	// Create the client database which will be used for custom queries
-	cdb_str, cerr := db.GetSetting("cdb")
-	if cerr != nil {
-		log.Printf("error reading DB settings: %s", cerr.Error())
+		log.Printf("error initializing server: %s", err.Error())
 		return
 	}
 
-	cdb, cerr := database.NewDbManager(cdb_str, context.Background())
-	if cerr != nil {
-		log.Printf("error initializing client DB manager: %s", cerr.Error())
-		return
-	}
+	// Frontend assets
+	server.Engine.Static("/assets", "ui/dist/assets")
+	server.Engine.StaticFile("/", "ui/dist/index.html")
+	server.Engine.StaticFile("/favicon.ico", "ui/dist/favicon.ico")
 
-	// Map for active users and uuids
-	// key: uuid
-	// value: username
-	activeUsers := make(map[string]api.UserSessionData)
-
-	// Frontend
-	server.Static("/assets", "ui/dist/assets")
-	server.StaticFile("/", "ui/dist/index.html")
-	server.StaticFile("/favicon.ico", "ui/dist/favicon.ico")
-
-	// Documenation Endpoints
-	server.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// Documenation endpoints
+	server.Engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Auth endpoints
-	server.POST("/login", api.LoginHandler(db, activeUsers))
+	server.Engine.POST("/login", server.LoginHandler)
 
-	protected := server.Group("/api")
+	protected := server.Engine.Group("/api")
 	{
-		protected.Use(api.AuthHandler(activeUsers))
+		protected.Use(server.AuthHandler)
 
 		// Auth routes
-		protected.POST("/logout", api.LogoutHandler(activeUsers))
-		protected.POST("/auth", api.AuthHandler(activeUsers))
-		protected.GET("/isadmin/:uname", api.IsAdminHandler(activeUsers))
+		protected.POST("/logout", server.LogoutHandler)
+		protected.POST("/auth", server.AuthHandler)
+		protected.GET("/isadmin/:uname", server.IsAdminHandler)
 
 		// Dashboard Components
-		/// Charts
-		protected.GET("/charts", api.GetChartListHandler(db))
-		protected.GET("/chart/:cid", api.GetChartHandler(db))
-		protected.POST("/chart", api.CreateChartHandler(db))
-		protected.DELETE("/chart/:cid", api.DeleteChartHandler(db))
-		protected.PATCH("/chart/:cid", api.UpdateChartHandler(db))
-		/// Chart Series
-		protected.GET("/chart/:cid/series", api.GetChartSeriesListHandler(db))
-		protected.GET("/chart/:cid/series/:sid", api.GetChartSingleSeriesHandler(db))
-		protected.POST("/chart/:cid/series", api.AddChartSeriesHandler(db))
-		protected.DELETE("/chart/:cid/series/:sid", api.DeleteChartSingleSeriesHandler(db))
-		protected.PATCH("/chart/:cid/series/:sid", api.UpdateChartSeriesHandler(db))
-		protected.DELETE("/chart/:cid/series", api.DeleteAllChartSeriesHandler(db))
-		/// Dashboard itself
-		protected.GET("/dashboards", api.GetDashboardListHandler(db, activeUsers))
-		protected.GET("/dashboard/:did", api.GetDashboardHandler(db))
-		protected.POST("/dashboard", api.CreateDashboardPageHandler(db))
-		protected.DELETE("/dashboard/:did", api.DeleteDashboardHandler(db))
-		protected.GET("/dashboard/:did/charts", api.ListDashboardChartsHandler(db))
-		protected.PATCH("/dashboard/:did/chart/:cid", api.AppendChartToDashboardHandler(db))
-		protected.DELETE("/dashboard/:did/chart/:cid", api.RemoveChartFromDashboardHandler(db))
-
-		protected.GET("/dashboard/:did/permissions", api.GetDashboardRolePermissionsHandler(db))
-		protected.PATCH("/dashboard", api.UpdateDashboardHandler(db))
+		// Charts
+		protected.GET("/charts", server.GetChartListHandler)
+		protected.GET("/chart/:cid", server.GetChartHandler)
+		protected.POST("/chart", server.CreateChartHandler)
+		protected.DELETE("/chart/:cid", server.DeleteChartHandler)
+		protected.PATCH("/chart/:cid", server.UpdateChartHandler)
+		// Chart Series
+		protected.GET("/chart/:cid/series", server.GetChartSeriesListHandler)
+		protected.GET("/chart/:cid/series/:sid", server.GetChartSingleSeriesHandler)
+		protected.POST("/chart/:cid/series", server.AddChartSeriesHandler)
+		protected.DELETE("/chart/:cid/series/:sid", server.DeleteChartSingleSeriesHandler)
+		protected.PATCH("/chart/:cid/series/:sid", server.UpdateChartSeriesHandler)
+		protected.DELETE("/chart/:cid/series", server.DeleteAllChartSeriesHandler)
+		// Dashboard itself
+		protected.GET("/dashboards", server.GetDashboardListHandler)
+		protected.GET("/dashboard/:did", server.GetDashboardHandler)
+		protected.POST("/dashboard", server.CreateDashboardPageHandler)
+		protected.DELETE("/dashboard/:did", server.DeleteDashboardHandler)
+		protected.GET("/dashboard/:did/charts", server.ListDashboardChartsHandler)
+		protected.PATCH("/dashboard/:did/chart/:cid", server.AppendChartToDashboardHandler)
+		protected.DELETE("/dashboard/:did/chart/:cid", server.RemoveChartFromDashboardHandler)
+		// Fashboard
+		protected.GET("/dashboard/:did/permissions", server.GetDashboardRolePermissionsHandler)
+		protected.PATCH("/dashboard", server.UpdateDashboardHandler)
 
 		// Query Endpoints
-		protected.GET("/queries", api.GetQueryList(db))
-		protected.POST("/query/executeLiteral", api.ExecuteQueryLiteralHandler(&cdb)) // Execute a saved query (custom or standard saved queries)
-		protected.GET("/query/:qid", api.ReadQueryLiteralHandler(db))                 // Return the query SQL string
-		protected.GET("/query/:qid/execute", api.ExecuteQueryHandler(db, &cdb))       // Execute a saved query (custom or standard saved queries)
-		protected.POST("/query/:qid", api.SaveQueryHandler(db))
-		protected.DELETE("/query/:qid", api.DeleteQueryHandler(db))
-		protected.PATCH("/query/:qid", api.UpdateQueryHandler(db)) // Update a custom query in the database
+		protected.GET("/queries", server.GetQueryList)
+		protected.POST("/query/executeLiteral", server.ExecuteQueryLiteralHandler) // Execute a saved query (custom or standard saved queries)
+		protected.GET("/query/:qid", server.ReadQueryLiteralHandler)               // Return the query SQL string
+		protected.GET("/query/:qid/execute", server.ExecuteQueryHandler)           // Execute a saved query (custom or standard saved queries)
+		protected.POST("/query/:qid", server.SaveQueryHandler)
+		protected.DELETE("/query/:qid", server.DeleteQueryHandler)
+		protected.PATCH("/query/:qid", server.UpdateQueryHandler) // Update a custom query in the database
 
 		// Misc Endpoints
-		protected.GET("/ping", api.PingHandler)
+		protected.GET("/ping", server.PingHandler)
 
 		// AI
-		protected.POST("/stratabot", api.StrataBotHandler(db))
-		protected.GET("/cdb-schema", api.SchemaDump(&cdb))
+		protected.POST("/stratabot", server.StrataBotHandler)
+		protected.GET("/cdb-schema", server.SchemaDump)
 
 		admin := protected.Group("/admin")
 		{
-			admin.Use(api.AuthHandler(activeUsers))
+			admin.Use(server.AuthHandler)
 
 			// Account creation
-			admin.POST("/signup", api.SignUpHandler(db, activeUsers))
+			admin.POST("/signup", server.SignUpHandler)
 
 			// Users
-			admin.GET("/users", api.GetUsersHandler(db))
-			admin.GET("/user/:uid", api.GetUserHandler(db))
-			admin.DELETE("/user/:uname", api.DeleteUserHandler(db, activeUsers))
-			admin.PATCH("/user/:uid", api.UpdateUserHandler(db))
+			admin.GET("/users", server.GetUsersHandler)
+			admin.GET("/user/:uid", server.GetUserHandler)
+			admin.DELETE("/user/:uname", server.DeleteUserHandler)
+			admin.PATCH("/user/:uid", server.UpdateUserHandler)
 
 			// User roles
-			admin.DELETE("/user/:uname/role/:rname", api.DeleteUserRoleHandler(db))
-			admin.POST("/user/:uname/role/:rname", api.AddUserRoleHandler(db))
+			admin.DELETE("/user/:uname/role/:rname", server.DeleteUserRoleHandler)
+			admin.POST("/user/:uname/role/:rname", server.AddUserRoleHandler)
 
 			// Roles
-			admin.GET("/roles", api.GetRolesHandler(db))
-			admin.POST("/role", api.AddRoleHandler(db))
-			admin.PATCH("/role/:rid", api.UpdateRoleHandler(db))
-			admin.DELETE("/role/:rid", api.DeleteRoleHandler(db))
+			admin.GET("/roles", server.GetRolesHandler)
+			admin.POST("/role", server.AddRoleHandler)
+			admin.PATCH("/role/:rid", server.UpdateRoleHandler)
+			admin.DELETE("/role/:rid", server.DeleteRoleHandler)
 
 			// Permissions
-			admin.GET("/permissions", api.GetPermissionsHandler(db))
-			admin.GET("/permissions/:scope", api.GetScopedPermissionsHandler(db))
-			admin.POST("/dashboard/:did/role/:rid/permission/:pid", api.AddDashboardRolePermissionHandler(db))
-			admin.DELETE("/dashboard/:did/role/:rid/permission/:pid", api.DeleteDashboardRolePermissionHandler(db))
+			admin.GET("/permissions", server.GetPermissionsHandler)
+			admin.GET("/permissions/:scope", server.GetScopedPermissionsHandler)
+			admin.POST("/dashboard/:did/role/:rid/permission/:pid", server.AddDashboardRolePermissionHandler)
+			admin.DELETE("/dashboard/:did/role/:rid/permission/:pid", server.DeleteDashboardRolePermissionHandler)
 
 			// Settings
-			admin.GET("/settings", api.GetAllSettingsHandler(db))
-			admin.GET("/settings/:key", api.GetSettingHandler(db))
-			admin.PATCH("/settings/:key", api.UpdateSettingHandler(db, &cdb))
+			admin.GET("/settings", server.GetAllSettingsHandler)
+			admin.GET("/settings/:key", server.GetSettingHandler)
+			admin.PATCH("/settings/:key", server.UpdateSettingHandler)
 		}
 	}
 
-	err = server.Run(":8080")
+	err = server.Engine.Run(":8080")
 	if err != nil {
 		panic(err)
 	}

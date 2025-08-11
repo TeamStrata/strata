@@ -5,7 +5,6 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/TeamStrata/strata/pkg/database"
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,25 +17,23 @@ import (
 // @Success 200 {array} database.Query "Successfully retrieved users"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /queries [get]
-func GetQueryList(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		queries, err := d.ListCustomQueries()
-		if err != nil {
-			c.Data(500, "text/plain", []byte(err.Error()))
-			c.Done()
-			return
-		}
-
-		data, err := json.Marshal(queries)
-		if err != nil {
-			c.Data(500, "text/plain", []byte(err.Error()))
-			c.Done()
-			return
-		}
-
-		c.Data(200, "application/json", data)
+func (server *Server) GetQueryList(c *gin.Context) {
+	queries, err := server.Db.ListCustomQueries()
+	if err != nil {
+		c.Data(500, "text/plain", []byte(err.Error()))
 		c.Done()
+		return
 	}
+
+	data, err := json.Marshal(queries)
+	if err != nil {
+		c.Data(500, "text/plain", []byte(err.Error()))
+		c.Done()
+		return
+	}
+
+	c.Data(200, "application/json", data)
+	c.Done()
 }
 
 // Return the query SQL string
@@ -49,23 +46,21 @@ func GetQueryList(d *database.DbManager) gin.HandlerFunc {
 // @Failure 500 {string} string "Internal Server Error"
 // @Param qid query string true "Query name or ID to retrieve"
 // @Router /query/{qid} [get]
-func ReadQueryLiteralHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		query_id_str := c.Param("qid")
+func (server *Server) ReadQueryLiteralHandler(c *gin.Context) {
+	query_id_str := c.Param("qid")
 
-		query_name, query_string, err := d.GetCustomQuery(query_id_str)
-		if err != nil {
-			c.Data(500, "text/plain", []byte(err.Error()))
-			c.Done()
-			return
-		}
-
-		c.JSON(200, gin.H{
-			"name":    query_name,
-			"literal": query_string,
-		})
+	query_name, query_string, err := server.Db.GetCustomQuery(query_id_str)
+	if err != nil {
+		c.Data(500, "text/plain", []byte(err.Error()))
 		c.Done()
+		return
 	}
+
+	c.JSON(200, gin.H{
+		"name":    query_name,
+		"literal": query_string,
+	})
+	c.Done()
 }
 
 // Execute a saved query (custom or standard saved queries)
@@ -78,66 +73,62 @@ func ReadQueryLiteralHandler(d *database.DbManager) gin.HandlerFunc {
 // @Failure 500 {string} string "Internal Server Error"
 // @Param qid query string type "Query name or ID"
 // @Router /query/{qid}/execute [get]
-func ExecuteQueryHandler(d *database.DbManager, cdb **database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		query_id_str := c.Param("qid")
+func (server *Server) ExecuteQueryHandler(c *gin.Context) {
+	query_id_str := c.Param("qid")
 
-		_, query_string, serr := d.GetCustomQuery(query_id_str)
-		if serr != nil {
-			c.Data(500, "text/plain", []byte(serr.Error()))
-			c.Done()
-			return
-		}
-
-		// Perform the custom query
-		rows, qerr := (*cdb).ExecuteCustomQuery(query_string)
-		if qerr != nil {
-			c.Data(500, "text/plain", []byte(qerr.Error()))
-			c.Done()
-			return
-		}
-
-		// Convert the resulting object to JSON
-		data, jerr := json.Marshal(rows)
-		if jerr != nil {
-			c.Data(500, "text/plain", []byte(jerr.Error()))
-			c.Done()
-			return
-		}
-
-		c.Data(200, "application/json", data)
+	_, query_string, serr := server.Db.GetCustomQuery(query_id_str)
+	if serr != nil {
+		c.Data(500, "text/plain", []byte(serr.Error()))
 		c.Done()
+		return
 	}
+
+	// Perform the custom query
+	rows, qerr := server.ClientDb.ExecuteCustomQuery(query_string)
+	if qerr != nil {
+		c.Data(500, "text/plain", []byte(qerr.Error()))
+		c.Done()
+		return
+	}
+
+	// Convert the resulting object to JSON
+	data, jerr := json.Marshal(rows)
+	if jerr != nil {
+		c.Data(500, "text/plain", []byte(jerr.Error()))
+		c.Done()
+		return
+	}
+
+	c.Data(200, "application/json", data)
+	c.Done()
 }
 
-func ExecuteQueryLiteralHandler(d **database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Read the SQL string from the request body
-		sqlBytes, err := io.ReadAll(c.Request.Body)
-		if err != nil {
-			c.Data(500, "text/plain", []byte(err.Error()))
-			c.Done()
-			return
-		}
-		sqlString := string(sqlBytes)
-
-		rows, qerr := (*d).ExecuteCustomQuery(sqlString)
-		if qerr != nil {
-			c.Data(500, "text/plain", []byte(qerr.Error()))
-			c.Done()
-			return
-		}
-
-		data, jerr := json.Marshal(rows)
-		if jerr != nil {
-			c.Data(500, "text/plain", []byte(jerr.Error()))
-			c.Done()
-			return
-		}
-
-		c.Data(200, "application/json", data)
+func (server *Server) ExecuteQueryLiteralHandler(c *gin.Context) {
+	// Read the SQL string from the request body
+	sqlBytes, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.Data(500, "text/plain", []byte(err.Error()))
 		c.Done()
+		return
 	}
+	sqlString := string(sqlBytes)
+
+	rows, qerr := server.ClientDb.ExecuteCustomQuery(sqlString)
+	if qerr != nil {
+		c.Data(500, "text/plain", []byte(qerr.Error()))
+		c.Done()
+		return
+	}
+
+	data, jerr := json.Marshal(rows)
+	if jerr != nil {
+		c.Data(500, "text/plain", []byte(jerr.Error()))
+		c.Done()
+		return
+	}
+
+	c.Data(200, "application/json", data)
+	c.Done()
 }
 
 // @Summary Save Query
@@ -152,38 +143,36 @@ func ExecuteQueryLiteralHandler(d **database.DbManager) gin.HandlerFunc {
 // @Router /query/{qid} [post]
 
 // Save a custom query to the database
-func SaveQueryHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		query_name := c.Param("qid")
+func (server *Server) SaveQueryHandler(c *gin.Context) {
+	query_name := c.Param("qid")
 
-		// To prevent the query from being inaccessible later on, we need to sanitize
-		// If the query name can be parsed to an integer, reject it. It will clash with the ID, the user may accidentally select the wrong thing.
-		_, err := strconv.Atoi(query_name)
-		// If there is NO error parsing to integer, then we raise our own error
-		if err == nil {
-			c.Data(400, "text/plain", []byte("The query name must not be an integer!"))
-			c.Done()
-			return
-		}
-
-		data, err := io.ReadAll(c.Request.Body)
-		if err != nil {
-			c.Data(500, "text/plain", []byte(err.Error()))
-			c.Done()
-			return
-		}
-
-		// Inserting custom query
-		id, err := d.InsertCustomQuery(query_name, string(data))
-		if err != nil {
-			c.Data(500, "text/plain", []byte(err.Error()))
-			c.Done()
-			return
-		}
-
-		c.Data(200, "text/plain", []byte(strconv.Itoa(id)))
+	// To prevent the query from being inaccessible later on, we need to sanitize
+	// If the query name can be parsed to an integer, reject it. It will clash with the ID, the user may accidentally select the wrong thing.
+	_, err := strconv.Atoi(query_name)
+	// If there is NO error parsing to integer, then we raise our own error
+	if err == nil {
+		c.Data(400, "text/plain", []byte("The query name must not be an integer!"))
 		c.Done()
+		return
 	}
+
+	data, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.Data(500, "text/plain", []byte(err.Error()))
+		c.Done()
+		return
+	}
+
+	// Inserting custom query
+	id, err := server.Db.InsertCustomQuery(query_name, string(data))
+	if err != nil {
+		c.Data(500, "text/plain", []byte(err.Error()))
+		c.Done()
+		return
+	}
+
+	c.Data(200, "text/plain", []byte(strconv.Itoa(id)))
+	c.Done()
 }
 
 // Delete a query
@@ -195,73 +184,69 @@ func SaveQueryHandler(d *database.DbManager) gin.HandlerFunc {
 // @Failure 500 {string} string "Internal Server Error"
 // @Param qid query string type "Query name or ID"
 // @Router /query/{qid} [delete]
-func DeleteQueryHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		query_id_str := c.Param("qid")
+func (server *Server) DeleteQueryHandler(c *gin.Context) {
+	query_id_str := c.Param("qid")
 
-		q_err := d.DeleteCustomQuery(query_id_str)
-		if q_err != nil {
-			c.Data(500, "text/plain", []byte(q_err.Error()))
-			c.Done()
-			return
-		}
-
-		c.Status(200)
+	q_err := server.Db.DeleteCustomQuery(query_id_str)
+	if q_err != nil {
+		c.Data(500, "text/plain", []byte(q_err.Error()))
 		c.Done()
+		return
 	}
+
+	c.Status(200)
+	c.Done()
 }
 
-func UpdateQueryHandler(d *database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		query_id, err := strconv.Atoi(c.Param("qid"))
-		if err != nil {
-			c.Data(400, "text/plain", []byte("Invalid query ID"))
-			c.Done()
-			return
-		}
+func (server *Server) UpdateQueryHandler(c *gin.Context) {
+	query_id, err := strconv.Atoi(c.Param("qid"))
+	if err != nil {
+		c.Data(400, "text/plain", []byte("Invalid query ID"))
+		c.Done()
+		return
+	}
 
-		data, err := io.ReadAll(c.Request.Body)
-		if err != nil {
+	data, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.Data(500, "text/plain", []byte(err.Error()))
+		c.Done()
+		return
+	}
+
+	var req struct {
+		Name    *string `json:"name"`
+		Literal *string `json:"literal"`
+	}
+	if err := json.Unmarshal(data, &req); err != nil {
+		c.Data(400, "text/plain", []byte("Invalid JSON"))
+		c.Done()
+		return
+	}
+
+	// If the request does not contain any fields, return an error
+	if req.Name == nil && req.Literal == nil {
+		c.Data(400, "text/plain", []byte("At least one field must be provided"))
+		c.Done()
+		return
+	}
+
+	if req.Name != nil {
+		if err := server.Db.UpdateCustomQueryName(query_id, *req.Name); err != nil {
 			c.Data(500, "text/plain", []byte(err.Error()))
 			c.Done()
 			return
 		}
-
-		var req struct {
-			Name    *string `json:"name"`
-			Literal *string `json:"literal"`
-		}
-		if err := json.Unmarshal(data, &req); err != nil {
-			c.Data(400, "text/plain", []byte("Invalid JSON"))
-			c.Done()
-			return
-		}
-
-		// If the request does not contain any fields, return an error
-		if req.Name == nil && req.Literal == nil {
-			c.Data(400, "text/plain", []byte("At least one field must be provided"))
-			c.Done()
-			return
-		}
-
-		if req.Name != nil {
-			if err := d.UpdateCustomQueryName(query_id, *req.Name); err != nil {
-				c.Data(500, "text/plain", []byte(err.Error()))
-				c.Done()
-				return
-			}
-		}
-		if req.Literal != nil {
-			if err := d.UpdateCustomQueryLiteral(query_id, *req.Literal); err != nil {
-				c.Data(500, "text/plain", []byte(err.Error()))
-				c.Done()
-				return
-			}
-		}
-
-		c.Status(200)
-		c.Done()
 	}
+	if req.Literal != nil {
+		if err := server.Db.UpdateCustomQueryLiteral(query_id, *req.Literal); err != nil {
+			c.Data(500, "text/plain", []byte(err.Error()))
+			c.Done()
+			return
+		}
+	}
+
+	c.Status(200)
+	c.Done()
 }
 
 // @Summary Retrieve the database schema to be provided to the AI LLM
@@ -270,15 +255,13 @@ func UpdateQueryHandler(d *database.DbManager) gin.HandlerFunc {
 // @Success 200 {string} string "OK"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/cdb-schema [get]
-func SchemaDump(cdb **database.DbManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		str, err := (*cdb).DumpSchema()
-		if err != nil {
-			c.Data(500, "text/plain", []byte(err.Error()))
-			c.Done()
-			return
-		}
-
-		c.Data(200, "text/plain", []byte(str))
+func (server *Server) SchemaDump(c *gin.Context) {
+	str, err := server.ClientDb.DumpSchema()
+	if err != nil {
+		c.Data(500, "text/plain", []byte(err.Error()))
+		c.Done()
+		return
 	}
+
+	c.Data(200, "text/plain", []byte(str))
 }
