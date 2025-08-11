@@ -44,7 +44,6 @@ const props = defineProps({
 })
 
 function labels() {
-  console.error(props)
   const xCol = props.chart.xColumn;
   return props.chart.chartData[0].data.map(item => item[xCol]);
 }

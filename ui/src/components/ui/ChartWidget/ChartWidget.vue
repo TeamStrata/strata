@@ -31,8 +31,6 @@ const props = defineProps({
   editMode: Boolean
 });
 
-console.log(props.chart)
-
 //decide what chart to render
 const chartComponent = computed(() => {
   const map = {
