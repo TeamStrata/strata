@@ -26,7 +26,7 @@ ChartJS.register(
 
 const props = defineProps({
   chart: {
-    type: Array,
+    type: Object,
     required: true,
   },
   xAxisTitle: {

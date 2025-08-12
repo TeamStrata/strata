@@ -106,7 +106,7 @@ const addSeriesSection = () => {
     query: savedQueries.value[0] || {},
     xColumn: '',
     yColumn: '',
-    chartData: [],
+    data: [],
     columns: [],
     name: "Series " + (chartFull.chartData.length + 1)
   })
