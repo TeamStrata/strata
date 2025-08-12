@@ -8,7 +8,6 @@
 
     </div>
     <div class="chart-container">
-      <!-- <canvas ref="chartCanvas"></canvas> -->
       <component :is="chartComponent" :chart="props.chart" :xAxisTitle="props.chart.xname"
         :yAxisTitle="props.chart.yname" />
     </div>
@@ -17,8 +16,6 @@
 
 <script setup>
 import { onMounted, ref, watch, onBeforeUnmount, reactive, computed, defineAsyncComponent } from 'vue';
-import Chart, { plugins } from 'chart.js/auto';
-import { apiFetch } from '@/api/request';
 import { X } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -49,7 +46,6 @@ const widgetHeight = ref(props.chart.size_y || 600);
 
 const emit = defineEmits(['close', 'update:size', 'update']);
 
-const chartCanvas = ref(null);
 const widgetRef = ref(null);
 let chartInstance = null;
 let resizeObserver = null;
@@ -68,192 +64,6 @@ const style = computed(() => ({
   maxWidth: '800px',
   maxHeight: '600px'
 }));
-
-function getRandomColor() {
-  const r = Math.floor(Math.random() * 200);
-  const g = Math.floor(Math.random() * 200);
-  const b = Math.floor(Math.random() * 200);
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-// buildChartConfig(props.chartData)
-
-// function buildChartConfig(chart) {
-//   const config = {
-//     type: chart.type,
-//     data: datasetBuilder(chart),
-//     options: {
-//       plugins: {
-//         title: {
-//           display: true,
-//           text: chart.title
-//         }
-//       }
-//     },
-//     plugins: []
-//   }
-//   console.log(config);
-// }
-
-function datasetBuilder(chart) {
-
-  let datasets = []
-
-  switch ((chart?.type || "").toLowerCase()) {
-    case "area":
-
-      break;
-    case "bar":
-
-      break;
-    case "column":
-      datasets = chart.chartData.map((s, i) => {
-
-      })
-      return datasets;
-      break;
-    case "line":
-      datasets = chart.series.map((s, i) => {
-        const xKey = s.x_col_name;
-        const yKey = s.y_col_name;
-        return {
-          label: s.name || `Series ${i + 1}`,
-          data: (s.data || []).map(row => ({
-            x: row[xKey],
-            y: Number(row[yKey])
-          })),
-          fill: false,
-          tension: 0.25,
-          pointRadius: 2,
-          borderWidth: 2
-        };
-
-      })
-      return datasets;
-      break;
-
-    case "scatter":
-
-      break;
-    default:
-      console.error("Something went terribly wrong");
-      break;
-  }
-}
-
-const fetchSeriesAndRender = async () => {
-  if (chartInstance) chartInstance.destroy();
-
-  try {
-    const chartRes = await apiFetch(`/chart/${props.chart.id}`);
-    if (!chartRes.ok) {
-      console.error('Failed to load chart');
-      return;
-    }
-
-    const chartInfo = await chartRes.json();
-    const chartTypeRaw = chartInfo.type || 'line';
-    const chartType = chartTypeRaw === 'column' ? 'bar'
-      : chartTypeRaw === 'area' ? 'line'
-        : chartTypeRaw;
-
-    const response = await apiFetch(`/chart/${props.chart.id}/series`);
-    if (!response.ok) {
-      console.error('Failed to load chart series');
-      return;
-    }
-
-    const seriesList = await response.json();
-    if (!seriesList.length) return;
-
-    const datasets = await Promise.all(seriesList.map(async (series) => {
-      const result = await apiFetch(`/query/${series.query_id}/execute`);
-      if (!result.ok) return null;
-      const data = await result.json();
-
-      return {
-        label: `${series.x_col_name}`,
-        type: chartTypeRaw === 'area' ? 'line' : undefined,
-        data: data.map(row => ({
-          x: row[series.x_col_name],
-          y: row[series.y_col_name]
-        })),
-        // backgroundColor: chartTypeRaw === 'area' ? getRandomColor(0.3) : getRandomColor(),
-        // borderColor: getRandomColor(),
-        fill: chartTypeRaw === 'area',
-        tension: chartTypeRaw === 'area' ? 0.4 : 0,
-        pointRadius: chartTypeRaw === 'scatter' ? 3 : 0,
-        showLine: chartTypeRaw !== 'scatter'
-      };
-    }));
-
-    const filteredDatasets = datasets.filter(Boolean);
-
-    const allX = filteredDatasets.flatMap(d => d.data.map(p => Number(p.x))).filter(v => !isNaN(v));
-    const allY = filteredDatasets.flatMap(d => d.data.map(p => Number(p.y))).filter(v => !isNaN(v));
-
-    const xLabel = seriesList[0]?.x_col_name || 'X Axis';
-    const yLabel = seriesList[0]?.y_col_name || 'Y Axis';
-
-    chartInstance = new Chart(chartCanvas.value, {
-      type: props.chart.type,
-      data: {
-        datasets: filteredDatasets
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        parsing: false,
-        scales: {
-          x: {
-            type: (chartTypeRaw === 'area' || chartTypeRaw === 'bar') && typeof filteredDatasets[0]?.data?.[0]?.x === 'string'
-              ? 'category'
-              : ['line', 'area', 'scatter', 'bar', 'column'].includes(chartTypeRaw)
-                ? 'linear'
-                : 'category',
-            suggestedMin: allX.length ? Math.min(...allX) - 1 : 0,
-            suggestedMax: allX.length ? Math.max(...allX) + 1 : 5,
-            title: {
-              display: true,
-              text: xLabel
-            },
-            grid: {
-              display: true
-            }
-          },
-          y: {
-            beginAtZero: true,
-            suggestedMin: allY.length ? Math.min(...allY) - 1 : 0,
-            suggestedMax: allY.length ? Math.max(...allY) + 1 : 5,
-            title: {
-              display: true,
-              text: yLabel
-            },
-            ticks: {
-              stepSize: 1,
-              precision: 0
-            },
-            grid: {
-              display: true
-            }
-          }
-        },
-        plugins: {
-          legend: {
-            position: 'top'
-          },
-          tooltip: {
-            mode: 'nearest',
-            intersect: false
-          }
-        }
-      }
-    });
-  } catch (err) {
-    console.error('Error rendering chart', err);
-  }
-};
-const chartContainer = ref(null);
 
 const observeSize = () => {
   const observer = new ResizeObserver(entries => {
