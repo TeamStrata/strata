@@ -53,16 +53,18 @@ let resizeObserver = null;
 const style = computed(() => ({
   width: widgetWidth.value + 'px',
   height: widgetHeight.value + 'px',
-  resize: props.editMode ? 'both' : 'none',
+  // resize: props.editMode ? 'both' : 'none',
   overflow: 'auto',
   border: '1px solid #ccc',
   borderRadius: '8px',
   padding: '1rem',
   backgroundColor: 'white',
-  minWidth: '300px',
-  minHeight: '300px',
-  maxWidth: '800px',
-  maxHeight: '600px'
+  width: '100%',
+  height: '100%',
+  // minWidth: '300px',
+  // minHeight: '300px',
+  // maxWidth: '800px',
+  // maxHeight: '600px'
 }));
 
 const observeSize = () => {

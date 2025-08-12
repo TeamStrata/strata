@@ -104,10 +104,10 @@
       <Separator></Separator>
     </div>
     <!-- dashboard container -->
-    <div class="p-3 flex gap-3">
+    <div class="p-3 grid grid-cols-6 auto-rows-auto overflow-y-scroll max-h-[90vh] gap-3">
       <ChartWidget v-for="chart in dashboardData.charts" :key="chart.chart_id" :chart="chart" :width="chart.size_x"
         :height="chart.size_y" :id="`chart-widget-${chart.chart_id}`" @close="removeChart(chart.chart_id)"
-        @update:size="(event) => onSizeUpdate(chart.id, event)" :edit-mode="editMode" />
+        @update:size="(event) => onSizeUpdate(chart.id, event)" :edit-mode="editMode" :class="'col-span-2'"/>
     </div>
 
     <!-- <div>
@@ -309,38 +309,6 @@ const saveDashboardCharts = async () => {
   }
 };
 
-// const loadDashboardGraphs = async () => {
-//   try {
-//     const response = await apiFetch(`/dashboard/${dashboardId.value}/charts`);
-
-//     if (response.status === 404) {
-//       return;
-//     }
-
-//     const graphMappings = await response.json();
-//     console.log(graphMappings);
-//     if (graphMappings != null) {
-//       for (const mapping of graphMappings) {
-//         const chartResponse = await apiFetch(`/chart/${mapping.chart_id}`);
-//         if (chartResponse.ok) {
-//           const chart = await chartResponse.json();
-//           chart.size_x = mapping.size_x;
-//           chart.size_y = mapping.size_y;
-//           chart.order = mapping.order;
-//           selectedCharts.value.push(chart);
-//         }
-//       }
-//     } else {
-//       selectedCharts.value = [];
-//     }
-//   } catch (err) {
-//     if (err?.response?.status !== 404) {
-//       toastRef.value?.showToast('Error loading dashboard graphs', ToastTypes.FAIL);
-//     }
-//     console.error(err);
-//   }
-// };
-
 const removeChart = async (chartId) => {
   const result = await Swal.fire({
     title: 'Remove Chart?',
@@ -406,24 +374,6 @@ watch(() => route.params.id,
     loadDashboardGraphs();
     fetchSavedChartTitles();
   });
-
-// async function loadDashboard() {
-//   const response = await apiFetch(`/dashboard/${dashboardId.value}`);
-//   if (!response.ok) return;
-//   const data = await response.json();
-//   console.log(data);
-//   const res2 = await apiFetch(`/dashboard/${dashboardId.value}/permissions`, 'GET')
-//   const data2 = await res2.json();
-//   boardConfig.rolePermissions = data2.permissions;
-
-//   // Update store with API info
-//   pageInfoStore.setPageInfo(
-//     data.title || "",
-//     data.content || "",
-//     data.configurable ?? true //if this page has settings that can be modified
-//   );
-// }
-
 
 function updateBoardConfig() {
   const payload = {
