@@ -106,7 +106,7 @@
     <!-- dashboard container -->
     <div class="p-3 flex gap-3">
       <ChartWidget v-for="chart in dashboardData.charts" :key="chart.chart_id" :chart="chart" :width="chart.size_x"
-        :height="chart.size_y" :id="`chart-widget-${chart.id}`" @close="removeChart(chart.id)"
+        :height="chart.size_y" :id="`chart-widget-${chart.chart_id}`" @close="removeChart(chart.chart_id)"
         @update:size="(event) => onSizeUpdate(chart.id, event)" :edit-mode="editMode" />
     </div>
 
