@@ -119,8 +119,14 @@ const addSeriesSection = () => {
         const response = await apiFetch(`/query/${newQuery.id}/execute`)
         if (!response.ok) throw new Error('Failed to execute query')
 
-        const data = await response.json()
-        const cols = Object.keys(data[0] || {})
+        const result = await response.json()
+
+        if (result.chartData) {
+          section.data = result.chartData;
+        } else if (Array.isArray(result)) {
+          section.data = result;
+        }
+        const cols = Object.keys(result[0] || {})
 
         section.columns = cols
         if (!section.xColumn) section.xColumn = cols[0] || ''

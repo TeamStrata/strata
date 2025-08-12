@@ -1,5 +1,5 @@
 <template>
-  <Line :data="chartData" :options="chartOptions" />
+  <Line :data="chartData" :options="chartOptions" class="w-full h-full" />
 </template>
 
 <script setup>
@@ -42,10 +42,6 @@ const props = defineProps({
 })
 
 function labels() {
-  if (props.chart.chartData[0].data == undefined) {
-    console.log("WHAT THE HECK")
-    console.log(props.chart.chartData[0])
-  }
   const xCol = props.chart.xColumn;
   return props.chart.chartData[0].data.map(item => item[xCol]);
 }
