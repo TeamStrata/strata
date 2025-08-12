@@ -18,8 +18,8 @@ import { computed } from 'vue'
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
 const props = defineProps({
-  series: {
-    type: Array,
+  chart: {
+    type: Object,
     required: true,
   },
   xAxisTitle: {
@@ -32,22 +32,25 @@ const props = defineProps({
   },
 })
 
+function labels() {
+  const xCol = props.chart.xColumn;
+  return props.chart.chartData[0].data.map(item => item[xCol]);
+}
+
+
 const chartData = computed(() => {
-  const firstSection = props.series[0]
-  const labels = firstSection?.chartData.map(row => row[firstSection.xColumn]) ?? []
-
-  const datasets = props.series.map((section, index) => ({
-    label: section.name || `Series ${index + 1}`,
-      data: (section.chartData || []).map(item => ({
-        y: item?.[section.xColumn],
-        x: item?.[section.yColumn],
-      })),
-    backgroundColor: `hsl(${(index * 60) % 360}, 70%, 60%)`
-  }))
-
   return {
-    labels,
-    datasets,
+    // labels: props.series[0]?.chartData?.map(item => item?.[props.series[0].xColumn]) ?? [],
+    labels: labels(),
+    datasets: props.chart.chartData.map((section, idx) => ({
+      label: section.name || `Series ${idx + 1}`,
+      data: section.data.map(item => ({
+        x: item?.[section.xColumn],
+        y: item?.[section.yColumn],
+      })),
+      backgroundColor: `hsla(${idx * 60}, 70%, 70%)`,
+      tension: 0.4
+    })),
   }
 })
 
