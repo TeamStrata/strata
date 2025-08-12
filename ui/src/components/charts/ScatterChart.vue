@@ -1,5 +1,5 @@
 <template>
-  <Scatter :data="chartData" :options="chartOptions" />
+  <Scatter :data="chartData" :options="chartOptions" class="w-full h-full" />
 </template>
 
 <script setup>
