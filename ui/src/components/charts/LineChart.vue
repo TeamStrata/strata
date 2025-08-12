@@ -27,8 +27,8 @@ ChartJS.register(
 )
 
 const props = defineProps({
-  series: {
-    type: Array,
+  chart: {
+    type: Object,
     required: true,
   },
   xAxisTitle: {
@@ -41,11 +41,17 @@ const props = defineProps({
   },
 })
 
+function labels() {
+  const xCol = props.chart.xColumn;
+  return props.chart.chartData[0].data.map(item => item[xCol]);
+}
+
 const chartData = computed(() => {
   return {
-    datasets: props.series.map((section, idx) => ({
+    labels: labels(),
+    datasets: props.chart.chartData.map((section, idx) => ({
       label: section.name || `Series ${idx + 1}`,
-      data: section.chartData.map(item => ({
+      data: section.data.map(item => ({
         x: item?.[section.xColumn],
         y: item?.[section.yColumn],
       })),
