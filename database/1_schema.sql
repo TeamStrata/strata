@@ -98,7 +98,8 @@ BEGIN
 		chart_id INTEGER NOT NULL references chart(chart_id),
 		size_x INTEGER NOT NULL,
 		size_y INTEGER NOT NULL,
-		chart_order INTEGER NOT NULL
+		chart_order INTEGER NOT NULL,
+		PRIMARY KEY (dashboard_id, chart_id)
 	);
 
 	---=== RELATIONS ===---
@@ -114,7 +115,7 @@ BEGIN
 		role_id INTEGER NOT NULL references roles(role_id) ON DELETE CASCADE,
 		permission_id INTEGER NOT NULL references permissions(permission_id) ON DELETE CASCADE,
 		PRIMARY KEY (role_id, dash_id, permission_id),
-		FOREIGN KEY (role_id, permission_id) REFERENCES rolePermissions(role_id, permission_id)
+		FOREIGN KEY (role_id, permission_id) REFERENCES rolePermissions(role_id, permission_id) ON DELETE CASCADE
 	);
 
 	-- Table to store relations between users and roles

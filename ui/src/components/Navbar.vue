@@ -100,6 +100,7 @@ function loadDashboards() {
                 throw new Error('unable to fetch dashboards');
             } else {
                 dashboards.value = await response.json();
+                user.boardPerms = dashboards.value
             }
         }
     )
@@ -115,7 +116,7 @@ loadDashboards();
     
     <Sidebar variant="inset">
         <SidebarHeader>
-            <img src="@/assets/StrataFullx256.png" alt="STRATA" class="mx-auto w-5/6 pt-2"></img>
+            <img src="@/assets/256_darker_black.png" alt="STRATA" class="mx-auto w-2/6 pt-2"></img>
         </SidebarHeader>
         <SidebarContent>
             <SidebarGroup v-if="user.isAdmin">
@@ -205,17 +206,17 @@ loadDashboards();
             </SidebarGroup>
             <SidebarGroup>
                 <SidebarGroupLabel>Dashboards</SidebarGroupLabel>
-                <SidebarGroupAction @click="showCreateDashboardDialog" title="Add Dashboards">
+                <SidebarGroupAction @click="showCreateDashboardDialog" title="Add Dashboards" class="cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
                         <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
                             stroke-width="2" d="M5 12h14m-7-7v14" />
                     </svg> <span class="sr-only">Add Dashboards</span>
                 </SidebarGroupAction>
                 <SidebarContent v-for="d in dashboards" :key="d.id">
-                    <SidebarMenuItem>
+                    <SidebarMenuItem class="list-none">
                         <SidebarMenuButton>
                             <RouterLink :to="`/dashboard/${d.id}`">
-                                {{ d.title }}
+                                {{ d.name }}
                             </RouterLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

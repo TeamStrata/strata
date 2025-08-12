@@ -7,15 +7,16 @@ import Separator from '@/components/ui/separator/Separator.vue';
 import SidebarInset from '@/components/ui/sidebar/SidebarInset.vue';
 import SidebarProvider from '@/components/ui/sidebar/SidebarProvider.vue';
 import SidebarTrigger from '@/components/ui/sidebar/SidebarTrigger.vue';
-import { useCounterStore } from '@/stores/pageInfo';
+import { usePageInfoStore } from '@/stores/pageInfo';
+import { Edit, Settings } from 'lucide-vue-next';
 
 
 const route = useRoute()
 
-const pageInfoStore = useCounterStore();
+const pageInfoStore = usePageInfoStore();
 const pageInfo = computed(() => {
   // return route.meta
-  if (route.meta && route.meta.title) {
+  if (route.meta.title) {
     return {
       title: route.meta.title,
       description: route.meta.description,
@@ -27,9 +28,26 @@ const pageInfo = computed(() => {
       title: pageInfoStore.pageInfo.title.value,
       description: pageInfoStore.pageInfo.description.value,
       configurable: pageInfoStore.pageInfo.configurable.value,
+      ignorePadding: route.meta.ignorePadding || false,
     };
   }
 })
+
+import { useEventBus } from '@/stores/eventBus'
+import { useUserStore } from '@/stores/user';
+
+const bus = useEventBus()
+
+const user = useUserStore();
+const canEditPage = computed(() => {
+  // Check if page is configurable
+  if (!pageInfo.value.configurable) return false;
+  // Get the ID from the route params
+  const pageId = route.params.id;
+  // Check if user has boardPerms and canEdit for this page ID
+  const perm = user.boardPerms.find(p => p.id == pageId);
+  return perm?.canEdit === true;
+});
 
 </script>
 
@@ -49,17 +67,15 @@ const pageInfo = computed(() => {
           </div>
           <!-- TODO: make this a real dropdown menu and button interaction and stuff -->
           <!-- Hidden options button that only shows on pages with the "configurable" property (for dashboard options) -->
-          <div :class="pageInfo.configurable ? 'block' : 'hidden'">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-              <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M4 12h16M4 18h16M4 6h16" />
-            </svg>
+          <div class="flex items-center gap-3 *:hover:text-neutral-600 *:cursor-pointer" :class="canEditPage ? 'block' : 'hidden'">
+            <Edit @click="bus.emit('goEdit')"></Edit>
+            <Settings @click="bus.emit('goSettings')"></Settings>
           </div>
         </div>
         <Separator></Separator>
         <!-- main content area -->
         <div class="h-full w-full" :class="pageInfo.ignorePadding ? 'p-0' : 'p-5'">
-          <RouterView></RouterView>
+          <RouterView :key="$route.path"></RouterView>
         </div>
       </SidebarInset>
     </SidebarProvider>

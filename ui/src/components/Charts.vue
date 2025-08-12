@@ -5,7 +5,7 @@ import { computed, defineAsyncComponent } from 'vue'
 import { apiFetch } from '@/api/request'
 import Input from './ui/input/Input.vue';
 import Label from './ui/label/Label.vue';
-import { Check, File, FolderOpen, Pencil, Plus, Save, X } from 'lucide-vue-next';
+import { Check, File, FolderOpen, Pencil, Plus, Save, Watch, X } from 'lucide-vue-next';
 
 import Dialog from './ui/dialog/Dialog.vue';
 import DialogContent from './ui/dialog/DialogContent.vue';
@@ -19,20 +19,15 @@ import DialogDescription from './ui/dialog/DialogDescription.vue';
 
 const toastRef = ref(null);
 const chartTypes = ['Line', 'Area', 'Column', 'Bar', 'Scatter']
-const selectedChart = ref(chartTypes[0])
 const isCreatingNewChart = ref(false)
 
 const savedQueries = ref([])
 const columns = ref([])
 
-const chartTitle = ref('')
 const savedChartTitles = ref([])
 const selectedChartTitle = ref('')
 const isChartLoaded = ref(false)
-const xAxisTitle = ref('')
-const yAxisTitle = ref('')
 
-const seriesSections = reactive([])
 const series = ref([
   {
     query: {},
@@ -40,6 +35,16 @@ const series = ref([
     y_column: ''
   }
 ])
+
+const chartFull = reactive({
+  chart_id: null,
+  title: "",
+  type: chartTypes[0],
+  xColumn: '',
+  yColumn: '',
+  chartData: [],
+})
+
 const chartComponent = computed(() => {
   const map = {
     Line: defineAsyncComponent(() => import('./charts/LineChart.vue')),
@@ -49,7 +54,7 @@ const chartComponent = computed(() => {
     Scatter: defineAsyncComponent(() => import('./charts/ScatterChart.vue')),
   }
 
-  return map[selectedChart.value] || null
+  return map[chartFull.type] || null
 })
 // Fetch saved queries
 apiFetch('/queries')
@@ -101,9 +106,9 @@ const addSeriesSection = () => {
     query: savedQueries.value[0] || {},
     xColumn: '',
     yColumn: '',
-    chartData: [],
+    data: [],
     columns: [],
-    name: "Series " + (seriesSections.length + 1)
+    name: "Series " + (chartFull.chartData.length + 1)
   })
   watch(
     () => section.query,
@@ -114,8 +119,14 @@ const addSeriesSection = () => {
         const response = await apiFetch(`/query/${newQuery.id}/execute`)
         if (!response.ok) throw new Error('Failed to execute query')
 
-        const data = await response.json()
-        const cols = Object.keys(data[0] || {})
+        const result = await response.json()
+
+        if (result.chartData) {
+          section.data = result.chartData;
+        } else if (Array.isArray(result)) {
+          section.data = result;
+        }
+        const cols = Object.keys(result[0] || {})
 
         section.columns = cols
         if (!section.xColumn) section.xColumn = cols[0] || ''
@@ -127,19 +138,17 @@ const addSeriesSection = () => {
     { immediate: true }
   )
 
-  seriesSections.push(section)
-  generateChart(seriesSections.length - 1)
+  chartFull.chartData.push(section)
+  generateChart(chartFull.chartData.length - 1)
 }
 
 
 const removeChartSection = (index) => {
-  seriesSections.splice(index, 1)
+  chartFull.chartData.splice(index, 1)
 }
 
-const chartData = ref([])
-
 const generateChart = async (index) => {
-  const section = seriesSections[index]
+  const section = chartFull.chartData[index]
   if (!section.query?.id) return
 
   try {
@@ -147,7 +156,7 @@ const generateChart = async (index) => {
     if (!response.ok) throw new Error('Failed to execute query')
 
     const data = await response.json()
-    seriesSections[index].chartData = data
+    chartFull.chartData[index].chartData = data
 
   } catch (err) {
     console.error('Error generating chart:', err)
@@ -156,10 +165,10 @@ const generateChart = async (index) => {
 
 const saveChart = async () => {
   const payload = {
-    title: chartTitle.value,
-    type: selectedChart.value.toLowerCase(),
-    x_axis: xAxisTitle.value,
-    y_axis: yAxisTitle.value
+    title: chartFull.title,
+    type: chartFull.type.toLowerCase(),
+    x_axis: chartFull.xColumn,
+    y_axis: chartFull.yColumn
   }
 
   try {
@@ -168,7 +177,7 @@ const saveChart = async () => {
       throw new Error('Missing chart title')
     }
 
-    if (seriesSections.length < 1) {
+    if (chartFull.chartData.length < 1) {
       toastRef.value?.showToast(
         'At least one series is required',
         ToastTypes.FAIL
@@ -186,12 +195,12 @@ const saveChart = async () => {
       throw new Error('No chart ID returned from server')
     }
 
-    const seriesPayload = seriesSections.map(section => ({
+    const seriesPayload = chartFull.chartData.map(section => ({
       id: section.id,
       chart_id: chartId,
       query_id: section.query?.id,
-      x_col_name: section.xColumn,
-      y_col_name: section.yColumn,
+      xColumn: section.xColumn,
+      yColumn: section.yColumn,
       name: section.name,
     }))
 
@@ -230,10 +239,11 @@ const loadChartFromDB = async () => {
 
     resetChart();
 
-    chartTitle.value = chartData.title;
-    selectedChart.value = capitalizeFirstLetter(chartData.type);
-    xAxisTitle.value = chartData.x_axis || '';
-    yAxisTitle.value = chartData.y_axis || '';
+    chartFull.title = chartData.title;
+    chartFull.type = capitalizeFirstLetter(chartData.type);
+    chartFull.xColumn = chartData.x_axis || '';
+    chartFull.yColumn = chartData.y_axis || '';
+    chartFull.chart_id = chartData.id;
 
     // Fetch the series separately (assuming /chart/:id/series endpoint)
     const seriesRes = await apiFetch(`/chart/${selectedChartTitle.value.id}/series`);
@@ -254,17 +264,18 @@ const loadChartFromDB = async () => {
           name: seriesItem.name,
           id: seriesItem.id,
           query,
-          xColumn: seriesItem.x_col_name,
-          yColumn: seriesItem.y_col_name,
+          xColumn: seriesItem.xColumn,
+          yColumn: seriesItem.yColumn,
           chart_id: seriesItem.chart_id,
-          chartData,
+          data: chartData,
           columns: Object.keys(chartData[0] || {}), // dynamically get columns for selects
         };
       })
     );
     isChartLoaded.value = true
     isCreatingNewChart.value = false
-    seriesSections.splice(0, seriesSections.length, ...loadedSeries.filter(Boolean));
+    console.log()
+    chartFull.chartData.splice(0, chartFull.chartData.length, ...loadedSeries.filter(Boolean));
     isCreatingNewChart.value = false;
 
   } catch (err) {
@@ -294,11 +305,11 @@ async function deleteChart(cid) {
 }
 
 function resetChart() {
-  chartTitle.value = ''
-  selectedChart.value = chartTypes[0]
-  xAxisTitle.value = ''
-  yAxisTitle.value = ''
-  seriesSections.splice(0, seriesSections.length)
+  chartFull.title = ''
+  chartFull.type = chartTypes[0]
+  chartFull.xColumn = ''
+  chartFull.yColumn = ''
+  chartFull.chartData.splice(0, chartFull.chartData.length)
   isCreatingNewChart.value = true
   isChartLoaded.value = false
 }
@@ -370,13 +381,13 @@ const isLoadOpen = ref(false);
       <!-- name and stuff -->
       <div>
         <Label class="mb-1">Chart Title</Label>
-        <Input v-model="chartTitle" placeholder="Enter chart title" />
+        <Input v-model="chartFull.title" placeholder="Enter chart title" />
       </div>
 
       <!-- type selection -->
       <div>
         <Label class="mb-1">Chart Type:</Label>
-        <select v-model="selectedChart" class="w-full p-2 border border-gray-300 rounded">
+        <select v-model="chartFull.type" class="w-full p-2 border border-gray-300 rounded">
           <option v-for="type in chartTypes" :key="type">{{ type }}</option>
         </select>
       </div>
@@ -384,9 +395,9 @@ const isLoadOpen = ref(false);
       <!-- axis naming -->
       <div>
         <Label class="mb-1">X Axis Name</Label>
-        <Input placeholder="Enter X Axis name" v-model="xAxisTitle" />
+        <Input placeholder="Enter X Axis name" v-model="chartFull.xColumn" />
         <Label class="mb-1 mt-4">Y Axis Name</Label>
-        <Input placeholder="Enter Y Axis name" v-model="yAxisTitle" />
+        <Input placeholder="Enter Y Axis name" v-model="chartFull.yColumn" />
       </div>
 
       <!-- series management -->
@@ -397,7 +408,7 @@ const isLoadOpen = ref(false);
 
       <!-- series scrollable container -->
       <div class="flex-1 overflow-y-scroll gap-4 flex flex-col">
-        <div v-for="(section, index) in seriesSections" :key="index"
+        <div v-for="(section, index) in chartFull.chartData" :key="index"
           class="min-w-[300px] shrink-0 border border-gray-300 p-4 rounded-lg bg-gray-50 relative">
           <div class="flex justify-between items-center mb-2">
             <div class="flex items-center gap-2" v-if="!section.isEditingName ?? false"
@@ -451,10 +462,9 @@ const isLoadOpen = ref(false);
     </div>
     <Separator orientation="vertical"></Separator>
     <!-- Render Chart -->
-    <div class="flex-1 ml-4 my-auto" v-if="chartComponent && seriesSections.length">
-      <div v-if="chartComponent && seriesSections.some(s => s.chartData?.length)">
-        <component :is="chartComponent" :series="seriesSections.filter(s => s.chartData?.length)"
-          :xAxisTitle="xAxisTitle" :yAxisTitle="yAxisTitle" />
+    <div class="flex-1 ml-4 my-auto" v-if="chartComponent && chartFull.chartData.length">
+      <div v-if="true">
+        <component :is="chartComponent" :chart="chartFull" :xAxisTitle="chartFull.xColumn" :yAxisTitle="chartFull.yColumn" />
       </div>
     </div>
   </div>

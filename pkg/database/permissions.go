@@ -21,6 +21,239 @@ type Permission struct {
 	Scope ScopeType `json:"scope,omitempty"`
 }
 
+type UserDashboardPermissions struct {
+	DashboardId int    `json:"id"`
+	Name        string `json:"name"`
+	CanView     bool   `json:"canView"`
+	CanEdit     bool   `json:"canEdit"`
+	CanDelete   bool   `json:"canDelete"`
+}
+
+type RolePermission struct {
+	RoleId    int    `json:"roleId"`
+	RoleName  string `json:"roleName"`
+	CanView   bool   `json:"canView"`
+	CanEdit   bool   `json:"canEdit"`
+	CanDelete bool   `json:"canDelete"`
+}
+
+type DashboardRolePermissions struct {
+	Id          int              `json:"id"`
+	Name        string           `json:"name"`
+	Content     string           `json:"content"`
+	Permissions []RolePermission `json:"permissions"`
+}
+
+func (d *DbManager) GetUserDashboardPermissions(userId int) ([]UserDashboardPermissions, error) {
+	query :=
+		`SELECT
+			d.dashboard_id,
+			d.dashboard_title,
+		BOOL_OR(p.permission_name = 'edit_dashboard')   AS can_edit,
+		BOOL_OR(p.permission_name = 'delete_dashboard') AS can_delete,
+		BOOL_OR(p.permission_name = 'view_dashboard')   AS can_view
+		FROM dashboards					AS d
+		JOIN dashboardRolePermissions	AS drp ON drp.dash_id = d.dashboard_id
+		JOIN rolePermissions			AS rp  ON rp.role_id = drp.role_id
+											AND rp.permission_id = drp.permission_id
+		JOIN userRoles					AS ur  ON ur.role_id = rp.role_id
+											AND ur.user_id  = $1
+		JOIN permissions				AS p ON p.permission_id = drp.permission_id
+		GROUP BY d.dashboard_id, d.dashboard_title
+		HAVING BOOL_OR(p.permission_name = 'view_dashboard');
+		`
+
+	rows, err := d.Connection.Query(d.Context, query, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	dashboards := []UserDashboardPermissions{}
+	for rows.Next() {
+		tmp := UserDashboardPermissions{}
+		err = rows.Scan(&tmp.DashboardId, &tmp.Name, &tmp.CanEdit, &tmp.CanDelete, &tmp.CanView)
+		if err != nil {
+			return nil, err
+		}
+		dashboards = append(dashboards, tmp)
+	}
+
+	return dashboards, nil
+}
+
+func (d *DbManager) GetDashboardRolePermissions(id int) (DashboardRolePermissions, error) {
+	query := `
+		SELECT
+			d.dashboard_id AS id,
+			d.dashboard_title,
+			d.dashboard_content,
+			drp.role_id,
+			r.role_name,
+			BOOL_OR(p.permission_name = 'view_dashboard')   AS can_view,
+			BOOL_OR(p.permission_name = 'edit_dashboard')   AS can_edit,
+			BOOL_OR(p.permission_name = 'delete_dashboard') AS can_delete
+		FROM dashboards d
+		JOIN dashboardRolePermissions drp
+			ON d.dashboard_id = drp.dash_id
+		JOIN permissions p
+			ON drp.permission_id = p.permission_id
+		JOIN roles r
+			ON drp.role_id = r.role_id
+		WHERE d.dashboard_id = $1
+		GROUP BY
+			d.dashboard_id,
+			d.dashboard_title,
+			d.dashboard_content,
+			drp.role_id,
+			r.role_name
+		ORDER BY drp.role_id;
+	`
+
+	rows, err := d.Connection.Query(d.Context, query, id)
+	if err != nil {
+		return DashboardRolePermissions{}, err
+	}
+	defer rows.Close()
+
+	var result DashboardRolePermissions
+	var permissions []RolePermission
+	first := true
+
+	for rows.Next() {
+		var rp RolePermission
+		var id int
+		var name, description string
+		var canView, canEdit, canDelete bool
+
+		err := rows.Scan(
+			&id,
+			&name,
+			&description,
+			&rp.RoleId,
+			&rp.RoleName,
+			&canView,
+			&canEdit,
+			&canDelete,
+		)
+		if err != nil {
+			return DashboardRolePermissions{}, err
+		}
+
+		if first {
+			result.Id = id
+			result.Name = name
+			result.Content = description
+			first = false
+		}
+
+		rp.CanView = canView
+		rp.CanEdit = canEdit
+		rp.CanDelete = canDelete
+		permissions = append(permissions, rp)
+	}
+
+	if rows.Err() != nil {
+		return DashboardRolePermissions{}, rows.Err()
+	}
+
+	result.Permissions = permissions
+	return result, nil
+}
+
+// Bulk update role permissions for a dashboard.
+func (d *DbManager) UpdateDashboardRolePermissions(dashPermissions DashboardRolePermissions) error {
+	// Get view_dashboard, edit_dashboard, and delete_dashboard permission id.
+	var readPermID, editPermID, deletePermID int
+	query := `SELECT permission_id FROM permissions WHERE permission_name = 'view_dashboard'`
+	err := d.Connection.QueryRow(d.Context, query).Scan(&readPermID)
+	if err != nil {
+		return err
+	}
+
+	query = `SELECT permission_id FROM permissions WHERE permission_name = 'edit_dashboard'`
+	err = d.Connection.QueryRow(d.Context, query).Scan(&editPermID)
+	if err != nil {
+		return err
+	}
+
+	query = `SELECT permission_id FROM permissions WHERE permission_name = 'delete_dashboard'`
+	err = d.Connection.QueryRow(d.Context, query).Scan(&deletePermID)
+	if err != nil {
+		return err
+	}
+
+	tx, err := d.Connection.Begin(d.Context)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(d.Context)
+
+	// Update name and description.
+	query = `
+		UPDATE dashboards
+		SET dashboard_title = $1,
+			dashboard_content = $2
+		WHERE dashboard_id = $3
+	`
+	_, err = tx.Exec(
+		d.Context,
+		query,
+		dashPermissions.Name,
+		dashPermissions.Content,
+		dashPermissions.Id,
+	)
+	if err != nil {
+		return err
+	}
+
+	// Delete all permissions for dashboard.
+	query = `DELETE FROM dashboardRolePermissions WHERE dash_id = $1`
+	_, err = tx.Exec(d.Context, query, dashPermissions.Id)
+	if err != nil {
+		return err
+	}
+
+	ensureRolePermissionQuery := `
+		INSERT INTO rolePermissions (role_id, permission_id)
+		VALUES ($1, $2)
+		ON CONFLICT DO NOTHING
+	`
+	query = `INSERT INTO dashboardRolePermissions (dash_id, role_id, permission_id) VALUES ($1, $2, $3)`
+
+	// Insert given permissions for dashboard.
+	for _, p := range dashPermissions.Permissions {
+		if p.CanView {
+			if _, err := tx.Exec(d.Context, ensureRolePermissionQuery, p.RoleId, readPermID); err != nil {
+				return err
+			}
+			_, err := tx.Exec(d.Context, query, dashPermissions.Id, p.RoleId, readPermID)
+			if err != nil {
+				return err
+			}
+		}
+		if p.CanEdit {
+			if _, err := tx.Exec(d.Context, ensureRolePermissionQuery, p.RoleId, editPermID); err != nil {
+				return err
+			}
+			_, err := tx.Exec(d.Context, query, dashPermissions.Id, p.RoleId, editPermID)
+			if err != nil {
+				return err
+			}
+		}
+		if p.CanDelete {
+			if _, err := tx.Exec(d.Context, ensureRolePermissionQuery, p.RoleId, deletePermID); err != nil {
+				return err
+			}
+			_, err := tx.Exec(d.Context, query, dashPermissions.Id, p.RoleId, deletePermID)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return tx.Commit(d.Context)
+}
+
 // Get all permissions with a specific scope (e.g. 'global', 'dashboard')
 func (d *DbManager) GetScopedPermissions(scope ScopeType) ([]Permission, error) {
 	query :=

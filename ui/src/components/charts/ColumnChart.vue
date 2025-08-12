@@ -1,5 +1,5 @@
 <template>
-  <Bar :data="chartData" :options="chartOptions" />
+  <Bar :data="chartData" :options="chartOptions" class="w-full h-full" />
 </template>
 
 <script setup>
@@ -25,8 +25,8 @@ ChartJS.register(
 )
 
 const props = defineProps({
-  series: {
-    type: Array,
+  chart: {
+    type: Object,
     required: true,
   },
   xAxisTitle: {
@@ -39,18 +39,24 @@ const props = defineProps({
   },
 })
 
+function labels() {
+  const xCol = props.chart.xColumn;
+  return props.chart.chartData[0].data.map(item => item[xCol]);
+}
+
 // Prepare chart data with multiple bar series
 const chartData = computed(() => {
-  const labels = props.series[0]?.chartData?.map(item => item?.[props.series[0].xColumn]) ?? []
+  // const labels = props.series[0]?.chartData?.map(item => item?.[props.series[0].xColumn]) ?? []
 
   return {
-    labels,
-    datasets: props.series.map((section, idx) => ({
+    // labels: labels(),
+    datasets: props.chart.chartData.map((section, idx) => ({
       label: section.name || `Series ${idx + 1}`,
-      data: section.chartData.map(item => ({
+      data: section.data.map(item => ({
         x: item?.[section.xColumn],
         y: item?.[section.yColumn],
-      })), backgroundColor: `hsl(${idx * 60}, 70%, 60%)`,
+      })),
+      backgroundColor: `hsl(${idx * 60}, 70%, 60%)`,
     }))
   }
 })
@@ -58,6 +64,7 @@ const chartData = computed(() => {
 const chartOptions = computed(() => {
   return {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         display: true,
@@ -68,7 +75,7 @@ const chartOptions = computed(() => {
     },
     scales: {
       x: {
-        type: 'linear',
+        type: 'category',
         title: {
           display: true,
           text: props.xAxisTitle,
@@ -79,7 +86,7 @@ const chartOptions = computed(() => {
           display: true,
           text: props.yAxisTitle,
         },
-        beginAtZero: true
+        // beginAtZero: true
       }
     }
   }
