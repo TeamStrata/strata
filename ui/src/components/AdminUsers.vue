@@ -296,7 +296,9 @@ Promise.all([loadUsers(), loadRoles()]).then(() => {
 				<DialogClose as-child>
 					<Button type="button" variant="outline">Cancel</Button>
 				</DialogClose>
-				<Button type="submit" @click="deleteUser(userToDelete)">Confirm</Button>
+				<DialogClose as-child>
+					<Button type="submit" @click="deleteUser(userToDelete)">Confirm</Button>
+				</DialogClose>
 			</DialogFooter>
 		</DialogContent>
 	</Dialog>
