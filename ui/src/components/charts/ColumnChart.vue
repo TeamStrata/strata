@@ -49,7 +49,7 @@ const chartData = computed(() => {
   // const labels = props.series[0]?.chartData?.map(item => item?.[props.series[0].xColumn]) ?? []
 
   return {
-    labels: labels(),
+    // labels: labels(),
     datasets: props.chart.chartData.map((section, idx) => ({
       label: section.name || `Series ${idx + 1}`,
       data: section.data.map(item => ({
@@ -75,7 +75,7 @@ const chartOptions = computed(() => {
     },
     scales: {
       x: {
-        // type: 'linear',
+        type: 'category',
         title: {
           display: true,
           text: props.xAxisTitle,
@@ -86,7 +86,7 @@ const chartOptions = computed(() => {
           display: true,
           text: props.yAxisTitle,
         },
-        beginAtZero: true
+        // beginAtZero: true
       }
     }
   }

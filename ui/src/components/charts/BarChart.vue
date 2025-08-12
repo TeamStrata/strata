@@ -41,7 +41,7 @@ function labels() {
 const chartData = computed(() => {
   return {
     // labels: props.series[0]?.chartData?.map(item => item?.[props.series[0].xColumn]) ?? [],
-    labels: labels(),
+    // labels: labels(),
     datasets: props.chart.chartData.map((section, idx) => ({
       label: section.name || `Series ${idx + 1}`,
       data: section.data.map(item => ({
