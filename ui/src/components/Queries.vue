@@ -296,7 +296,7 @@ function scaleChatBox() {
 	<Dialog :open="isSaveOpen" @update:open="isSaveOpen = $event">
 		<DialogContent class="sm:max-w-[425px]">
 			<DialogHeader>
-				<DialogTitle>Save As</DialogTitle>
+				<DialogTitle>Save Query with Name:</DialogTitle>
 				<DialogDescription>
 					Click 'Confirm' to save changes.
 				</DialogDescription>
@@ -306,7 +306,9 @@ function scaleChatBox() {
 					<Label for="edit-name-input" class="text-right">Name</Label>
 					<Input id="edit-name-input" type="text" v-model="newQueryName" class="col-span-3" />
 				</div>
-				<pre><code class="language-sql rounded">{{ code }}</code></pre>
+				<pre class="max-h-40 overflow-auto p-2 rounded bg-gray-100 whitespace-pre-wrap break-words">
+					<code class="language-sql rounded">{{ code }}</code>
+				</pre>
 			</div>
 			<DialogFooter>
 				<DialogClose as-child>
@@ -314,7 +316,9 @@ function scaleChatBox() {
 						Cancel
 					</Button>
 				</DialogClose>
-				<Button type="submit" @click="addQuery">Confirm</Button>
+				<DialogClose as-child>
+					<Button type="submit" @click="addQuery">Confirm</Button>
+				</DialogClose>
 			</DialogFooter>
 		</DialogContent>
 	</Dialog>

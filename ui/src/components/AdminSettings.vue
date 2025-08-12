@@ -52,7 +52,7 @@ function submitEdit(key) {
             } else {
                 editModal.value = false;
                 toastRef.value?.showToast(
-                    "Role updated successfully",
+                    "Settings updated successfully",
                     ToastTypes.SUCCESS,
                 );
                 loadSettings();
