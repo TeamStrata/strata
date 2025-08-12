@@ -30,7 +30,7 @@ ChartJS.register(
 
 const props = defineProps({
   chart: {
-    type: Array,
+    type: Object,
     required: true,
   },
   xAxisTitle: {
@@ -58,7 +58,8 @@ const chartData = computed(() => {
       data: section.data.map(item => ({
         x: item?.[section.xColumn],
         y: item?.[section.yColumn],
-      })), fill: true,
+      })),
+      fill: true,
       borderColor: `hsl(${idx * 60}, 70%, 50%)`,
       backgroundColor: `hsla(${idx * 60}, 70%, 70%, 0.3)`,
       tension: 0.4
