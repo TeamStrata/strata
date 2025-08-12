@@ -26,8 +26,8 @@ ChartJS.register(
 )
 
 const props = defineProps({
-  series: {
-    type: Array,
+  chart: {
+    type: Object,
     required: true,
     // Each series: { chartData: Array, xColumn: String, yColumn: String }
   },
@@ -41,12 +41,18 @@ const props = defineProps({
   },
 })
 
+function labels() {
+  const xCol = props.chart.xColumn;
+  return props.chart.chartData[0].data.map(item => item[xCol]);
+}
+
 const chartData = computed(() => {
   // Map each series in props to a Chart.js dataset
   return {
-    datasets: props.series.map((section, idx) => ({
+    labels: labels(),
+    datasets: props.chart.chartData.map((section, idx) => ({
       label: section.name || `Series ${idx + 1}`,
-      data: (section.chartData || []).map(item => ({
+      data: section.data.map(item => ({
         x: item?.[section.xColumn],
         y: item?.[section.yColumn],
       })),
@@ -57,7 +63,7 @@ const chartData = computed(() => {
 })
 
 const xIsDate = computed(() => {
-  const firstSeries = props.series[0]
+  const firstSeries = props.chart[0]
   if (!firstSeries || !firstSeries.chartData?.length) return false
   const sampleX = firstSeries.chartData[0]?.[firstSeries.xColumn]
   return typeof sampleX === 'string' && /\d{4}-\d{2}-\d{2}/.test(sampleX)
