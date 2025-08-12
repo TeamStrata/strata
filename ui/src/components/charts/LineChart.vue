@@ -70,6 +70,7 @@ const chartData = computed(() => {
 const chartOptions = computed(() => {
   return {
     responsive: true,
+    maintainAspectRatio: false,
     scales: {
       x: {
         type: 'linear',
